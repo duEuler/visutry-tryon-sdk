@@ -67,6 +67,7 @@ const diagnosticReadout = $("diagnostic-readout");
 const auditFace = $("audit-face");
 const auditGlb = $("audit-glb");
 const auditStrategy = $("audit-strategy");
+const auditCamera = $("audit-camera");
 const statFps = $("stat-fps");
 const statDetect = $("stat-detect");
 const statRender = $("stat-render");
@@ -189,6 +190,18 @@ function updateAlignmentReadout(face: NormalizedFaceResult, pose: NonNullable<ty
   auditFace.textContent = `olhos ${eyeDistancePx.toFixed(1)} px · pose yaw ${((pose.rotation.y * 180) / Math.PI).toFixed(1)}° · confiança ${(face.pose.confidence * 100).toFixed(0)}%`;
   auditGlb.textContent = `${asset.name} · ${asset.dimensions.frameWidthMm} mm · escala ${pose.scale.x.toFixed(3)} (${clampLabel}) · âncoras ${derivedAnchorIds.has(asset.id) ? "derivadas" : "autoriais"}`;
   auditStrategy.textContent = `canônica: ${matrix && matrix.length >= 16 ? "disponível" : "indisponível"} · posição: eyesCenter · rotação: matriz`;
+}
+
+function updateCameraAudit(): void {
+  const video = document.getElementById("camera-video") as HTMLVideoElement | null;
+  const rect = stage.getBoundingClientRect();
+  const width = video?.videoWidth ?? 0;
+  const height = video?.videoHeight ?? 0;
+  const aspect = width && height ? (width / height).toFixed(3) : "—";
+  auditCamera.textContent = `captura ${width || "—"}×${height || "—"} · aspecto ${aspect}\n` +
+    `facingMode ${currentFacingMode} · palco ${Math.round(rect.width)}×${Math.round(rect.height)}\n` +
+    `object-fit cover · vídeo espelhado · canvas espelhado\n` +
+    `taxa alvo 30 FPS · rastreamento ${lastFace ? "ativo" : "aguardando"}`;
 }
 
 /** Applies one guarded, session-only origin correction from the nose bridge. */
@@ -726,6 +739,7 @@ async function init(): Promise<void> {
     sdk.on("faceDetected", (face) => {
       updateTrackingStatus(true);
       lastFace = face;
+      updateCameraAudit();
       if (diagnosticEnabled && face) {
         const video = document.getElementById("camera-video") as HTMLVideoElement | null;
         landmarkOverlay.renderFromFace(face, video?.videoWidth || 640, video?.videoHeight || 480);
@@ -735,6 +749,7 @@ async function init(): Promise<void> {
 
     sdk.on("poseUpdated", (pose) => {
       lastPose = pose;
+      updateCameraAudit();
       if (lastFace) autoCalibrateOrigin(lastFace, pose);
       if (diagnosticEnabled && lastFace) updateAlignmentReadout(lastFace, pose);
     });

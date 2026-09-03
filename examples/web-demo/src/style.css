@@ -154,6 +154,15 @@ html, body {
   border-left: 1px solid rgba(255,255,255,.08);
 }
 
+.camera-audit {
+  width: min(280px, 100%);
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  background: #10111a;
+  border-right: 1px solid rgba(255,255,255,.08);
+}
+
 .audit-card {
   padding: 12px;
   border: 1px solid rgba(53,208,127,.25);
@@ -663,6 +672,14 @@ html, body {
 
 /* ==================== Desktop Adjustments ==================== */
 @media (min-width: 768px) {
+  .camera-audit {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    overflow-y: auto;
+  }
+
   .diagnostic-audit {
     position: absolute;
     top: 0;
