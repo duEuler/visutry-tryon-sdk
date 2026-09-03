@@ -715,8 +715,11 @@ async function init(): Promise<void> {
         modelAssetPath: "/mediapipe/face_landmarker.task",
       },
       renderer: {
-        width: 640,
-        height: 480,
+        // Match the renderer's drawing buffer to the visible stage. The video
+        // may remain 640x480, but the overlay must not be stretched into the
+        // portrait viewport by CSS after rendering.
+        width: Math.max(1, Math.round(stage.clientWidth || 640)),
+        height: Math.max(1, Math.round(stage.clientHeight || 480)),
         mirror: true,
         background: "transparent",
       },
