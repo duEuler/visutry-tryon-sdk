@@ -158,8 +158,8 @@ function updateAlignmentReadout(face: NormalizedFaceResult, pose: NonNullable<ty
   const metric = matrix && matrix.length >= 16
     ? `\nmatriz canônica: t=(${(matrix[12] ?? 0).toFixed(3)}, ${(matrix[13] ?? 0).toFixed(3)}, ${(matrix[14] ?? 0).toFixed(3)}) cm`
     : "\nmatriz canônica: indisponível";
-  const scale = `\nescala: aplicada ${pose.scale.x.toFixed(3)} [${minScale.toFixed(2)}–${maxScale.toFixed(2)}] ${clampLabel} · olhos ${eyeDistancePx.toFixed(1)}px · GLB ${asset.dimensions.frameWidthMm}mm`;
-  diagnosticReadout.textContent = `${diagnosticBaseReadout}${metric}${scale}\nalinhamento: ${status} · erro ${error.toFixed(3)}u`;
+  const scaleInfo = `\nescala: aplicada ${pose.scale.x.toFixed(3)} [${minScale.toFixed(2)}–${maxScale.toFixed(2)}] ${clampLabel} · olhos ${eyeDistancePx.toFixed(1)}px · GLB ${asset.dimensions.frameWidthMm}mm`;
+  diagnosticReadout.textContent = `${diagnosticBaseReadout}${metric}${scaleInfo}\nalinhamento: ${status} · erro ${error.toFixed(3)}u`;
 }
 
 /** Applies one guarded, session-only origin correction from the nose bridge. */
