@@ -139,7 +139,10 @@ export class GlassesPoseSolver {
     }
 
     const rawScale = fitMetric / modelWidthRW;
-    const scale = rawScale * asset.fitting.defaultScale * (cfg.scaleMultiplier ?? 1);
+    // Canonical mode uses the physical ratio directly. Legacy manifests may
+    // still carry a historical defaultScale multiplier for compatibility.
+    const baselineScale = cfg.useCanonicalTransform ? 1 : asset.fitting.defaultScale;
+    const scale = rawScale * baselineScale * (cfg.scaleMultiplier ?? 1);
     return scale;
   }
 
@@ -310,7 +313,9 @@ export class GlassesPoseSolver {
     asset: GlassesAssetManifest,
     _cfg: GlassesFittingConfig,
   ): number {
-    const min = asset.fitting.minScale ?? 0.1;
+    // A legacy minScale such as 0.6 is incompatible with physical canonical
+    // fitting: small faces would be enlarged until they hit that floor.
+    const min = _cfg.useCanonicalTransform ? 0.05 : (asset.fitting.minScale ?? 0.1);
     const max = asset.fitting.maxScale ?? 5;
     // The scaleMultiplier was already applied in computeScale.
     // Here we only clamp the final computed scale to the manifest's bounds.

@@ -173,7 +173,7 @@ function updateAlignmentReadout(face: NormalizedFaceResult, pose: NonNullable<ty
         (sem.rightEyeCenter.y - sem.leftEyeCenter.y) * (face.imageHeight ?? 480),
       )
     : 0;
-  const minScale = asset.fitting.minScale ?? 0.1;
+  const minScale = canonicalExperiment ? 0.05 : (asset.fitting.minScale ?? 0.1);
   const maxScale = asset.fitting.maxScale ?? 5;
   const clampLabel = pose.scale.x <= minScale + 1e-4
     ? "CLAMP MIN"
