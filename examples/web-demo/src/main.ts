@@ -111,6 +111,23 @@ let calibrationApplied = false;
 // Keep this experiment isolated: the canonical MediaPipe matrix must be the
 // only source of translation while we validate the coordinate convention.
 const canonicalExperiment = true;
+const derivedAnchorIds = new Set<string>();
+
+/** Derive a comparable lens layout from declared physical dimensions. */
+function ensureDerivedAnchors(asset: GlassesAssetManifest): void {
+  if (asset.anchors?.leftLensCenter && asset.anchors.rightLensCenter) return;
+  const lensWidth = asset.dimensions.lensWidthMm ?? asset.dimensions.frameWidthMm * 0.38;
+  const bridge = asset.dimensions.bridgeWidthMm ?? asset.dimensions.frameWidthMm * 0.1;
+  const halfCenterDistance = (lensWidth + bridge) / 2000;
+  asset.anchors = {
+    ...(asset.anchors ?? {}),
+    origin: asset.anchors?.origin ?? { x: 0, y: 0, z: 0 },
+    noseBridge: asset.anchors?.noseBridge ?? { x: 0, y: 0, z: 0 },
+    leftLensCenter: { x: -halfCenterDistance, y: 0, z: 0 },
+    rightLensCenter: { x: halfCenterDistance, y: 0, z: 0 },
+  };
+  derivedAnchorIds.add(asset.id);
+}
 
 function resetSessionCalibration(): void {
   calibrationFrames = 0;
@@ -131,8 +148,9 @@ function updateAlignmentReadout(face: NormalizedFaceResult, pose: NonNullable<ty
   const sem = face.landmarks.semantic;
   if (!left || !right || !sem.leftEyeCenter || !sem.rightEyeCenter) {
     auditFace.textContent = `landmarks detectados · confiança ${(face.pose.confidence * 100).toFixed(0)}%`;
-    auditGlb.textContent = `${asset.name} · ${asset.dimensions.frameWidthMm} mm · âncoras de lentes ausentes`;
-    auditStrategy.textContent = "comparação bloqueada · completar âncoras do GLB";
+    ensureDerivedAnchors(asset);
+    auditGlb.textContent = `${asset.name} · ${asset.dimensions.frameWidthMm} mm · âncoras derivadas das dimensões`;
+    auditStrategy.textContent = "comparação disponível · âncoras derivadas (validar no GLB)";
     return;
   }
   const toWorld = (p: { x: number; y: number; z?: number }) => CoordinateSystem.normalizedToRenderWorld(p, 1);
@@ -169,7 +187,7 @@ function updateAlignmentReadout(face: NormalizedFaceResult, pose: NonNullable<ty
   const scaleInfo = `\nescala: aplicada ${pose.scale.x.toFixed(3)} [${minScale.toFixed(2)}–${maxScale.toFixed(2)}] ${clampLabel} · olhos ${eyeDistancePx.toFixed(1)}px · GLB ${asset.dimensions.frameWidthMm}mm`;
   diagnosticReadout.textContent = `${diagnosticBaseReadout}${metric}${scaleInfo}\nalinhamento: ${status} · erro ${error.toFixed(3)}u`;
   auditFace.textContent = `olhos ${eyeDistancePx.toFixed(1)} px · pose yaw ${((pose.rotation.y * 180) / Math.PI).toFixed(1)}° · confiança ${(face.pose.confidence * 100).toFixed(0)}%`;
-  auditGlb.textContent = `${asset.name} · ${asset.dimensions.frameWidthMm} mm · escala ${pose.scale.x.toFixed(3)} (${clampLabel}) · âncoras de lentes OK`;
+  auditGlb.textContent = `${asset.name} · ${asset.dimensions.frameWidthMm} mm · escala ${pose.scale.x.toFixed(3)} (${clampLabel}) · âncoras ${derivedAnchorIds.has(asset.id) ? "derivadas" : "autoriais"}`;
   auditStrategy.textContent = `canônica: ${matrix && matrix.length >= 16 ? "disponível" : "indisponível"} · posição: eyesCenter · rotação: matriz`;
 }
 
@@ -408,6 +426,7 @@ async function switchGlasses(index: number): Promise<void> {
   renderGlassesList();
 
   const glasses = ALL_GLASSES[index];
+  ensureDerivedAnchors(glasses);
   glassesName.textContent = glasses.name;
   glassesPrice.textContent = `¥${glasses.metadata?.price ?? "—"}`;
   glassesInfo.classList.remove("hidden");
@@ -745,6 +764,7 @@ async function init(): Promise<void> {
     await sdk.startTryOn();
 
     // Load default glasses
+    ensureDerivedAnchors(ALL_GLASSES[0]);
     await sdk.loadGlasses(ALL_GLASSES[0]);
     glassesName.textContent = ALL_GLASSES[0].name;
     glassesPrice.textContent = `¥${ALL_GLASSES[0].metadata?.price ?? "—"}`;
