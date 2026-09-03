@@ -64,6 +64,9 @@ const canvas = $("tryon-canvas") as HTMLCanvasElement;
 const diagnosticCanvas = $("diagnostic-canvas") as HTMLCanvasElement;
 const stage = $("stage");
 const diagnosticReadout = $("diagnostic-readout");
+const auditFace = $("audit-face");
+const auditGlb = $("audit-glb");
+const auditStrategy = $("audit-strategy");
 const statFps = $("stat-fps");
 const statDetect = $("stat-detect");
 const statRender = $("stat-render");
@@ -126,7 +129,12 @@ function updateAlignmentReadout(face: NormalizedFaceResult, pose: NonNullable<ty
   const left = asset.anchors?.leftLensCenter;
   const right = asset.anchors?.rightLensCenter;
   const sem = face.landmarks.semantic;
-  if (!left || !right || !sem.leftEyeCenter || !sem.rightEyeCenter) return;
+  if (!left || !right || !sem.leftEyeCenter || !sem.rightEyeCenter) {
+    auditFace.textContent = `landmarks detectados · confiança ${(face.pose.confidence * 100).toFixed(0)}%`;
+    auditGlb.textContent = `${asset.name} · ${asset.dimensions.frameWidthMm} mm · âncoras de lentes ausentes`;
+    auditStrategy.textContent = "comparação bloqueada · completar âncoras do GLB";
+    return;
+  }
   const toWorld = (p: { x: number; y: number; z?: number }) => CoordinateSystem.normalizedToRenderWorld(p, 1);
   const origin = asset.anchors.origin;
   const scale = pose.scale.x;
@@ -160,6 +168,9 @@ function updateAlignmentReadout(face: NormalizedFaceResult, pose: NonNullable<ty
     : "\nmatriz canônica: indisponível";
   const scaleInfo = `\nescala: aplicada ${pose.scale.x.toFixed(3)} [${minScale.toFixed(2)}–${maxScale.toFixed(2)}] ${clampLabel} · olhos ${eyeDistancePx.toFixed(1)}px · GLB ${asset.dimensions.frameWidthMm}mm`;
   diagnosticReadout.textContent = `${diagnosticBaseReadout}${metric}${scaleInfo}\nalinhamento: ${status} · erro ${error.toFixed(3)}u`;
+  auditFace.textContent = `olhos ${eyeDistancePx.toFixed(1)} px · pose yaw ${((pose.rotation.y * 180) / Math.PI).toFixed(1)}° · confiança ${(face.pose.confidence * 100).toFixed(0)}%`;
+  auditGlb.textContent = `${asset.name} · ${asset.dimensions.frameWidthMm} mm · escala ${pose.scale.x.toFixed(3)} (${clampLabel}) · âncoras de lentes OK`;
+  auditStrategy.textContent = `canônica: ${matrix && matrix.length >= 16 ? "disponível" : "indisponível"} · posição: eyesCenter · rotação: matriz`;
 }
 
 /** Applies one guarded, session-only origin correction from the nose bridge. */

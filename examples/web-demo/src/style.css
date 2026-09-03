@@ -144,6 +144,37 @@ html, body {
   display: block;
 }
 
+/* Audit cards stay observational: they never modify the pose solver. */
+.diagnostic-audit {
+  width: min(320px, 100%);
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  background: #10111a;
+  border-left: 1px solid rgba(255,255,255,.08);
+}
+
+.audit-card {
+  padding: 12px;
+  border: 1px solid rgba(53,208,127,.25);
+  border-radius: 10px;
+  background: rgba(20,23,35,.9);
+}
+
+.audit-card h2 {
+  margin: 0 0 6px;
+  color: #b9ffd8;
+  font-size: 12px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.audit-card p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: 11px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
 /* ==================== Top Bar ==================== */
 .top-bar {
   position: absolute;
@@ -632,6 +663,14 @@ html, body {
 
 /* ==================== Desktop Adjustments ==================== */
 @media (min-width: 768px) {
+  .diagnostic-audit {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+  }
+
   #stage {
     max-width: 480px;
     margin: 0 auto;
