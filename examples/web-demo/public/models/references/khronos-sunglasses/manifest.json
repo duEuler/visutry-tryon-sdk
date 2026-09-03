@@ -25,7 +25,7 @@
     "fitBy": "eyeOuterDistance",
     "verticalAnchor": "noseBridge",
     "status": "experimental-calibration-branch",
-    "notes": "Aviator demo offset raised from -0.055m to -0.015m after canonical eyes-center validation; confirm frontal and profile before promotion.",
+    "notes": "Aviator demo offset refined from -0.055m to -0.005m vertically and 0.015m in depth after canonical eyes-center validation; confirm frontal and profile before promotion.",
     "modelAnchors": {
       "unit": "meter",
       "bridgeCenter": { "x": 0, "y": 0.004, "z": 0.012, "source": "between lens bounds; estimate" },
