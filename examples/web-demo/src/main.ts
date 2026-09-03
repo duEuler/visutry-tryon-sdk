@@ -67,6 +67,7 @@ const diagnosticReadout = $("diagnostic-readout");
 const auditFace = $("audit-face");
 const auditGlb = $("audit-glb");
 const auditStrategy = $("audit-strategy");
+const auditOverlay = $("audit-overlay");
 const auditCamera = $("audit-camera");
 const statFps = $("stat-fps");
 const statDetect = $("stat-detect");
@@ -202,6 +203,17 @@ function updateCameraAudit(): void {
     `facingMode ${currentFacingMode} · palco ${Math.round(rect.width)}×${Math.round(rect.height)}\n` +
     `object-fit cover · vídeo espelhado · canvas espelhado\n` +
     `taxa alvo 30 FPS · rastreamento ${lastFace ? "ativo" : "aguardando"}`;
+}
+
+function updateOverlayAudit(): void {
+  const rect = stage.getBoundingClientRect();
+  const pose = lastPose;
+  auditOverlay.textContent = pose
+    ? `canvas ${canvas.width}×${canvas.height} · palco ${Math.round(rect.width)}×${Math.round(rect.height)}\n` +
+      `posição (${pose.position.x.toFixed(3)}, ${pose.position.y.toFixed(3)}, ${pose.position.z.toFixed(3)})\n` +
+      `rotação (${((pose.rotation.x * 180) / Math.PI).toFixed(1)}°, ${((pose.rotation.y * 180) / Math.PI).toFixed(1)}°, ${((pose.rotation.z * 180) / Math.PI).toFixed(1)}°)\n` +
+      `escala ${pose.scale.x.toFixed(3)} · visível ${pose.visible ? "sim" : "não"} · diagnóstico ${diagnosticEnabled ? "ativo" : "inativo"}`
+    : "Aguardando pose…";
 }
 
 /** Applies one guarded, session-only origin correction from the nose bridge. */
@@ -729,6 +741,7 @@ async function init(): Promise<void> {
       diagnosticEnabled = !diagnosticEnabled;
       btnDiagnostic.setAttribute("aria-pressed", String(diagnosticEnabled));
       stage.classList.toggle("diagnostic-active", diagnosticEnabled);
+      updateOverlayAudit();
       if (!diagnosticEnabled) {
         landmarkOverlay.clear();
         diagnosticReadout.textContent = "";
@@ -740,6 +753,7 @@ async function init(): Promise<void> {
       updateTrackingStatus(true);
       lastFace = face;
       updateCameraAudit();
+      updateOverlayAudit();
       if (diagnosticEnabled && face) {
         const video = document.getElementById("camera-video") as HTMLVideoElement | null;
         landmarkOverlay.renderFromFace(face, video?.videoWidth || 640, video?.videoHeight || 480);
@@ -750,6 +764,7 @@ async function init(): Promise<void> {
     sdk.on("poseUpdated", (pose) => {
       lastPose = pose;
       updateCameraAudit();
+      updateOverlayAudit();
       if (lastFace) autoCalibrateOrigin(lastFace, pose);
       if (diagnosticEnabled && lastFace) updateAlignmentReadout(lastFace, pose);
     });
