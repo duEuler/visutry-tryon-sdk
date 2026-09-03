@@ -254,6 +254,8 @@ export interface IRenderer {
   applyPose(pose: GlassesPose): void;
   setVisible(visible: boolean): void;
   snapshot(options?: SnapshotOptions): Promise<SnapshotResult>;
+  /** Resize the render target to match the visible viewport when supported. */
+  resize?(width: number, height: number): void;
   resize(width: number, height: number): void;
   dispose(): void;
 }

@@ -730,6 +730,18 @@ async function init(): Promise<void> {
       },
     });
 
+    const resizeOverlay = () => {
+      const rect = stage.getBoundingClientRect();
+      sdk?.resize?.(rect.width, rect.height);
+      updateCameraAudit();
+      updateOverlayAudit();
+    };
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(resizeOverlay);
+      observer.observe(stage);
+    }
+    resizeOverlay();
+
     // Initialize recommender
     recommender = new Recommender();
 

@@ -202,6 +202,11 @@ class VisuTryWebSDKImpl implements VisuTrySDK {
     this.cameraStarted = false;
   }
 
+  resize(width: number, height: number): void {
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return;
+    this.renderer.resize(Math.round(width), Math.round(height));
+  }
+
   async startTryOn(): Promise<void> {
     this.assertNotDestroyed();
     if (!this.cameraStarted) {
