@@ -141,11 +141,25 @@ function updateAlignmentReadout(face: NormalizedFaceResult, pose: NonNullable<ty
   const er = toWorld(sem.rightEyeCenter);
   const error = (Math.hypot(ml.x - el.x, ml.y - el.y) + Math.hypot(mr.x - er.x, mr.y - er.y)) / 2;
   const status = error < 0.035 ? "OK" : error < 0.075 ? "AJUSTE FINO" : "REVISAR ÂNCORAS";
+  const eyeDistancePx = sem.leftEyeCenter && sem.rightEyeCenter
+    ? Math.hypot(
+        (sem.rightEyeCenter.x - sem.leftEyeCenter.x) * (face.imageWidth ?? 640),
+        (sem.rightEyeCenter.y - sem.leftEyeCenter.y) * (face.imageHeight ?? 480),
+      )
+    : 0;
+  const minScale = asset.fitting.minScale ?? 0.1;
+  const maxScale = asset.fitting.maxScale ?? 5;
+  const clampLabel = pose.scale.x <= minScale + 1e-4
+    ? "CLAMP MIN"
+    : pose.scale.x >= maxScale - 1e-4
+      ? "CLAMP MAX"
+      : "livre";
   const matrix = face.pose.matrix;
   const metric = matrix && matrix.length >= 16
     ? `\nmatriz canônica: t=(${(matrix[12] ?? 0).toFixed(3)}, ${(matrix[13] ?? 0).toFixed(3)}, ${(matrix[14] ?? 0).toFixed(3)}) cm`
     : "\nmatriz canônica: indisponível";
-  diagnosticReadout.textContent = `${diagnosticBaseReadout}${metric}\nalinhamento: ${status} · erro ${error.toFixed(3)}u`;
+  const scale = `\nescala: aplicada ${pose.scale.x.toFixed(3)} [${minScale.toFixed(2)}–${maxScale.toFixed(2)}] ${clampLabel} · olhos ${eyeDistancePx.toFixed(1)}px · GLB ${asset.dimensions.frameWidthMm}mm`;
+  diagnosticReadout.textContent = `${diagnosticBaseReadout}${metric}${scale}\nalinhamento: ${status} · erro ${error.toFixed(3)}u`;
 }
 
 /** Applies one guarded, session-only origin correction from the nose bridge. */
