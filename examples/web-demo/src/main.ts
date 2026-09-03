@@ -10,6 +10,7 @@ import { createVisuTryWebSDK, LandmarkOverlay } from "@visutry/tryon-web";
 import { buildCanonicalFaceFrame, CoordinateSystem } from "@visutry/tryon-core";
 import type { VisuTrySDK, GlassesAssetManifest, FaceShapeResult, PerformanceStats, GlassesItem, NormalizedFaceResult } from "@visutry/tryon-core";
 import { Recommender } from "@visutry/recommender";
+import { DebugViewport } from "./DebugViewport";
 
 // Import demo glasses manifests
 import aviatorClassic from "../../../packages/demo-assets/glasses/aviator-classic.json";
@@ -72,6 +73,12 @@ const auditCamera = $("audit-camera");
 const auditViewport = $("audit-viewport");
 const auditVolume = $("audit-volume");
 const auditLandmarks = $("audit-landmarks");
+const errorChart = $("error-chart") as HTMLCanvasElement;
+const auditError = $("audit-error");
+const debugViewportCanvas = $("debug-viewport") as HTMLCanvasElement;
+const debugViewportView = $("audit-viewport-view");
+const snapshotStrip = $("snapshot-strip");
+const auditSnapshots = $("audit-snapshots");
 const statFps = $("stat-fps");
 const statDetect = $("stat-detect");
 const statRender = $("stat-render");
@@ -108,6 +115,7 @@ let isAnalyzing = false;
 let currentFacingMode: "user" | "environment" = "user";
 let diagnosticEnabled = false;
 const landmarkOverlay = new LandmarkOverlay(diagnosticCanvas);
+const debugViewport = new DebugViewport(debugViewportCanvas);
 let lastFace: NormalizedFaceResult | null = null;
 let lastPose: { position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number }; scale: { x: number } } | null = null;
 let diagnosticBaseReadout = "";
@@ -117,6 +125,10 @@ let calibrationApplied = false;
 // only source of translation while we validate the coordinate convention.
 const canonicalExperiment = true;
 const derivedAnchorIds = new Set<string>();
+const errorSamples: Array<{ at: number; error: number; yaw: number; pitch: number }> = [];
+let lastError = 0;
+let snapshotTimer: number | null = null;
+const recentSnapshots: Array<{ image: string; at: string; error: number }> = [];
 
 /** Derive a comparable lens layout from declared physical dimensions. */
 function ensureDerivedAnchors(asset: GlassesAssetManifest): void {
@@ -171,6 +183,7 @@ function updateAlignmentReadout(face: NormalizedFaceResult, pose: NonNullable<ty
   const el = toWorld(sem.leftEyeCenter);
   const er = toWorld(sem.rightEyeCenter);
   const error = (Math.hypot(ml.x - el.x, ml.y - el.y) + Math.hypot(mr.x - er.x, mr.y - er.y)) / 2;
+  recordErrorSample(face, pose, error);
   const status = error < 0.035 ? "OK" : error < 0.075 ? "AJUSTE FINO" : "REVISAR ÂNCORAS";
   const eyeDistancePx = sem.leftEyeCenter && sem.rightEyeCenter
     ? Math.hypot(
@@ -249,6 +262,68 @@ function updateGeometryAudit(): void {
     auditVolume.textContent = "Aguardando face 3D…";
     auditLandmarks.textContent = "Aguardando malha…";
   }
+  debugViewport.update(lastFace, lastPose, ALL_GLASSES[selectedGlassesIndex]);
+}
+
+function recordErrorSample(face: NormalizedFaceResult, pose: NonNullable<typeof lastPose>, error: number): void {
+  lastError = error;
+  const now = Date.now();
+  errorSamples.push({ at: now, error, yaw: pose.rotation.y, pitch: pose.rotation.x });
+  while (errorSamples.length > 60) errorSamples.shift();
+  drawErrorChart();
+  auditError.textContent = `atual ${error.toFixed(3)}u · média ${(
+    errorSamples.reduce((sum, sample) => sum + sample.error, 0) / errorSamples.length
+  ).toFixed(3)}u · ${errorSamples.length} amostras\n` +
+    `yaw ${((face.pose.yaw * 180) / Math.PI).toFixed(1)}° · pitch ${((face.pose.pitch * 180) / Math.PI).toFixed(1)}°`;
+}
+
+function drawErrorChart(): void {
+  const ctx = errorChart.getContext("2d");
+  if (!ctx) return;
+  const width = errorChart.width;
+  const height = errorChart.height;
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#0d1220";
+  ctx.fillRect(0, 0, width, height);
+  ctx.strokeStyle = "rgba(255,255,255,.12)";
+  ctx.lineWidth = 1;
+  [0.025, 0.05, 0.075].forEach((value) => {
+    const y = height - (value / 0.1) * (height - 16) - 8;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+  });
+  if (!errorSamples.length) return;
+  ctx.strokeStyle = "#35d07f";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  errorSamples.forEach((sample, index) => {
+    const x = errorSamples.length === 1 ? width / 2 : (index / (errorSamples.length - 1)) * width;
+    const y = height - Math.min(sample.error, 0.1) / 0.1 * (height - 16) - 8;
+    index === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+
+function captureDiagnosticSnapshot(): void {
+  const video = document.getElementById("camera-video") as HTMLVideoElement | null;
+  if (!video || !lastFace || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+  const thumb = document.createElement("canvas");
+  thumb.width = 120; thumb.height = 90;
+  const ctx = thumb.getContext("2d");
+  if (!ctx) return;
+  ctx.save();
+  ctx.translate(thumb.width, 0); ctx.scale(-1, 1);
+  ctx.drawImage(video, 0, 0, thumb.width, thumb.height);
+  ctx.restore();
+  recentSnapshots.unshift({ image: thumb.toDataURL("image/jpeg", 0.65), at: new Date().toLocaleTimeString(), error: lastError });
+  recentSnapshots.splice(8);
+  snapshotStrip.replaceChildren(...recentSnapshots.map((snapshot) => {
+    const figure = document.createElement("figure");
+    figure.className = "snapshot-item";
+    const image = document.createElement("img"); image.src = snapshot.image; image.alt = `captura ${snapshot.at}`;
+    const caption = document.createElement("figcaption"); caption.textContent = `${snapshot.at}\n${snapshot.error.toFixed(3)}u`;
+    figure.append(image, caption); return figure;
+  }));
+  auditSnapshots.textContent = `${recentSnapshots.length} capturas · intervalo 1s · buffer máximo 8`;
 }
 
 /** Applies one guarded, session-only origin correction from the nose bridge. */
@@ -816,7 +891,7 @@ async function init(): Promise<void> {
       updateCameraAudit();
       updateOverlayAudit();
       if (lastFace) autoCalibrateOrigin(lastFace, pose);
-      if (diagnosticEnabled && lastFace) updateAlignmentReadout(lastFace, pose);
+      if (lastFace) updateAlignmentReadout(lastFace, pose);
     });
 
     sdk.on("faceLost", () => {
@@ -849,6 +924,7 @@ async function init(): Promise<void> {
     // Start camera and try-on
     await sdk.startCamera();
     await sdk.startTryOn();
+    snapshotTimer = window.setInterval(captureDiagnosticSnapshot, 1000);
 
     // Load default glasses
     ensureDerivedAnchors(ALL_GLASSES[0]);
@@ -886,10 +962,21 @@ async function init(): Promise<void> {
 btnAnalyze.addEventListener("click", handleAnalyzeFaceShape);
 btnSnapshot.addEventListener("click", handleSnapshot);
 btnSwitchCamera.addEventListener("click", handleSwitchCamera);
+document.querySelectorAll<HTMLButtonElement>("[data-debug-view]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const view = button.dataset.debugView as "front" | "top" | "left" | "right";
+    debugViewport.setView(view);
+    debugViewportView.textContent = `vista ${view === "front" ? "frontal" : view === "top" ? "superior" : view === "left" ? "esquerda" : "direita"} · eixos X/Y/Z`;
+  });
+});
 modalClose.addEventListener("click", closeModal);
 document.querySelector(".modal-backdrop")?.addEventListener("click", closeModal);
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeModal();
+});
+window.addEventListener("beforeunload", () => {
+  if (snapshotTimer !== null) window.clearInterval(snapshotTimer);
+  debugViewport.dispose();
 });
 
 // Prevent body scroll on mobile

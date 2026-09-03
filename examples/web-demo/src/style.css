@@ -194,6 +194,77 @@ html, body {
   color: #b9d7ff;
 }
 
+.audit-card--chart canvas {
+  display: block;
+  width: 100%;
+  height: 120px;
+  margin: 8px 0;
+  border: 1px solid rgba(74,158,255,.18);
+  border-radius: 6px;
+}
+
+.audit-card--viewport canvas {
+  display: block;
+  width: 100%;
+  height: 170px;
+  margin-top: 8px;
+  border: 1px solid rgba(74,158,255,.18);
+  border-radius: 6px;
+  background: radial-gradient(circle at center, rgba(74,158,255,.12), rgba(8,12,20,.9));
+}
+
+.viewport-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.viewport-controls button {
+  flex: 1;
+  border: 1px solid rgba(74,158,255,.35);
+  border-radius: 5px;
+  padding: 4px 3px;
+  background: rgba(10,15,28,.9);
+  color: #b9d7ff;
+  font: 10px ui-monospace, SFMono-Regular, Consolas, monospace;
+  cursor: pointer;
+}
+
+.viewport-controls button:hover,
+.viewport-controls button:focus-visible {
+  border-color: #4a9eff;
+  outline: none;
+}
+
+.snapshot-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  min-height: 54px;
+  margin: 8px 0;
+}
+
+.snapshot-item {
+  min-width: 0;
+  margin: 0;
+}
+
+.snapshot-item img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid rgba(53,208,127,.25);
+}
+
+.snapshot-item figcaption {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font: 8px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+  text-align: center;
+  white-space: pre-line;
+}
+
 /* ==================== Top Bar ==================== */
 .top-bar {
   position: absolute;

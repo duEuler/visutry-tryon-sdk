@@ -86,6 +86,27 @@
         <h2>Configuração da câmera</h2>
         <p id="audit-camera">Aguardando câmera…</p>
       </div>
+      <div class="audit-card audit-card--chart">
+        <h2>Curva de erro</h2>
+        <canvas id="error-chart" width="260" height="120" aria-label="Curva temporal do erro de alinhamento"></canvas>
+        <p id="audit-error">Aguardando amostras…</p>
+      </div>
+      <div class="audit-card audit-card--viewport">
+        <h2>Viewport 3D</h2>
+        <div class="viewport-controls" role="group" aria-label="Vista do viewport 3D">
+          <button type="button" data-debug-view="front">Frente</button>
+          <button type="button" data-debug-view="top">Topo</button>
+          <button type="button" data-debug-view="left">Esq.</button>
+          <button type="button" data-debug-view="right">Dir.</button>
+        </div>
+        <canvas id="debug-viewport" aria-label="Visualização 3D de inspeção"></canvas>
+        <p id="audit-viewport-view">vista frontal · eixos X/Y/Z</p>
+      </div>
+      <div class="audit-card audit-card--snapshots">
+        <h2>Snapshots recentes</h2>
+        <div id="snapshot-strip" class="snapshot-strip" aria-live="polite"></div>
+        <p id="audit-snapshots">Aguardando rastreamento…</p>
+      </div>
     </aside>
 
     <!-- Bottom Panel: Glasses Selector + Actions -->
