@@ -182,6 +182,16 @@ html, body {
   margin: 0;
   color: var(--color-text-secondary);
   font: 11px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+  white-space: pre-line;
+  font-variant-numeric: tabular-nums;
+}
+
+.audit-card--geometry {
+  border-color: rgba(74, 158, 255, .28);
+}
+
+.audit-card--geometry h2 {
+  color: #b9d7ff;
 }
 
 /* ==================== Top Bar ==================== */

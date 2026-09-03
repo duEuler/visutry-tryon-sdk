@@ -69,6 +69,9 @@ const auditGlb = $("audit-glb");
 const auditStrategy = $("audit-strategy");
 const auditOverlay = $("audit-overlay");
 const auditCamera = $("audit-camera");
+const auditViewport = $("audit-viewport");
+const auditVolume = $("audit-volume");
+const auditLandmarks = $("audit-landmarks");
 const statFps = $("stat-fps");
 const statDetect = $("stat-detect");
 const statRender = $("stat-render");
@@ -203,6 +206,7 @@ function updateCameraAudit(): void {
     `facingMode ${currentFacingMode} · palco ${Math.round(rect.width)}×${Math.round(rect.height)}\n` +
     `object-fit cover · vídeo espelhado · canvas espelhado\n` +
     `taxa alvo 30 FPS · rastreamento ${lastFace ? "ativo" : "aguardando"}`;
+  updateGeometryAudit();
 }
 
 function updateOverlayAudit(): void {
@@ -214,6 +218,37 @@ function updateOverlayAudit(): void {
       `rotação (${((pose.rotation.x * 180) / Math.PI).toFixed(1)}°, ${((pose.rotation.y * 180) / Math.PI).toFixed(1)}°, ${((pose.rotation.z * 180) / Math.PI).toFixed(1)}°)\n` +
       `escala ${pose.scale.x.toFixed(3)} · visível ${pose.visible ? "sim" : "não"} · diagnóstico ${diagnosticEnabled ? "ativo" : "inativo"}`
     : "Aguardando pose…";
+  updateGeometryAudit();
+}
+
+function updateGeometryAudit(): void {
+  const rect = stage.getBoundingClientRect();
+  const video = document.getElementById("camera-video") as HTMLVideoElement | null;
+  const videoWidth = video?.videoWidth ?? 0;
+  const videoHeight = video?.videoHeight ?? 0;
+  const dpr = window.devicePixelRatio || 1;
+  auditViewport.textContent = `palco ${Math.round(rect.width)}×${Math.round(rect.height)} px · DPR ${dpr.toFixed(2)}\n` +
+    `vídeo ${videoWidth || "—"}×${videoHeight || "—"} · canvas ${canvas.width}×${canvas.height}\n` +
+    `diagnóstico ${diagnosticCanvas.width}×${diagnosticCanvas.height} · cover · espelhado`;
+
+  if (lastFace) {
+    const points = lastFace.landmarks.normalized;
+    const xs = points.map((point) => point.x);
+    const ys = points.map((point) => point.y);
+    const zs = points.map((point) => point.z);
+    const extent = (values: number[]) => values.length ? Math.max(...values) - Math.min(...values) : 0;
+    const bbox = lastFace.bbox;
+    auditVolume.textContent = `face bbox ${(bbox.width * 100).toFixed(1)}×${(bbox.height * 100).toFixed(1)}%\n` +
+      `volume landmarks Δx ${(extent(xs) * 100).toFixed(1)}% · Δy ${(extent(ys) * 100).toFixed(1)}% · Δz ${extent(zs).toFixed(3)}\n` +
+      `pose 3D ${lastPose ? `(${lastPose.position.x.toFixed(3)}, ${lastPose.position.y.toFixed(3)}, ${lastPose.position.z.toFixed(3)})` : "aguardando"}`;
+    const connections = lastFace.landmarks.connections;
+    auditLandmarks.textContent = `${points.length} pontos normalizados · ${lastFace.landmarks.raw.length} brutos\n` +
+      `tesselation ${connections?.tesselation.length ?? 0} · contornos ${connections?.contours.length ?? 0} · íris ${connections?.irises.length ?? 0}\n` +
+      `semânticos: olhos, ponte, nariz, nosepads`;
+  } else {
+    auditVolume.textContent = "Aguardando face 3D…";
+    auditLandmarks.textContent = "Aguardando malha…";
+  }
 }
 
 /** Applies one guarded, session-only origin correction from the nose bridge. */
