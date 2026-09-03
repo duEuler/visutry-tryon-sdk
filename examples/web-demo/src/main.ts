@@ -786,6 +786,13 @@ async function init(): Promise<void> {
 
     sdk.on("faceLost", () => {
       updateTrackingStatus(false);
+      lastFace = null;
+      lastPose = null;
+      auditFace.textContent = "Rosto não detectado · aguardando nova pose";
+      auditGlb.textContent = `${ALL_GLASSES[selectedGlassesIndex].name} · overlay oculto`;
+      auditStrategy.textContent = "rastreamento perdido · aguardando landmarks";
+      updateCameraAudit();
+      updateOverlayAudit();
       if (diagnosticEnabled) {
         landmarkOverlay.clear();
         diagnosticReadout.textContent = "Rosto não detectado";

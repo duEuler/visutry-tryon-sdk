@@ -654,7 +654,10 @@ class VisuTryWebSDKImpl implements VisuTrySDK {
       this.emit("faceLost");
     }
 
-    // Let the smoother handle the fade-out.
+    // A lost face must not leave a visible model at the last pose. Reset the
+    // smoother so the next detection starts from a fresh state, then hide the
+    // current asset immediately. The UI can still distinguish a brief loss
+    // through the faceLost event without rendering a stale overlay.
     if (this.currentAsset) {
       const lostPose: GlassesPose = {
         position: { x: 0, y: 0, z: 0 },
@@ -663,8 +666,8 @@ class VisuTryWebSDKImpl implements VisuTrySDK {
         visible: false,
         confidence: 0,
       };
-      const smoothed = this.smoother.smooth(lostPose, performance.now());
-      this.renderer.applyPose(smoothed);
+      this.smoother.reset();
+      this.renderer.applyPose(lostPose);
     }
   }
 
