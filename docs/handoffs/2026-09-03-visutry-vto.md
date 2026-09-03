@@ -50,3 +50,26 @@ classifica o resultado como `OK`, `AJUSTE FINO` ou `REVISAR ÂNCORAS`.
   no README do ativo.
 - O storefront externo tinha alterações locais pendentes antes deste handoff;
   elas não foram misturadas nem sobrescritas.
+
+## Branch experimental: MediaPipe canonical transform
+
+Branch de validação: `codex/mediapipe-canonical-vto`.
+
+Esta branch ativa a matriz de transformação canônica do MediaPipe Face
+Geometry para a orientação do GLB. A translação absoluta da matriz está no
+espaço métrico da câmera e não pode ser projetada diretamente no palco
+ortográfico sem intrínsecos da câmera; por isso X/Y continuam ancorados nos
+landmarks projetados e Z usa profundidade facial relativa. A calibração
+automática por ponte nasal fica desligada para não combinar duas origens
+diferentes durante o experimento.
+
+O modo Diagnóstico exibe agora `matriz canônica: t=(x, y, z) cm` e continua
+comparando os centros das lentes com os olhos. O objetivo desta etapa é validar
+empiricamente sinais, escala e âncoras do GLB em frontal e perfis antes de
+promover qualquer mudança ao `main`.
+
+Validação desta branch:
+
+- `pnpm.cmd --filter @visutry/tryon-core run build`: passou.
+- Vitest core + renderer + SDK: 143 testes passaram.
+- `npm.cmd run build` em `examples/web-demo`: passou.

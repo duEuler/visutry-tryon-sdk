@@ -345,6 +345,8 @@ export interface GlassesFittingConfig {
   positionOffset?: Vector3;
   rotationOffset?: Vector3;
   useTransformationMatrix?: boolean;
+  /** Experimental: use MediaPipe's canonical metric transform for translation. */
+  useCanonicalTransform?: boolean;
   fitBy?: "eyeOuterDistance" | "eyeCenterDistance" | "faceWidth";
   verticalAnchor?: "noseBridge" | "eyeLine" | "browLine";
   depthStrategy?: "noseTip" | "matrix" | "fixed";

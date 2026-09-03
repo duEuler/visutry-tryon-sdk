@@ -313,6 +313,28 @@ describe("GlassesPoseSolver", () => {
     expect(pose.position.z).toBeCloseTo(0.5, 5);
   });
 
+  it("keeps viewport position anchored while canonical matrix is available", () => {
+    const matrix = new Array(16).fill(0);
+    matrix[0] = 1; matrix[5] = 1; matrix[10] = 1; matrix[15] = 1;
+    matrix[12] = 2; matrix[13] = 4; matrix[14] = -20; // centimetres
+    const face = buildFaceResult(buildSemanticPoints("oval"), {
+      pose: { yaw: 0, pitch: 0, roll: 0, confidence: 0.95, matrix },
+    });
+    const pose = solver.solve({
+      face,
+      asset: buildManifest(),
+      config: { useCanonicalTransform: true },
+    });
+    const landmarkPose = solver.solve({
+      face,
+      asset: buildManifest(),
+      config: { useCanonicalTransform: false, verticalAnchor: "eyeLine" },
+    });
+    expect(pose.position.x).toBeCloseTo(landmarkPose.position.x, 5);
+    expect(pose.position.y).toBeCloseTo(landmarkPose.position.y, 5);
+    expect(pose.position.z).toBeCloseTo(landmarkPose.position.z, 5);
+  });
+
   // ---------------------------------------------------------------------------
   // computeRotation — useTransformationMatrix
   // ---------------------------------------------------------------------------

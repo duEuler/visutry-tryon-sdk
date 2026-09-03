@@ -27,6 +27,7 @@ export const DEFAULT_FITTING_CONFIG: GlassesFittingConfig = {
   positionOffset: { x: 0, y: 0, z: 0 },
   rotationOffset: { x: 0, y: 0, z: 0 },
   useTransformationMatrix: false,
+  useCanonicalTransform: false,
   fitBy: "eyeOuterDistance",
   verticalAnchor: "noseBridge",
   depthStrategy: "noseTip",
@@ -198,6 +199,24 @@ export class GlassesPoseSolver {
     aspect: number,
     face: NormalizedFaceResult,
   ): Vector3 {
+    if (cfg.useCanonicalTransform && face.pose.matrix && face.pose.matrix.length >= 16) {
+      // The canonical matrix is expressed in metric camera coordinates. Its
+      // absolute translation cannot be placed directly on this orthographic
+      // viewport without camera intrinsics (doing so pushes the GLB off-screen).
+      // Project X/Y from the tracked face anchor, and use the canonical matrix
+      // for orientation; keep relative nose depth for the render-world Z.
+      // Eyewear is centered on the inter-pupillary line; the nose bridge is a
+      // useful fallback but sits lower on many faces and biases the frame.
+      const anchor = sem.eyesCenter ?? sem.noseBridge;
+      if (anchor) {
+        const rw = CoordinateSystem.normalizedToRenderWorld(anchor, aspect);
+        return {
+          x: rw.x,
+          y: rw.y,
+          z: sem.noseTip ? (sem.noseTip.z ?? 0) * 0.5 : 0,
+        };
+      }
+    }
     const anchor = cfg.verticalAnchor ?? "noseBridge";
     let baseNorm: Point3D | undefined;
     switch (anchor) {

@@ -105,6 +105,9 @@ let lastPose: { position: { x: number; y: number; z: number }; rotation: { x: nu
 let diagnosticBaseReadout = "";
 let calibrationFrames = 0;
 let calibrationApplied = false;
+// Keep this experiment isolated: the canonical MediaPipe matrix must be the
+// only source of translation while we validate the coordinate convention.
+const canonicalExperiment = true;
 
 function resetSessionCalibration(): void {
   calibrationFrames = 0;
@@ -138,12 +141,16 @@ function updateAlignmentReadout(face: NormalizedFaceResult, pose: NonNullable<ty
   const er = toWorld(sem.rightEyeCenter);
   const error = (Math.hypot(ml.x - el.x, ml.y - el.y) + Math.hypot(mr.x - er.x, mr.y - er.y)) / 2;
   const status = error < 0.035 ? "OK" : error < 0.075 ? "AJUSTE FINO" : "REVISAR ÂNCORAS";
-  diagnosticReadout.textContent = `${diagnosticBaseReadout}\nalinhamento: ${status} · erro ${error.toFixed(3)}u`;
+  const matrix = face.pose.matrix;
+  const metric = matrix && matrix.length >= 16
+    ? `\nmatriz canônica: t=(${(matrix[12] ?? 0).toFixed(3)}, ${(matrix[13] ?? 0).toFixed(3)}, ${(matrix[14] ?? 0).toFixed(3)}) cm`
+    : "\nmatriz canônica: indisponível";
+  diagnosticReadout.textContent = `${diagnosticBaseReadout}${metric}\nalinhamento: ${status} · erro ${error.toFixed(3)}u`;
 }
 
 /** Applies one guarded, session-only origin correction from the nose bridge. */
 function autoCalibrateOrigin(face: NormalizedFaceResult, pose: NonNullable<typeof lastPose>): void {
-  if (calibrationApplied || face.pose.confidence < 0.8) return;
+  if (canonicalExperiment || calibrationApplied || face.pose.confidence < 0.8) return;
   const bridge = face.landmarks.semantic.noseBridge;
   if (!bridge) return;
   calibrationFrames += 1;
@@ -615,10 +622,13 @@ async function init(): Promise<void> {
         // Use MediaPipe's full face transform so the glasses plane follows
         // the same 3D heading as the diagnostic face mask in profile.
         useTransformationMatrix: true,
+        // Experimental branch: consume MediaPipe's canonical metric
+        // translation instead of estimating depth from the nose landmark.
+        useCanonicalTransform: canonicalExperiment,
         // MediaPipe matrix translation uses camera-space units, while the
         // orthographic renderer uses render-world units. Keep matrix
         // orientation but derive a compatible relative depth from the nose.
-        depthStrategy: "noseTip",
+        depthStrategy: "matrix",
       },
       camera: {
         facingMode: currentFacingMode,
