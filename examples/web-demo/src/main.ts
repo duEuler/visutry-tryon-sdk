@@ -6,8 +6,9 @@
  * performance monitoring.
  */
 
-import { createVisuTryWebSDK } from "@visutry/tryon-web";
-import type { VisuTrySDK, GlassesAssetManifest, FaceShapeResult, PerformanceStats, GlassesItem } from "@visutry/tryon-core";
+import { createVisuTryWebSDK, LandmarkOverlay } from "@visutry/tryon-web";
+import { buildCanonicalFaceFrame, CoordinateSystem } from "@visutry/tryon-core";
+import type { VisuTrySDK, GlassesAssetManifest, FaceShapeResult, PerformanceStats, GlassesItem, NormalizedFaceResult } from "@visutry/tryon-core";
 import { Recommender } from "@visutry/recommender";
 
 // Import demo glasses manifests
@@ -60,6 +61,9 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
 const loadingOverlay = $("loading-overlay");
 const loadingText = $("loading-text");
 const canvas = $("tryon-canvas") as HTMLCanvasElement;
+const diagnosticCanvas = $("diagnostic-canvas") as HTMLCanvasElement;
+const stage = $("stage");
+const diagnosticReadout = $("diagnostic-readout");
 const statFps = $("stat-fps");
 const statDetect = $("stat-detect");
 const statRender = $("stat-render");
@@ -73,6 +77,7 @@ const glassesPrice = $("glasses-price");
 const btnAnalyze = $("btn-analyze");
 const btnSnapshot = $("btn-snapshot");
 const btnSwitchCamera = $("btn-switch-camera");
+const btnDiagnostic = $("btn-diagnostic") as HTMLButtonElement;
 const shapeModal = $("shape-modal");
 const shapeIcon = $("shape-icon");
 const shapeName = $("shape-name");
@@ -93,6 +98,223 @@ let recommender: Recommender | null = null;
 let selectedGlassesIndex = 0;
 let isAnalyzing = false;
 let currentFacingMode: "user" | "environment" = "user";
+let diagnosticEnabled = false;
+const landmarkOverlay = new LandmarkOverlay(diagnosticCanvas);
+let lastFace: NormalizedFaceResult | null = null;
+let lastPose: { position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number }; scale: { x: number } } | null = null;
+let diagnosticBaseReadout = "";
+let calibrationFrames = 0;
+let calibrationApplied = false;
+
+function resetSessionCalibration(): void {
+  calibrationFrames = 0;
+  calibrationApplied = false;
+}
+
+function rotateOffset(v: { x: number; y: number; z: number }, r: { x: number; y: number; z: number }) {
+  const cx = Math.cos(r.x), sx = Math.sin(r.x), cy = Math.cos(r.y), sy = Math.sin(r.y), cz = Math.cos(r.z), sz = Math.sin(r.z);
+  const x1 = v.x, y1 = cx * v.y - sx * v.z, z1 = sx * v.y + cx * v.z;
+  const x2 = cy * x1 + sy * z1, z2 = -sy * x1 + cy * z1;
+  return { x: cz * x2 - sz * y1, y: sz * x2 + cz * y1, z: z2 };
+}
+
+function updateAlignmentReadout(face: NormalizedFaceResult, pose: NonNullable<typeof lastPose>): void {
+  const asset = ALL_GLASSES[selectedGlassesIndex];
+  const left = asset.anchors?.leftLensCenter;
+  const right = asset.anchors?.rightLensCenter;
+  const sem = face.landmarks.semantic;
+  if (!left || !right || !sem.leftEyeCenter || !sem.rightEyeCenter) return;
+  const toWorld = (p: { x: number; y: number; z?: number }) => CoordinateSystem.normalizedToRenderWorld(p, 1);
+  const origin = asset.anchors.origin;
+  const scale = pose.scale.x;
+  const factor = 5 * scale;
+  const modelPoint = (p: { x: number; y: number; z: number }) => {
+    const o = rotateOffset({ x: (p.x - origin.x) * factor, y: (p.y - origin.y) * factor, z: (p.z - origin.z) * factor }, pose.rotation);
+    return { x: pose.position.x + o.x, y: pose.position.y + o.y, z: pose.position.z + o.z };
+  };
+  const ml = modelPoint(left);
+  const mr = modelPoint(right);
+  const el = toWorld(sem.leftEyeCenter);
+  const er = toWorld(sem.rightEyeCenter);
+  const error = (Math.hypot(ml.x - el.x, ml.y - el.y) + Math.hypot(mr.x - er.x, mr.y - er.y)) / 2;
+  const status = error < 0.035 ? "OK" : error < 0.075 ? "AJUSTE FINO" : "REVISAR ÂNCORAS";
+  diagnosticReadout.textContent = `${diagnosticBaseReadout}\nalinhamento: ${status} · erro ${error.toFixed(3)}u`;
+}
+
+/** Applies one guarded, session-only origin correction from the nose bridge. */
+function autoCalibrateOrigin(face: NormalizedFaceResult, pose: NonNullable<typeof lastPose>): void {
+  if (calibrationApplied || face.pose.confidence < 0.8) return;
+  const bridge = face.landmarks.semantic.noseBridge;
+  if (!bridge) return;
+  calibrationFrames += 1;
+  if (calibrationFrames < 12) return;
+  const video = document.getElementById("camera-video") as HTMLVideoElement | null;
+  const rect = stage.getBoundingClientRect();
+  const videoAspect = video?.videoWidth && video?.videoHeight ? video.videoWidth / video.videoHeight : undefined;
+  const stageAspect = rect.width > 0 && rect.height > 0 ? rect.width / rect.height : undefined;
+  const aspect = videoAspect && stageAspect ? Math.max(videoAspect, stageAspect) : videoAspect ?? stageAspect ?? 1;
+  const target = CoordinateSystem.normalizedToRenderWorld(bridge, aspect);
+  const delta = {
+    x: Math.max(-0.08, Math.min(0.08, target.x - pose.position.x)),
+    y: Math.max(-0.08, Math.min(0.08, target.y - pose.position.y)),
+    z: Math.max(-0.04, Math.min(0.04, target.z - pose.position.z)),
+  };
+  const asset = ALL_GLASSES[selectedGlassesIndex];
+  asset.fitting.defaultOffset = {
+    x: asset.fitting.defaultOffset.x + delta.x * 0.75,
+    y: asset.fitting.defaultOffset.y + delta.y * 0.75,
+    z: asset.fitting.defaultOffset.z + delta.z * 0.75,
+  };
+  calibrationApplied = true;
+  diagnosticBaseReadout += `\ncalibração: origem ajustada (${delta.x.toFixed(3)}, ${delta.y.toFixed(3)}, ${delta.z.toFixed(3)})`;
+  diagnosticReadout.textContent = diagnosticBaseReadout;
+}
+
+function add(a: { x: number; y: number; z?: number }, b: { x: number; y: number; z?: number }): { x: number; y: number; z: number } {
+  return { x: a.x + b.x, y: a.y + b.y, z: (a.z ?? 0) + (b.z ?? 0) };
+}
+
+function mul(v: { x: number; y: number; z?: number }, scalar: number): { x: number; y: number; z: number } {
+  return { x: v.x * scalar, y: v.y * scalar, z: (v.z ?? 0) * scalar };
+}
+
+/** Draws a face-local cuboid, not just a 2D bounding rectangle. */
+function drawFaceSpaceBox(
+  ctx: CanvasRenderingContext2D,
+  canonical: ReturnType<typeof buildCanonicalFaceFrame>,
+  toCanvas: (point?: { x: number; y: number }) => { x: number; y: number } | null,
+): void {
+  if (!canonical) return;
+  const width = canonical.width * 1.38;
+  const height = canonical.height * 1.08;
+  const depth = Math.max(canonical.depth * 4, width * 0.42);
+  const center = add(canonical.origin, mul(canonical.yAxis, -height * 0.08));
+  const corners: Array<{ x: number; y: number; z: number }> = [];
+  for (const z of [-depth / 2, depth / 2]) {
+    for (const y of [-height / 2, height / 2]) {
+      for (const x of [-width / 2, width / 2]) {
+        corners.push(add(center, add(add(mul(canonical.xAxis, x), mul(canonical.yAxis, y)), mul(canonical.zAxis, z))));
+      }
+    }
+  }
+  const projected = corners.map((p) => toCanvas(p));
+  if (projected.some((p) => !p)) return;
+  const pts = projected as Array<{ x: number; y: number }>;
+  const faces = [
+    [0, 1, 3, 2], [4, 6, 7, 5], // front/back
+    [0, 4, 5, 1], [2, 3, 7, 6],
+    [0, 2, 6, 4], [1, 5, 7, 3],
+  ];
+  ctx.save();
+  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = "rgba(78, 214, 255, .9)";
+  for (const [index, face] of faces.entries()) {
+    ctx.beginPath();
+    face.forEach((corner, i) => i === 0 ? ctx.moveTo(pts[corner].x, pts[corner].y) : ctx.lineTo(pts[corner].x, pts[corner].y));
+    ctx.closePath();
+    ctx.fillStyle = index === 0 ? "rgba(78, 214, 255, .08)" : "rgba(78, 214, 255, .025)";
+    ctx.fill();
+    ctx.stroke();
+  }
+  const edges = [[0,1],[1,3],[3,2],[2,0],[4,5],[5,7],[7,6],[6,4],[0,4],[1,5],[2,6],[3,7]];
+  ctx.beginPath();
+  for (const [a, b] of edges) { ctx.moveTo(pts[a].x, pts[a].y); ctx.lineTo(pts[b].x, pts[b].y); }
+  ctx.stroke();
+  const origin = toCanvas(canonical.origin);
+  if (origin) {
+    const axisLength = width * 0.34;
+    const axes = [[canonical.xAxis, "#ff5b7a", "X"], [canonical.yAxis, "#35d07f", "Y"], [canonical.zAxis, "#ffd166", "Z"]] as const;
+    for (const [axis, color, label] of axes) {
+      const end = toCanvas(add(canonical.origin, mul(axis, axisLength)));
+      if (!end) continue;
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.moveTo(origin.x, origin.y); ctx.lineTo(end.x, end.y); ctx.stroke();
+      ctx.fillText(label, end.x + 4, end.y - 4);
+    }
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(origin.x, origin.y, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillText("C", origin.x + 6, origin.y + 12);
+  }
+  ctx.restore();
+}
+
+function drawCalibrationGuides(face: NormalizedFaceResult): void {
+  const video = document.getElementById("camera-video") as HTMLVideoElement | null;
+  const videoWidth = video?.videoWidth || 640;
+  const videoHeight = video?.videoHeight || 480;
+  const rect = stage.getBoundingClientRect();
+  const scale = Math.max(rect.width / videoWidth, rect.height / videoHeight);
+  const renderedWidth = videoWidth * scale;
+  const renderedHeight = videoHeight * scale;
+  const cropX = (renderedWidth - rect.width) / 2;
+  const cropY = (renderedHeight - rect.height) / 2;
+  const toCanvas = (point?: { x: number; y: number }) => point
+    ? { x: point.x * renderedWidth - cropX, y: point.y * renderedHeight - cropY }
+    : null;
+  const ctx = diagnosticCanvas.getContext("2d");
+  if (!ctx) return;
+  const semantic = face.landmarks.semantic;
+  const canonical = buildCanonicalFaceFrame(face);
+  const activeAsset = ALL_GLASSES[selectedGlassesIndex];
+  const lensAnchors = activeAsset?.anchors?.leftLensCenter && activeAsset?.anchors?.rightLensCenter
+    ? Math.hypot(
+      activeAsset.anchors.rightLensCenter.x - activeAsset.anchors.leftLensCenter.x,
+      activeAsset.anchors.rightLensCenter.y - activeAsset.anchors.leftLensCenter.y,
+      activeAsset.anchors.rightLensCenter.z - activeAsset.anchors.leftLensCenter.z,
+    )
+    : null;
+  const boxTopLeft = toCanvas({ x: face.bbox.x, y: face.bbox.y });
+  const boxBottomRight = toCanvas({ x: face.bbox.x + face.bbox.width, y: face.bbox.y + face.bbox.height });
+  drawFaceSpaceBox(ctx, canonical, toCanvas);
+  const points = [
+    ["LE", semantic.leftEyeCenter],
+    ["RE", semantic.rightEyeCenter],
+    ["NB", semantic.noseBridge],
+    ["NT", semantic.noseTip],
+  ] as const;
+  ctx.save();
+  if (boxTopLeft && boxBottomRight) {
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = "rgba(53,208,127,.9)";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(boxTopLeft.x, boxTopLeft.y, boxBottomRight.x - boxTopLeft.x, boxBottomRight.y - boxTopLeft.y);
+    ctx.setLineDash([]);
+  }
+  ctx.lineWidth = 2;
+  ctx.font = "11px ui-monospace, monospace";
+  for (const [label, point] of points) {
+    const p = toCanvas(point);
+    if (!p) continue;
+    ctx.fillStyle = label === "NB" || label === "NT" ? "#ffd166" : "#35d07f";
+    ctx.strokeStyle = "rgba(0,0,0,.8)";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillText(label, p.x + 7, p.y - 7);
+  }
+  const left = toCanvas(semantic.leftEyeCenter);
+  const right = toCanvas(semantic.rightEyeCenter);
+  if (left && right) {
+    ctx.strokeStyle = "#35d07f";
+    ctx.beginPath();
+    ctx.moveTo(left.x, left.y);
+    ctx.lineTo(right.x, right.y);
+    ctx.stroke();
+    const distance = Math.hypot(right.x - left.x, right.y - left.y);
+    diagnosticBaseReadout = [
+      `olhos: ${Math.round(distance)} px`,
+      `pose: yaw ${Math.round(face.pose.yaw * 180 / Math.PI)}° · pitch ${Math.round(face.pose.pitch * 180 / Math.PI)}°`,
+      `confiança: ${Math.round(face.pose.confidence * 100)}%`,
+      "rosto → GLB: olhos → lentes · ponte → bridge · nariz → nosepads",
+      canonical ? `frame 3D: ${canonical.width.toFixed(3)} × ${canonical.height.toFixed(3)} · origem ${canonical.origin.x.toFixed(2)},${canonical.origin.y.toFixed(2)}` : "frame 3D: aguardando âncoras",
+      lensAnchors ? `GLB: distância entre lentes ${(lensAnchors * 1000).toFixed(0)} mm · escala comparável` : "GLB: âncoras de lentes ausentes",
+    ].join("\n");
+    diagnosticReadout.textContent = diagnosticBaseReadout;
+  }
+  ctx.restore();
+}
 
 // ---------------------------------------------------------------------------
 // Toast Notifications
@@ -150,6 +372,7 @@ function renderGlassesList(): void {
 async function switchGlasses(index: number): Promise<void> {
   if (index === selectedGlassesIndex || !sdk) return;
   selectedGlassesIndex = index;
+  resetSessionCalibration();
   renderGlassesList();
 
   const glasses = ALL_GLASSES[index];
@@ -388,6 +611,15 @@ async function init(): Promise<void> {
     // Create SDK instance
     sdk = createVisuTryWebSDK({
       canvas: canvas,
+      fitting: {
+        // Use MediaPipe's full face transform so the glasses plane follows
+        // the same 3D heading as the diagnostic face mask in profile.
+        useTransformationMatrix: true,
+        // MediaPipe matrix translation uses camera-space units, while the
+        // orthographic renderer uses render-world units. Keep matrix
+        // orientation but derive a compatible relative depth from the nose.
+        depthStrategy: "noseTip",
+      },
       camera: {
         facingMode: currentFacingMode,
         width: 640,
@@ -395,9 +627,13 @@ async function init(): Promise<void> {
         frameRate: 30,
       },
       tracker: {
-        mode: "balanced",
+        mode: "batterySaver",
         maxFaces: 1,
         enableTransformationMatrix: true,
+      },
+      mediaPipeOptions: {
+        wasmPath: "/mediapipe",
+        modelAssetPath: "/mediapipe/face_landmarker.task",
       },
       renderer: {
         width: 640,
@@ -417,16 +653,45 @@ async function init(): Promise<void> {
 
     // Set up event listeners
     sdk.on("error", (err) => {
-      console.error("SDK Error:", err);
-      showToast(err.message, "error");
+      const detail = err instanceof Error ? err.message : JSON.stringify(err, Object.getOwnPropertyNames(err));
+      console.error("SDK Error:", detail);
+      showToast(detail || "Erro desconhecido do SDK", "error");
     });
 
-    sdk.on("faceDetected", () => {
+    btnDiagnostic.addEventListener("click", () => {
+      diagnosticEnabled = !diagnosticEnabled;
+      btnDiagnostic.setAttribute("aria-pressed", String(diagnosticEnabled));
+      stage.classList.toggle("diagnostic-active", diagnosticEnabled);
+      if (!diagnosticEnabled) {
+        landmarkOverlay.clear();
+        diagnosticReadout.textContent = "";
+        diagnosticBaseReadout = "";
+      }
+    });
+
+    sdk.on("faceDetected", (face) => {
       updateTrackingStatus(true);
+      lastFace = face;
+      if (diagnosticEnabled && face) {
+        const video = document.getElementById("camera-video") as HTMLVideoElement | null;
+        landmarkOverlay.renderFromFace(face, video?.videoWidth || 640, video?.videoHeight || 480);
+        drawCalibrationGuides(face);
+      }
+    });
+
+    sdk.on("poseUpdated", (pose) => {
+      lastPose = pose;
+      if (lastFace) autoCalibrateOrigin(lastFace, pose);
+      if (diagnosticEnabled && lastFace) updateAlignmentReadout(lastFace, pose);
     });
 
     sdk.on("faceLost", () => {
       updateTrackingStatus(false);
+      if (diagnosticEnabled) {
+        landmarkOverlay.clear();
+        diagnosticReadout.textContent = "Rosto não detectado";
+        diagnosticBaseReadout = "Rosto não detectado";
+      }
     });
 
     sdk.on("performanceUpdated", (stats) => {
@@ -459,11 +724,14 @@ async function init(): Promise<void> {
     showToast("VisuTry SDK ready!", "success");
   } catch (err) {
     loadingText.textContent = "Failed to initialize";
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("Init error:", err);
+    const message = err instanceof Error ? err.message : JSON.stringify(err, Object.getOwnPropertyNames(err));
+    console.error("Init error:", message);
     setTimeout(() => {
       loadingOverlay.querySelector(".spinner")?.remove();
-      loadingText.textContent = `Error: ${message}`;
+      const blockedByWasmPolicy = message.includes("WebAssembly") && message.includes("unsafe-eval");
+      loadingText.textContent = blockedByWasmPolicy
+        ? "VisuTry bloqueado neste navegador: o rastreador WebAssembly exige um navegador com WASM permitido. Abra este endereço no Chrome ou Edge."
+        : `Error: ${message}`;
       loadingText.style.color = "#ef4444";
     }, 100);
   }
@@ -477,7 +745,7 @@ btnAnalyze.addEventListener("click", handleAnalyzeFaceShape);
 btnSnapshot.addEventListener("click", handleSnapshot);
 btnSwitchCamera.addEventListener("click", handleSwitchCamera);
 modalClose.addEventListener("click", closeModal);
-$(".modal-backdrop").addEventListener("click", closeModal);
+document.querySelector(".modal-backdrop")?.addEventListener("click", closeModal);
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeModal();
 });

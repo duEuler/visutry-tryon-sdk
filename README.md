@@ -69,6 +69,15 @@ Open `http://localhost:5173` in your browser. Pages available:
 
 ## Package Structure
 
+## Óticas Acar VTO sandbox
+
+The web demo includes a local, diagnostic-first AR glasses workspace for the
+Óticas Acar integration. It preserves the Khronos Sunglasses reference GLB,
+asset manifest, face-local 3D box, anchor comparison and session calibration.
+Read the [current handoff](docs/handoffs/2026-09-03-visutry-vto.md) before
+continuing calibration work. The reference model is sandbox-only and is not a
+commercial asset by default.
+
 | Package | Description | Status |
 |---------|-------------|--------|
 | [`@visutry/tryon-core`](packages/core) | Platform-agnostic core: types, coordinate transforms, semantic point mapping, face shape scoring, pose solving, smoothing, quality gate, privacy | Stable |

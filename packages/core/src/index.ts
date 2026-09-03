@@ -39,6 +39,8 @@ export {
   decomposeMatrixToEuler,
   degreesToRadians,
 } from "./pose/GlassesPoseSolver.js";
+export { buildCanonicalFaceFrame } from "./pose/CanonicalFaceFrame.js";
+export type { CanonicalFaceFrame } from "./pose/CanonicalFaceFrame.js";
 
 // Pose smoothing
 export {

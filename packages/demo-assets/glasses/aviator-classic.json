@@ -1,7 +1,7 @@
 {
   "id": "aviator-classic",
   "name": "Classic Aviator",
-  "modelUrl": "https://cdn.visutry.com/demo/glasses/aviator-classic.glb",
+  "modelUrl": "/models/references/khronos-sunglasses/SunglassesKhronos.glb",
   "thumbnailUrl": "https://cdn.visutry.com/demo/glasses/aviator-classic.png",
   "format": "glb",
   "coordinateSystem": {
@@ -10,21 +10,23 @@
     "upAxis": "+y"
   },
   "dimensions": {
-    "frameWidthMm": 142,
+    "frameWidthMm": 150,
     "lensWidthMm": 58,
     "lensHeightMm": 50,
     "bridgeWidthMm": 14,
     "templeLengthMm": 140
   },
   "anchors": {
-    "origin": { "x": 0, "y": 0, "z": 0 },
-    "noseBridge": { "x": 0, "y": 0, "z": 0 },
-    "leftHinge": { "x": -71, "y": 0, "z": 0 },
-    "rightHinge": { "x": 71, "y": 0, "z": 0 }
+    "origin": { "x": 0, "y": 0.004, "z": 0.012 },
+    "noseBridge": { "x": 0, "y": 0.004, "z": 0.012 },
+    "leftHinge": { "x": -0.071, "y": 0.012, "z": 0.018 },
+    "rightHinge": { "x": 0.071, "y": 0.012, "z": 0.018 },
+    "leftLensCenter": { "x": -0.042, "y": 0.003, "z": 0.004 },
+    "rightLensCenter": { "x": 0.042, "y": 0.003, "z": 0.004 }
   },
   "fitting": {
-    "defaultScale": 1.0,
-    "defaultOffset": { "x": 0, "y": 0.005, "z": 0.01 },
+    "defaultScale": 0.45,
+    "defaultOffset": { "x": 0, "y": -0.055, "z": 0.01 },
     "defaultRotation": { "x": 0, "y": 0, "z": 0 },
     "minScale": 0.6,
     "maxScale": 1.8,
@@ -41,7 +43,10 @@
     "supportsTransparency": true
   },
   "metadata": {
-    "brand": "VisuTry Demo",
+    "brand": "Khronos reference",
+    "source": "https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/SunglassesKhronos",
+    "license": "CC BY 4.0",
+    "usage": "sandbox-only",
     "shapeCategory": "aviator",
     "colors": ["#B87333"],
     "tags": ["aviator", "metal", "classic", "unisex"],

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https://cdn.jsdelivr.net https://storage.googleapis.com https://cdn.visutry.com; worker-src 'self' blob:;" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' blob: https://cdn.jsdelivr.net https://storage.googleapis.com https://cdn.visutry.com; worker-src 'self' blob:;" />
   <title>VisuTry - AR Glasses Try-On Demo</title>
   <link rel="stylesheet" href="/src/style.css" />
 </head>
@@ -20,8 +20,8 @@
 
     <!-- Camera Stage: video + canvas overlay -->
     <div id="stage">
-      <video id="camera-video" autoplay playsinline muted aria-label="Camera view with AR glasses overlay"></video>
       <canvas id="tryon-canvas"></canvas>
+      <canvas id="diagnostic-canvas" aria-hidden="true"></canvas>
 
       <!-- Top Bar: Performance Stats -->
       <div id="top-bar" class="top-bar">
@@ -41,12 +41,14 @@
           <span class="stat-dot" id="tracking-dot"></span>
           <span id="tracking-text">Idle</span>
         </div>
+        <button id="btn-diagnostic" class="diagnostic-toggle" type="button" aria-pressed="false">Diagnóstico</button>
       </div>
 
       <!-- Face Detection Hint -->
       <div id="face-hint" class="face-hint hidden" aria-live="polite">
         <span>No face detected. Please position your face in the camera.</span>
       </div>
+      <div id="diagnostic-readout" class="diagnostic-readout" aria-live="polite"></div>
     </div>
 
     <!-- Bottom Panel: Glasses Selector + Actions -->

@@ -1,7 +1,7 @@
 {
   "id": "sport-wrap",
   "name": "Sport Wrap",
-  "modelUrl": "https://cdn.visutry.com/demo/glasses/sport-wrap.glb",
+  "modelUrl": "/models/acar-orbita.glb",
   "thumbnailUrl": "https://cdn.visutry.com/demo/glasses/sport-wrap.png",
   "format": "glb",
   "coordinateSystem": {

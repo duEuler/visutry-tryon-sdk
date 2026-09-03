@@ -44,6 +44,7 @@ const mockRenderer = {
 };
 
 vi.mock("three", () => ({
+  Box3: vi.fn(() => ({ min: { x: 0 }, max: { x: 0 }, setFromObject: vi.fn(function () { return this; }) })),
   WebGLRenderer: vi.fn(() => mockRenderer),
   Scene: vi.fn(() => mockScene),
   OrthographicCamera: vi.fn(() => mockCamera),

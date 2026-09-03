@@ -27,9 +27,12 @@ export class WebCameraProvider implements ICameraProvider {
     if (config) this.config = { ...this.config, ...config };
     if (!this.video) {
       this.video = document.createElement("video");
+      this.video.id = "camera-video";
       this.video.autoplay = true;
       this.video.playsInline = true;
       this.video.muted = true;
+      const stage = document.getElementById("stage");
+      (stage ?? document.body).prepend(this.video);
     }
   }
 

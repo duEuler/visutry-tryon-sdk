@@ -1,7 +1,7 @@
 {
   "id": "square-modern",
   "name": "Square Modern",
-  "modelUrl": "https://cdn.visutry.com/demo/glasses/square-modern.glb",
+  "modelUrl": "/models/acar-orbita.glb",
   "thumbnailUrl": "https://cdn.visutry.com/demo/glasses/square-modern.png",
   "format": "glb",
   "coordinateSystem": {

@@ -1,0 +1,46 @@
+{
+  "id": "reference-khronos-sunglasses",
+  "name": "Sunglasses Khronos (referência técnica)",
+  "modelUrl": "/models/references/khronos-sunglasses/SunglassesKhronos.glb",
+  "source": {
+    "repository": "https://github.com/KhronosGroup/glTF-Sample-Assets",
+    "assetPath": "Models/SunglassesKhronos",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/legalcode",
+    "attribution": "Eric Chadwick; Darmstadt Graphics Group GmbH",
+    "usage": "sandbox-only"
+  },
+  "dimensions": {
+    "frameWidthMm": 150,
+    "unit": "meter in glTF; approximately 150 mm physical width"
+  },
+  "assetChecks": {
+    "format": "glb",
+    "binaryIncluded": true,
+    "readmeIncluded": true,
+    "trademarksPresent": true,
+    "commercialRedistribution": "requires attribution and separate trademark review"
+  },
+  "calibration": {
+    "fitBy": "eyeOuterDistance",
+    "verticalAnchor": "noseBridge",
+    "status": "needs-live-validation",
+    "modelAnchors": {
+      "unit": "meter",
+      "bridgeCenter": { "x": 0, "y": 0.004, "z": 0.012, "source": "between lens bounds; estimate" },
+      "leftLensCenter": { "x": -0.042, "y": 0.003, "z": 0.004, "source": "lens mesh bounds; estimate" },
+      "rightLensCenter": { "x": 0.042, "y": 0.003, "z": 0.004, "source": "lens mesh bounds; estimate" },
+      "leftHinge": { "x": -0.071, "y": 0.012, "z": 0.018, "source": "TempleLeft mesh bounds" },
+      "rightHinge": { "x": 0.071, "y": 0.012, "z": 0.018, "source": "TempleRight mesh bounds" },
+      "nosePads": { "node": "Nosepads", "source": "node present; vertex-side position requires manual validation" }
+    },
+    "faceMapping": {
+      "leftLensCenter": "leftEyeCenter",
+      "rightLensCenter": "rightEyeCenter",
+      "bridgeCenter": "noseBridge",
+      "nosePads": "noseTip",
+      "leftHinge": "leftEyeOuter + headPose",
+      "rightHinge": "rightEyeOuter + headPose"
+    }
+  }
+}

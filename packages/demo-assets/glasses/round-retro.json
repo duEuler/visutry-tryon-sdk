@@ -1,7 +1,7 @@
 {
   "id": "round-retro",
   "name": "Round Retro",
-  "modelUrl": "https://cdn.visutry.com/demo/glasses/round-retro.glb",
+  "modelUrl": "/models/acar-orbita.glb",
   "thumbnailUrl": "https://cdn.visutry.com/demo/glasses/round-retro.png",
   "format": "glb",
   "coordinateSystem": {

@@ -348,6 +348,8 @@ export interface GlassesFittingConfig {
   fitBy?: "eyeOuterDistance" | "eyeCenterDistance" | "faceWidth";
   verticalAnchor?: "noseBridge" | "eyeLine" | "browLine";
   depthStrategy?: "noseTip" | "matrix" | "fixed";
+  /** Actual camera/video aspect ratio used for normalized-to-world mapping. */
+  frameAspect?: number;
 }
 
 export interface GlassesPoseSolverInput {

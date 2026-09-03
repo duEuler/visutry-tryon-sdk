@@ -610,10 +610,31 @@ class VisuTryWebSDKImpl implements VisuTrySDK {
     }
 
     if (this.currentAsset) {
+      const video = this.camera.videoElement;
+      const videoAspect = video && video.videoWidth > 0 && video.videoHeight > 0
+        ? video.videoWidth / video.videoHeight
+        : undefined;
+      // The demo positions the video with object-fit: cover. When the stage
+      // is portrait, the source is cropped horizontally (or vertically when
+      // the stage is wider), so using only the natural video aspect makes the
+      // face appear to drift away from the rendered glasses. Use the same
+      // effective aspect as the visible cover projection.
+      const canvas = this.canvasTarget as HTMLCanvasElement;
+      const stageAspect = canvas instanceof HTMLCanvasElement && canvas.clientWidth > 0 && canvas.clientHeight > 0
+        ? canvas.clientWidth / canvas.clientHeight
+        : undefined;
+      const frameAspect = videoAspect && stageAspect
+        ? Math.max(videoAspect, stageAspect)
+        : videoAspect ?? stageAspect;
       const rawPose = this.poseSolver.solve({
         face,
         asset: this.currentAsset,
-        config: this.factoryOptions.fitting,
+        config: {
+          ...this.factoryOptions.fitting,
+          fitBy: this.factoryOptions.fitting?.fitBy ?? this.currentAsset.fitting.fitBy,
+          verticalAnchor: this.factoryOptions.fitting?.verticalAnchor ?? this.currentAsset.fitting.verticalAnchor,
+          frameAspect,
+        },
       });
       const smoothedPose = this.smoother.smooth(rawPose, performance.now());
       this.renderer.applyPose(smoothedPose);

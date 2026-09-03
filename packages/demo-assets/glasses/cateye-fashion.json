@@ -1,7 +1,7 @@
 {
   "id": "cateye-fashion",
   "name": "Cat-eye Fashion",
-  "modelUrl": "https://cdn.visutry.com/demo/glasses/cateye-fashion.glb",
+  "modelUrl": "/models/acar-orbita.glb",
   "thumbnailUrl": "https://cdn.visutry.com/demo/glasses/cateye-fashion.png",
   "format": "glb",
   "coordinateSystem": {

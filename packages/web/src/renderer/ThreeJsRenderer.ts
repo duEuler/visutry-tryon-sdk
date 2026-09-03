@@ -33,6 +33,9 @@ export class ThreeJsRenderer implements IRenderer {
   private scene: THREE.Scene | null = null;
   private camera: THREE.OrthographicCamera | null = null;
   private glassesGroup: THREE.Group | null = null;
+  private glassesRoot: THREE.Object3D | null = null;
+  private modelOrigin: { x: number; y: number; z: number } | null = null;
+  private modelBaseScale = 1;
   private gltfLoader = new GLTFLoader();
   private currentAsset: GlassesAssetManifest | null = null;
   private width = 1;
@@ -111,10 +114,27 @@ export class ThreeJsRenderer implements IRenderer {
       }
     }
 
-    // Normalize the model to millimetres.
+    // Normalize the model to millimetres and then to the declared frame width.
+    // Some exports contain unitless Blender coordinates even when the manifest
+    // is authored in millimetres. Measuring the loaded bounds keeps the solver's
+    // dimensional scale contract valid for both kinds of GLB.
     const unitFactor = UNIT_TO_MM[asset.coordinateSystem.unit];
     const root = gltf.scene;
-    root.scale.setScalar(unitFactor);
+    const sourceBounds = new THREE.Box3().setFromObject(root);
+    const sourceWidth = sourceBounds.max.x - sourceBounds.min.x;
+    const targetWidth = asset.dimensions.frameWidthMm;
+    const widthNormalization = sourceWidth > 1e-6 && targetWidth > 1e-6
+      ? (targetWidth / 200) / sourceWidth
+      : 1;
+    this.modelBaseScale = unitFactor * widthNormalization;
+    root.scale.setScalar(this.modelBaseScale);
+    // A model's local origin is not guaranteed to be the physical bridge
+    // point. Re-center the asset around the declared origin before applying
+    // the face pose, so the solver's noseBridge lands on the correct GLB
+    // reference instead of on the mesh bounding-box origin.
+    const modelOrigin = asset.anchors?.origin;
+    this.modelOrigin = modelOrigin ?? null;
+    this.glassesRoot = root;
     // Apply default rotation/scale from the manifest as the baseline; the
     // per-frame pose from the solver multiplies on top via the group.
     root.rotation.set(
@@ -141,6 +161,17 @@ export class ThreeJsRenderer implements IRenderer {
     this.glassesGroup.rotation.set(pose.rotation.x, pose.rotation.y, pose.rotation.z);
     // The model was normalized to mm; pose.scale converts mm → render-world.
     this.glassesGroup.scale.setScalar(pose.scale.x);
+    // Apply the local origin after the pose scale is known. This keeps the
+    // declared bridge anchor at the face position without pushing meter-based
+    // assets outside the orthographic camera.
+    if (this.glassesRoot && this.modelOrigin?.x !== undefined && this.glassesRoot.position?.set) {
+      const factor = this.modelBaseScale * pose.scale.x;
+      this.glassesRoot.position.set(
+        -this.modelOrigin.x * factor,
+        -this.modelOrigin.y * factor,
+        -this.modelOrigin.z * factor,
+      );
+    }
   }
 
   setVisible(visible: boolean): void {

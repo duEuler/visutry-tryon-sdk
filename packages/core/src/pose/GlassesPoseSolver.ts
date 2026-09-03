@@ -57,7 +57,7 @@ export class GlassesPoseSolver {
   solve(input: GlassesPoseSolverInput): GlassesPose {
     const { face, asset, config } = input;
     const cfg = { ...DEFAULT_FITTING_CONFIG, ...config };
-    const aspect = this.deriveAspect(face);
+    const aspect = cfg.frameAspect && cfg.frameAspect > 0 ? cfg.frameAspect : this.deriveAspect(face);
 
     const sem = face.landmarks.semantic;
 
