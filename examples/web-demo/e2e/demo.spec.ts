@@ -306,6 +306,11 @@ test.describe("Golden Layout Studio", () => {
     });
     await expect(page.locator("#layout-host")).toHaveAttribute("data-studio-mode", "degraded");
     await expect(page.locator('[data-panel-id="live"]')).toBeVisible();
+    await expect(page.locator("#connect-runtime")).toBeDisabled();
+    await expect(page.locator("#stop-runtime")).toBeEnabled();
+    for (const id of ["start-camera", "start-tryon", "load-glb", "capture-evidence"]) {
+      await expect(page.locator(`#${id}`)).toBeDisabled();
+    }
   });
 
   test("resets volatile runtime state when disconnected", async ({ page }) => {
