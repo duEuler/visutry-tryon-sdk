@@ -55,6 +55,7 @@ export function createStudioRuntimeAdapter(sdk: VisuTrySDK, options: StudioRunti
     getSnapshot: () => snapshot,
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     async captureEvidence(): Promise<EvidenceFrame> {
+      if (disposed) throw new Error("Studio runtime adapter disposed");
       try {
         const result = await sdk.snapshot({ format: "image/png", mirror: true });
         const dataUrl = await composeEvidence(result.dataUrl, options.getVideo?.() ?? null);

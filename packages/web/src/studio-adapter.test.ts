@@ -113,6 +113,14 @@ describe("createStudioRuntimeAdapter", () => {
     expect(sdk.destroy).toHaveBeenCalledOnce();
   });
 
+  it("rejects evidence capture after disposal without touching the SDK", async () => {
+    const sdk = createSdkMock();
+    const adapter = createStudioRuntimeAdapter(sdk as never);
+    adapter.dispose?.();
+    await expect(adapter.captureEvidence?.()).rejects.toThrow("disposed");
+    expect(sdk.snapshot).not.toHaveBeenCalled();
+  });
+
   it("initializes event handlers only once", async () => {
     const sdk = createSdkMock();
     const adapter = createStudioRuntimeAdapter(sdk as never);
