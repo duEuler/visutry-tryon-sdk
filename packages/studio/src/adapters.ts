@@ -67,6 +67,7 @@ export function createCompositeStudioRuntime(adapters: StudioAdapters, initial: 
           started.push(adapter);
         }
         initialized = true;
+        publish({ mode: "connected", error: undefined });
       } catch (error) {
         publish({ mode: "degraded", error });
         [...started].reverse().forEach((adapter) => adapter.dispose?.());

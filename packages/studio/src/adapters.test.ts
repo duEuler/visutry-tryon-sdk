@@ -43,4 +43,18 @@ describe("Studio adapter contracts", () => {
     expect(runtime.getSnapshot()).toMatchObject({ mode: "degraded", error: expect.any(Error) });
     expect(calls).toEqual(["camera+", "renderer+", "camera-"]);
   });
+
+  it("recovers the connected mode on a later successful initialization", async () => {
+    let attempts = 0;
+    const runtime = createCompositeStudioRuntime({
+      renderer: {
+        initialize: async () => { attempts += 1; if (attempts === 1) throw new Error("temporary"); },
+      },
+    });
+    await expect(runtime.initialize?.()).rejects.toThrow("temporary");
+    expect(runtime.getSnapshot().mode).toBe("degraded");
+    await runtime.initialize?.();
+    expect(runtime.getSnapshot().mode).toBe("connected");
+    expect(runtime.getSnapshot().error).toBeUndefined();
+  });
 });
