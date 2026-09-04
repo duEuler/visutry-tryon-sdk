@@ -55,6 +55,19 @@ const formatRuntimeError = (error: unknown): string => {
   }
   return "Falha no runtime";
 };
+const withRuntimeTimeout = async <T>(operation: Promise<T>, label: string, timeoutMs = 25000): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} excedeu o tempo limite de ${Math.round(timeoutMs / 1000)}s`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+};
 const syncModeLabel = () => {
   if (modeLabel) modeLabel.textContent = studio.getMode();
 };
@@ -279,9 +292,9 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
       irisColor: "rgba(242, 177, 74, 0.9)",
       highlightColor: "#39dca2",
     }) : null;
-    await studio.connectRuntime(runtimeAdapter);
+    await withRuntimeTimeout(studio.connectRuntime(runtimeAdapter), "Inicialização do runtime");
     // Fast path for the desktop Studio: connect all runtime capabilities in sequence.
-    await runtimeSdk.startCamera();
+    await withRuntimeTimeout(runtimeSdk.startCamera(), "Inicialização da câmera");
     const video = document.querySelector<HTMLVideoElement>("#camera-video");
     runtimeAdapter.setSnapshot?.({
       camera: {
@@ -297,7 +310,7 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
       cameraButton.textContent = "Câmera ativa";
     }
     cameraReady = true;
-    await runtimeSdk.startTryOn();
+    await withRuntimeTimeout(runtimeSdk.startTryOn(), "Inicialização do try-on");
     resumeTryOnOnVisible = true;
     tryOnReady = true;
     if (tryOnButton) {
@@ -305,7 +318,7 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
       tryOnButton.textContent = "Try-on ativo";
     }
     const { default: asset } = await import("@visutry/demo-assets/glasses/aviator-classic.json");
-    await runtimeSdk.loadGlasses(asset);
+    await withRuntimeTimeout(runtimeSdk.loadGlasses(asset), "Carregamento do GLB");
     glbReady = true;
     if (glbButton) {
       glbButton.disabled = true;
