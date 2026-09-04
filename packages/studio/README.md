@@ -55,6 +55,10 @@ previous adapter is disposed only after it is no longer active. Always call
 `studio.destroy()` on unmount so observers, resize frames, panel listeners and
 runtime resources are released.
 
+The host exposes `subscribeMode(listener)` for reactive status badges and
+`disconnectRuntime()` for an explicit return to offline/static mode. Both are
+safe to call from a React effect cleanup or from a framework-neutral toolbar.
+
 ## Panel contract
 
 Each panel declares `id`, `title`, `region`, `scrollable`, `create`, and
