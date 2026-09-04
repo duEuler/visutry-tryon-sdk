@@ -20,6 +20,12 @@ function composeReferenceLayout(): void {
   const bottomContent = document.getElementById("bottom-panel-content");
   if (!stage || !rightRail || !leftRail || !bottomContent) return;
 
+  const bottomPanel = document.getElementById("bottom-panel");
+  const panelToggle = document.getElementById("btn-panel-toggle");
+  bottomPanel?.classList.remove("collapsed");
+  panelToggle?.setAttribute("aria-expanded", "true");
+  if (panelToggle) panelToggle.textContent = "Minimizar painel";
+
   // The existing controls keep their IDs and event handlers; only their visual
   // ownership changes to match the approved Audit Studio composition.
   if (viewportCard && viewportCard.parentElement !== stage) {
