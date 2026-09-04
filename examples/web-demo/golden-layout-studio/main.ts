@@ -3,10 +3,9 @@ import { bindStudioToolbar, createAccordionPanel, createDefaultStudioLayout, cre
 import { panels, accordionSections } from "./panel-catalog";
 import type { VisuTrySDK } from "@visutry/tryon-core";
 import "./styles.css";
-import "./collapse.css";
-import "./layout-fix.css";
 import "./runtime-canvas.css";
 import "@visutry/studio/styles.css";
+import "@visutry/studio/golden-layout.css";
 
 const persistence = createLocalStoragePersistence("visutry-golden-layout-state-v7", 7);
 function component(container: ComponentContainer, id: string) {

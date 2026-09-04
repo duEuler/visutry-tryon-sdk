@@ -133,3 +133,8 @@ the demo's `leftDock` and `rightDock` IDs.
 
 The optional stylesheet is available as `@visutry/studio/styles.css`; import
 it once in the host that renders the Studio panels.
+
+O contrato de integração do Golden Layout fica disponível separadamente em
+`@visutry/studio/golden-layout.css`. Ele contém sizing dos nós, scroll dos
+containers, bloqueio do layout e controles de minimizar; o tema visual pode
+continuar sendo fornecido pelo aplicativo consumidor.

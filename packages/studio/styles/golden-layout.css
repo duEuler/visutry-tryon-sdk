@@ -1,0 +1,47 @@
+/* Golden Layout integration contract: sizing, docking and window controls. */
+:where(.lm_root, .lm_row, .lm_column, .lm_stack, .lm_item) {
+  min-width: 0;
+  min-height: 0;
+}
+
+:where(.lm_item > .lm_content) {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden !important;
+}
+
+:where(.lm_item.studio-panel-item--scrollable > .lm_content) {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: thin;
+  scrollbar-color: #2d4965 #0b1320;
+}
+
+:where(.lm_item.studio-panel-item--scrollable > .lm_content)::-webkit-scrollbar { width: 8px; }
+:where(.lm_item.studio-panel-item--scrollable > .lm_content)::-webkit-scrollbar-track { background: #0b1320; }
+:where(.lm_item.studio-panel-item--scrollable > .lm_content)::-webkit-scrollbar-thumb { background: #2d4965; border-radius: 4px; }
+
+:where(#layout-host > .lm_goldenlayout) { height: 100% !important; }
+
+:where(.studio-layout-locked) .lm_splitter,
+:where(.studio-layout-locked) .lm_tab {
+  pointer-events: none;
+  cursor: default;
+  opacity: .55;
+}
+
+:where(.audit-collapse-control) {
+  width: 20px;
+  height: 18px;
+  padding: 0;
+  margin-right: 2px;
+  border: 0;
+  background: transparent;
+  color: #8ea7bf;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+:where(.audit-collapse-control:hover) { color: #32d99a; }
+:where(.lm_item.audit-collapsed) { height: 28px !important; min-height: 28px !important; }
+:where(.lm_item.audit-collapsed > .lm_content) { display: none !important; }
