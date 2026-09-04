@@ -271,6 +271,20 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator("#capture-evidence")).toBeDisabled();
   });
 
+  test("syncs runtime controls across connect and stop", async ({ page }) => {
+    test.skip(!HAS_CAMERA, "Set VISUTRY_E2E_CAMERA=1 to run runtime control coverage.");
+    await page.locator("#connect-runtime").click();
+    await expect(page.locator("#connect-runtime")).toHaveText(/Runtime conectado/, { timeout: 30000 });
+    for (const id of ["start-camera", "start-tryon", "load-glb", "capture-evidence", "stop-runtime"]) {
+      await expect(page.locator(`#${id}`)).toBeEnabled();
+    }
+    await page.locator("#stop-runtime").click();
+    await expect(page.locator("#studio-mode")).toHaveText("static");
+    for (const id of ["start-camera", "start-tryon", "load-glb", "capture-evidence", "stop-runtime"]) {
+      await expect(page.locator(`#${id}`)).toBeDisabled();
+    }
+  });
+
   test("keeps the workspace mounted in degraded runtime mode", async ({ page }) => {
     await page.evaluate(async () => {
       const studio = (window as Window & { __visutryStudio?: { connectRuntime(runtime: unknown): Promise<void> } }).__visutryStudio;
