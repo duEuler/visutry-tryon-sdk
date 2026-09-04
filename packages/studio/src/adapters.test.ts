@@ -45,6 +45,12 @@ describe("Studio adapter contracts", () => {
     await expect(runtime.captureEvidence?.()).rejects.toThrow("Evidence adapter unavailable");
   });
 
+  it("publishes degraded state when evidence capture fails", async () => {
+    const runtime = createCompositeStudioRuntime({ evidence: { capture: async () => { throw new Error("capture failed"); } } });
+    await expect(runtime.captureEvidence?.()).rejects.toThrow("capture failed");
+    expect(runtime.getSnapshot()).toMatchObject({ mode: "degraded", error: expect.any(Error) });
+  });
+
   it("enters degraded mode and rolls back started adapters on initialization failure", async () => {
     const calls: string[] = [];
     const runtime = createCompositeStudioRuntime({

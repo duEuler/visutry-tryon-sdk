@@ -63,9 +63,14 @@ export function createCompositeStudioRuntime(adapters: StudioAdapters, initial: 
     },
     async captureEvidence() {
       if (disposed || !adapters.evidence?.capture) throw new Error("Evidence adapter unavailable");
-      const frame = await adapters.evidence.capture();
-      publish({ evidence: [...(snapshot.evidence ?? []), frame], selectedFrameId: frame.id });
-      return frame;
+      try {
+        const frame = await adapters.evidence.capture();
+        publish({ evidence: [...(snapshot.evidence ?? []), frame], selectedFrameId: frame.id });
+        return frame;
+      } catch (error) {
+        publish({ mode: "degraded", error });
+        throw error;
+      }
     },
     dispose() {
       if (disposed) return;
