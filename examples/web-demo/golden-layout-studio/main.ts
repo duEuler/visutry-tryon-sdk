@@ -2,6 +2,7 @@ import { GoldenLayout, type LayoutConfig, type ComponentContainer } from "golden
 import "./styles.css";
 import "./collapse.css";
 import "./layout-fix.css";
+import "./accordion-scroll.css";
 
 const key = "visutry-golden-layout-state-v5";
 type Panel = { eyebrow: string; title: string; body: string };
