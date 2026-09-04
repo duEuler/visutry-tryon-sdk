@@ -1,13 +1,12 @@
 import type { ComponentContainer } from "golden-layout";
-import { createAccordionPanel, createPanelShell, renderEvidenceTimeline, type AuditSnapshot, type StudioInstance, type StudioPanelDefinition } from "@visutry/studio";
+import { createAccordionPanel, createPanelShell, renderEvidenceTimeline, type AuditSnapshot, type StudioInstance, type StudioPanelContext, type StudioPanelDefinition } from "@visutry/studio";
 import { panels, accordionSections } from "./panel-catalog";
 
 const panelCleanups = new WeakMap<HTMLElement, () => void>();
 
-function createPanel(studio: Pick<StudioInstance, "collapsePanel" | "expandPanel">, container: ComponentContainer, id: string): void {
+function createPanel(studio: Pick<StudioInstance, "collapsePanel" | "expandPanel">, context: StudioPanelContext, container: ComponentContainer, id: string): void {
   const panel = panels[id] ?? panels.camera;
   const accordion = id === "leftDock" || id === "rightDock";
-  const context = { panelId: id, getSnapshot: () => ({}) };
   if (accordion) {
     createAccordionPanel(context, container, accordionSections(id === "leftDock" ? ["camera", "diagnostics", "quality", "error"] : ["glb", "overlay", "pose", "metrics"]));
   } else {
@@ -41,7 +40,7 @@ export function createPanelDefinitions(studio: Pick<StudioInstance, "collapsePan
     title: panels[id].title,
     region: id === "leftDock" ? "left" : id === "rightDock" ? "right" : id === "evidence" || id === "selected" ? "bottom" : "center",
     scrollable: id === "leftDock" || id === "rightDock",
-    create: (_context, container) => createPanel(studio, container, id),
+    create: (context, container) => createPanel(studio, context, container, id),
     destroy: (element) => { panelCleanups.get(element)?.(); panelCleanups.delete(element); },
     update: id === "evidence" ? (element, snapshot: AuditSnapshot) => {
       const items = (snapshot.evidence ?? []) as { id: string; timestamp: number }[];
