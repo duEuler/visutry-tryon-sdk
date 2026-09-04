@@ -108,7 +108,12 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     },
     restoreDefaultLayout() { options.persistence?.clear(); hiddenPanels.clear(); collapsedPanels.clear(); lastCompleteLayout = options.initialLayout; layout.loadLayout(options.initialLayout); resizeController.schedule(); },
     getLayout() { return layout.saveLayout() as unknown as LayoutConfig; },
-    setLayout(next: LayoutConfig) { layout.loadLayout(next); resizeController.schedule(); },
+    setLayout(next: LayoutConfig) {
+      lastCompleteLayout = next;
+      layout.loadLayout(next);
+      reapplyPanelState?.();
+      resizeController.schedule();
+    },
     showPanel(id) { setPanelVisibility(id, true); },
     hidePanel(id) { setPanelVisibility(id, false); },
     collapsePanel(id) { setPanelCollapsed(id, true); },
