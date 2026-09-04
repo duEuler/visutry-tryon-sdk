@@ -224,6 +224,12 @@ test.describe("Golden Layout Studio", () => {
     await expect(scrollContainers.nth(1)).toHaveCSS("overflow-x", "hidden");
   });
 
+  test("renders the four viewports as a non-scrolling stack", async ({ page }) => {
+    const viewports = page.locator('[data-panel-id="viewports"] .viewport-grid .mini');
+    await expect(viewports).toHaveCount(4);
+    await expect(page.locator('[data-panel-id="viewports"] .viewport-grid')).toHaveCSS("overflow-y", "visible");
+  });
+
   test("starts accordions expanded and exposes accessible controls", async ({ page }) => {
     const triggers = page.locator(".gl-panel--accordion .accordion-trigger");
     await expect(triggers).toHaveCount(8);
