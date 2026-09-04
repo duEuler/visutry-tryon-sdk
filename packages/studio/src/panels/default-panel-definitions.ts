@@ -11,16 +11,16 @@ type Panel = { eyebrow: string; title: string; body: string };
 const panelCleanups = new WeakMap<HTMLElement, () => void>();
 
 const panels: Record<string, Panel> = {
-  camera: { eyebrow: "01 / CAPTURA", title: "Câmera", body: renderMetricGrid([{ label: "Fonte", value: "Integrated Webcam" }, { label: "Estado", value: "● Ativa", status: true }, { label: "Resolução", value: "640 × 480" }, { label: "FPS alvo", value: "30" }]) },
+  camera: { eyebrow: "01 / CAPTURA", title: "Câmera", body: renderMetricGrid([{ label: "Fonte", value: "Integrated Webcam" }, { label: "Estado", value: "● Ativa", status: true }, { label: "Resolução", value: "640 × 480" }, { label: "FPS alvo", value: "30" }]).replace(/<strong/g, '<strong data-studio-field="camera"') },
   diagnostics: { eyebrow: "02 / OBSERVAÇÃO", title: "Diagnóstico", body: `<div class="gl-row"><span>Landmarks e overlay</span><strong class="status">ATIVO</strong></div><div class="gl-row"><span>Readout sobre o vídeo</span><strong>ATIVO</strong></div><div class="gl-row"><span>Curva de erro</span><strong>ATIVO</strong></div><div class="gl-row"><span>Snapshots manuais</span><strong>DESATIVADO</strong></div>` },
-  quality: { eyebrow: "03 / QUALIDADE", title: "Tracking quality", body: renderMetricGrid([{ label: "Confiança", value: "95%" }, { label: "Rosto", value: "Detectado", status: true }, { label: "Estabilidade", value: "0.98" }, { label: "Latência", value: "19.9 ms" }]) },
+  quality: { eyebrow: "03 / QUALIDADE", title: "Tracking quality", body: renderMetricGrid([{ label: "Confiança", value: "95%" }, { label: "Rosto", value: "Detectado", status: true }, { label: "Estabilidade", value: "0.98" }, { label: "Latência", value: "19.9 ms" }]).replace(/<strong/g, '<strong data-studio-field="tracking"') },
   error: { eyebrow: "04 / MÉTRICAS", title: "Curva de erro", body: `<div class="visual" style="height:120px"><svg viewBox="0 0 300 100" width="100%" height="100%"><polyline fill="none" stroke="#43e39b" stroke-width="2" points="0,72 30,64 60,67 90,50 120,55 150,35 180,46 210,40 240,48 270,22 300,30"/></svg></div><p>atual <b>0.679 mm</b> · média 0.82 mm · status <span class="status">OK</span></p>` },
   live: { eyebrow: "PALCO CENTRAL", title: "Live 3D / Face overlay", body: `<div id="stage" class="visual"><canvas class="studio-live-canvas" aria-label="Canvas Live 3D"></canvas><div class="face-wire"><div class="glasses"></div></div><span style="position:absolute;bottom:10px;left:12px;color:#6f89a6">rosto ciano · GLB âmbar · anchors verdes</span></div>` },
   viewports: { eyebrow: "GEOMETRIA", title: "Viewports 3D", body: renderViewportGrid(["FRONT", "TOP", "LEFT", "RIGHT"].map((label) => ({ label, body: `<div class="visual"><div class="face-wire small"><div class="glasses"></div></div></div><small>3D ao vivo · agora</small>` }))) },
-  glb: { eyebrow: "OBJETIVO", title: "GLB objective", body: `<div class="gl-row"><span>Modelo</span><strong>Classic Aviator</strong></div><div class="gl-row"><span>Arquivo</span><strong>classic_aviator.glb</strong></div><div class="gl-row"><span>Dimensões</span><strong>150 × 58 × 50 mm</strong></div><div class="gl-row"><span>Escala</span><strong>0.213 (livre)</strong></div><div class="gl-row"><span>Visibilidade</span><strong class="status">Exibindo</strong></div>` },
+  glb: { eyebrow: "OBJETIVO", title: "GLB objective", body: `<div class="gl-row"><span>Modelo</span><strong data-studio-field="glb-name">Classic Aviator</strong></div><div class="gl-row"><span>Arquivo</span><strong data-studio-field="glb-file">classic_aviator.glb</strong></div><div class="gl-row"><span>Dimensões</span><strong data-studio-field="glb-dimensions">150 × 58 × 50 mm</strong></div><div class="gl-row"><span>Escala</span><strong data-studio-field="glb-scale">0.213 (livre)</strong></div><div class="gl-row"><span>Visibilidade</span><strong class="status" data-studio-field="glb-visibility">Exibindo</strong></div>` },
   overlay: { eyebrow: "ALINHAMENTO", title: "Overlay & alignment", body: `<div class="gl-row"><span>Posição</span><strong>-0.288 · 0.130 · -0.002</strong></div><div class="gl-row"><span>Rotação</span><strong>-32.7° · 5.1° · 0.0°</strong></div><div class="gl-row"><span>Modo</span><strong>Eyes Center</strong></div><div class="gl-row"><span>Erro RMS</span><strong class="status">0.679 mm</strong></div>` },
-  pose: { eyebrow: "LEITURA ESPACIAL", title: "Pose & landmarks", body: `<div class="gl-row"><span>Yaw / Pitch / Roll</span><strong>-32.7° / 5.1° / 0.0°</strong></div><div class="gl-row"><span>Landmarks</span><strong>478 / 478</strong></div><div class="gl-row"><span>Interpupilar</span><strong>64.2 px</strong></div><div class="gl-row"><span>Bounding box</span><strong>19.7 × 32.4%</strong></div>` },
-  metrics: { eyebrow: "PERFORMANCE", title: "Render metrics", body: `<div class="gl-row"><span>Draw calls</span><strong>124</strong></div><div class="gl-row"><span>Triangles</span><strong>25,566</strong></div><div class="gl-row"><span>Frame time</span><strong>0.3 ms</strong></div><div class="gl-row"><span>DPR / canvas</span><strong>1.0 / 926 × 621</strong></div>` },
+  pose: { eyebrow: "LEITURA ESPACIAL", title: "Pose & landmarks", body: `<div class="gl-row"><span>Yaw / Pitch / Roll</span><strong data-studio-field="pose">-32.7° / 5.1° / 0.0°</strong></div><div class="gl-row"><span>Landmarks</span><strong data-studio-field="landmarks">478 / 478</strong></div><div class="gl-row"><span>Interpupilar</span><strong data-studio-field="interpupilar">64.2 px</strong></div><div class="gl-row"><span>Bounding box</span><strong data-studio-field="bounding-box">19.7 × 32.4%</strong></div>` },
+  metrics: { eyebrow: "PERFORMANCE", title: "Render metrics", body: `<div class="gl-row"><span>Draw calls</span><strong data-studio-field="draw-calls">124</strong></div><div class="gl-row"><span>Triangles</span><strong data-studio-field="triangles">25,566</strong></div><div class="gl-row"><span>Frame time</span><strong data-studio-field="frame-time">0.3 ms</strong></div><div class="gl-row"><span>DPR / canvas</span><strong data-studio-field="canvas">1.0 / 926 × 621</strong></div>` },
   evidence: { eyebrow: "EVIDÊNCIAS", title: "Evidence timeline", body: `<div class="timeline"><div class="thumb">10:15:23</div><div class="thumb">10:15:24</div><div class="thumb best">BEST · 10:15:26</div><div class="thumb">10:15:27</div><div class="thumb">10:15:28</div></div>` },
   selected: { eyebrow: "FRAME SELECIONADO", title: "Selected frame", body: `<div class="gl-row"><span>Time</span><strong>10:15:26.120</strong></div><div class="gl-row"><span>RMS Error</span><strong class="status">0.679 mm</strong></div><div class="gl-row"><span>Confidence</span><strong>95%</strong></div><div class="gl-row"><span>Pose</span><strong>-32.7° / 5.1° / 0.0°</strong></div><div class="gl-row"><span>Notes</span><strong>Optimal alignment</strong></div>` },
 };
@@ -47,6 +47,33 @@ function renderSelectedFrame(element: HTMLElement, selected: { id: string; times
 function updateRuntimePresentation(element: HTMLElement, snapshot: AuditSnapshot): void {
   const inactive = snapshot.mode === "static" || snapshot.mode === "degraded";
   element.classList.toggle("studio-panel--inactive", inactive);
+  if (snapshot.mode === "connected") {
+    const setMany = (field: string, values: Array<string | number | undefined>) => {
+      element.querySelectorAll<HTMLElement>(`[data-studio-field="${field}"]`).forEach((node, index) => {
+        node.textContent = values[index] === undefined ? "—" : String(values[index]);
+      });
+    };
+    const camera = snapshot.camera ?? {};
+    setMany("camera", [camera.source, camera.active === undefined ? undefined : camera.active ? "● Ativa" : "Desligada", camera.width && camera.height ? `${camera.width} × ${camera.height}` : undefined, camera.fps]);
+    const tracking = snapshot.tracking ?? {};
+    setMany("tracking", [tracking.confidence === undefined ? undefined : `${Math.round(tracking.confidence * 100)}%`, tracking.detected === undefined ? undefined : tracking.detected ? "Detectado" : "Não detectado", tracking.stability, tracking.latencyMs === undefined ? undefined : `${tracking.latencyMs} ms`]);
+    const glb = snapshot.glb as (AuditSnapshot["glb"] & { dimensions?: { frameWidthMm?: number; lensWidthMm?: number; lensHeightMm?: number } }) | null | undefined;
+    setMany("glb-name", [glb?.name]);
+    setMany("glb-file", [glb?.modelUrl]);
+    setMany("glb-dimensions", [glb?.dimensions ? `${glb.dimensions.frameWidthMm ?? "—"} × ${glb.dimensions.lensWidthMm ?? "—"} × ${glb.dimensions.lensHeightMm ?? "—"} mm` : undefined]);
+    setMany("glb-scale", [(glb as { fitting?: { defaultScale?: number } } | null)?.fitting?.defaultScale]);
+    setMany("glb-visibility", [glb ? "Exibindo" : "—"]);
+    const pose = snapshot.pose;
+    setMany("pose", [pose ? `${pose.yaw ?? "—"}° / ${pose.pitch ?? "—"}° / ${pose.roll ?? "—"}°` : undefined]);
+    setMany("landmarks", [tracking.landmarks ? `${tracking.landmarks} / ${tracking.landmarks}` : undefined]);
+    setMany("interpupilar", [undefined]);
+    setMany("bounding-box", [undefined]);
+    const render = snapshot.render ?? {};
+    setMany("draw-calls", [render.drawCalls]);
+    setMany("triangles", [render.triangles]);
+    setMany("frame-time", [render.frameTimeMs === undefined ? undefined : `${render.frameTimeMs} ms`]);
+    setMany("canvas", [render.dpr === undefined && render.width === undefined ? undefined : `${render.dpr ?? "—"} / ${render.width ?? "—"} × ${render.height ?? "—"}`]);
+  }
   const runtimeTexts = element.querySelectorAll<HTMLElement>("[data-studio-active-text]");
   if (!inactive) {
     runtimeTexts.forEach((value) => {

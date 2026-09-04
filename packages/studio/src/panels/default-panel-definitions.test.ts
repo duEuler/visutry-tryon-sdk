@@ -28,4 +28,15 @@ describe("createDefaultPanelDefinitions", () => {
     expect(element.querySelector("strong")?.textContent).toBe("—");
     expect(element.querySelector(".timeline-empty")?.textContent).toContain("Nenhuma evidência");
   });
+
+  it("projects connected snapshot values into runtime fields", () => {
+    const definitions = createDefaultPanelDefinitions({ collapsePanel: vi.fn(), expandPanel: vi.fn() });
+    const glb = definitions.find((item) => item.id === "rightDock");
+    const element = document.createElement("section");
+    element.innerHTML = '<strong data-studio-field="glb-name">old</strong><strong data-studio-field="glb-file">old</strong><strong data-studio-field="glb-visibility">old</strong>';
+    glb?.update?.(element, { mode: "connected", glb: { name: "New Model", modelUrl: "/new.glb" } });
+    expect(element.querySelector('[data-studio-field="glb-name"]')?.textContent).toBe("New Model");
+    expect(element.querySelector('[data-studio-field="glb-file"]')?.textContent).toBe("/new.glb");
+    expect(element.querySelector('[data-studio-field="glb-visibility"]')?.textContent).toBe("Exibindo");
+  });
 });
