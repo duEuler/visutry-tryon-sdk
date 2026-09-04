@@ -76,20 +76,21 @@ adapters do SDK e conecte-os somente quando o usuário solicitar o runtime.
 
 ## React
 
-Use `createReactStudioBinding` em um `useEffect`. O componente de referência
-está em [`packages/studio/examples/ReactStudioHost.tsx`](../packages/studio/examples/ReactStudioHost.tsx):
+Use `createReactStudioBinding` em um `useEffect`. O componente completo de
+referência está em
+[`packages/studio/examples/ReactStudioApp.tsx`](../packages/studio/examples/ReactStudioApp.tsx):
 
 ```tsx
-const binding = createReactStudioBinding({ panels, initialLayout });
-useEffect(() => {
-  if (!hostRef.current) return;
-  binding.mount(hostRef.current);
-  return () => binding.unmount();
-}, [binding]);
+import { ReactStudioApp } from "@visutry/studio/examples/ReactStudioApp";
+
+export function AuditRoute() {
+  return <ReactStudioApp persistenceKey="audit-studio-layout" />;
+}
 ```
 
 React controla apenas a referência DOM e o lifecycle; não crie uma instância
-Golden Layout adicional dentro do componente.
+Golden Layout adicional dentro do componente. Para uma integração manual,
+`ReactStudioHost.tsx` mostra somente o padrão mínimo de `ref` e cleanup.
 
 ## Persistência e toolbar
 
@@ -106,6 +107,8 @@ recolhidos. JSON inválido ou versões incompatíveis retornam ao layout padrão
 - [ ] Pausar try-on quando a aba ou painel Live 3D não estiver visível.
 - [ ] Chamar `dispose()` de todos os adapters em `studio.destroy()`.
 - [ ] Validar escala/origem/espelhamento do GLB no dispositivo-alvo.
+- [ ] Confirmar que o consumidor React fornece `react`, `react-dom` e os tipos
+      correspondentes; eles não são dependências obrigatórias do pacote Studio.
 - [ ] Executar E2E em pelo menos 1366×768 e 1920×1080.
 - [ ] Executar a matriz Firefox/WebKit com `VISUTRY_E2E_CROSS_BROWSER=1`.
 - [ ] Fazer teste final com câmera física; a câmera simulada não substitui esse
