@@ -26,6 +26,8 @@ async function composeEvidence(dataUrl: string, video: HTMLVideoElement | null):
 export function createStudioRuntimeAdapter(sdk: VisuTrySDK, options: StudioRuntimeAdapterOptions = {}): StudioRuntimeAdapter {
   const listeners = new Set<(snapshot: AuditSnapshot) => void>();
   let snapshot: AuditSnapshot = { mode: "connected", camera: { active: false }, tracking: { detected: false } };
+  let initialized = false;
+  let disposed = false;
   const publish = (patch: AuditSnapshot) => {
     snapshot = { ...snapshot, ...patch };
     listeners.forEach((listener) => listener(snapshot));
@@ -53,10 +55,14 @@ export function createStudioRuntimeAdapter(sdk: VisuTrySDK, options: StudioRunti
       return frame;
     },
     async initialize() {
+      if (initialized || disposed) return;
+      initialized = true;
       (Object.keys(handlers) as (keyof VisuTrySDKEvents)[]).forEach((eventName) => sdk.on(eventName, handlers[eventName]));
-      try { await sdk.initialize(); } catch (error) { publish({ mode: "degraded", error }); throw error; }
+      try { await sdk.initialize(); } catch (error) { initialized = false; publish({ mode: "degraded", error }); throw error; }
     },
     dispose() {
+      if (disposed) return;
+      disposed = true;
       (Object.keys(handlers) as (keyof VisuTrySDKEvents)[]).forEach((eventName) => sdk.off(eventName, handlers[eventName]));
       listeners.clear();
       sdk.destroy();

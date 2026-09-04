@@ -39,4 +39,15 @@ describe("createStudioRuntimeAdapter", () => {
     expect(sdk.off).toHaveBeenCalledTimes(9);
     expect(sdk.destroy).toHaveBeenCalledOnce();
   });
+
+  it("initializes event handlers only once", async () => {
+    const sdk = createSdkMock();
+    const adapter = createStudioRuntimeAdapter(sdk as never);
+    await adapter.initialize?.();
+    await adapter.initialize?.();
+    expect(sdk.on).toHaveBeenCalledTimes(9);
+    adapter.dispose?.();
+    adapter.dispose?.();
+    expect(sdk.destroy).toHaveBeenCalledOnce();
+  });
 });
