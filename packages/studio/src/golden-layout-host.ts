@@ -93,6 +93,15 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       });
       try { await runtime.initialize?.(); } catch { mode = "degraded"; modeListeners.forEach((listener) => listener(mode)); }
     },
+    disconnectRuntime() {
+      runtimeUnsubscribe?.();
+      runtimeUnsubscribe = null;
+      activeRuntime?.dispose?.();
+      activeRuntime = undefined;
+      mode = "static";
+      store.setSnapshot({ mode: "static" });
+      modeListeners.forEach((listener) => listener(mode));
+    },
     destroy() {
       if (!mounted) return;
       mounted = false;

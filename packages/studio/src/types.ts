@@ -90,4 +90,5 @@ export interface StudioInstance {
   getMode(): StudioMode;
   subscribeMode(listener: (mode: StudioMode) => void): () => void;
   connectRuntime(runtime: StudioRuntimeAdapter): Promise<void>;
+  disconnectRuntime(): void;
 }
