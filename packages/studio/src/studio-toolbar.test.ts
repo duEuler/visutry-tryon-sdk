@@ -74,6 +74,10 @@ describe("bindStudioToolbar", () => {
     expect(button.getAttribute("aria-disabled")).toBe("true");
     button.click();
     expect(studio.saveLayout).not.toHaveBeenCalled();
+    binding.setEnabled(true);
+    expect(button.disabled).toBe(false);
+    button.click();
+    expect(studio.saveLayout).toHaveBeenCalledOnce();
     binding.dispose();
   });
 });

@@ -2,6 +2,7 @@ import type { StudioInstance } from "./types.js";
 
 export interface StudioToolbarBinding {
   dispose(): void;
+  setEnabled(enabled: boolean): void;
 }
 
 export interface StudioToolbarOptions {
@@ -15,20 +16,22 @@ export function bindStudioToolbar(root: ParentNode, studio: StudioInstance, opti
   const panelIds = options.accordionPanelIds ?? ["leftDock", "rightDock"];
   const listeners: Array<() => void> = [];
   const controls = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-studio-action]"));
-  if (options.enabled === false) {
+  let enabled = options.enabled !== false;
+  const setEnabled = (next: boolean) => {
+    enabled = next;
     controls.forEach((button) => {
-      button.disabled = true;
-      button.setAttribute("aria-disabled", "true");
+      button.disabled = !enabled;
+      button.setAttribute("aria-disabled", String(!enabled));
     });
-  }
+  };
+  setEnabled(enabled);
   const on = (selector: string, handler: (button: HTMLButtonElement) => void) => {
     root.querySelectorAll<HTMLButtonElement>(selector).forEach((button) => {
-      const listener = () => handler(button);
+      const listener = () => { if (enabled) handler(button); };
       button.addEventListener("click", listener);
       listeners.push(() => button.removeEventListener("click", listener));
     });
   };
-  if (options.enabled === false) return { dispose() {} };
   on('[data-studio-action="save"]', () => studio.saveLayout());
   on('[data-studio-action="restore"]', () => studio.restoreDefaultLayout());
   on('[data-studio-action="expand"]', () => panelIds.forEach((id) => studio.expandPanel(id)));
@@ -49,5 +52,5 @@ export function bindStudioToolbar(root: ParentNode, studio: StudioInstance, opti
     button.textContent = locked ? "Desbloquear layout" : "Bloquear layout";
     button.setAttribute("aria-pressed", String(locked));
   });
-  return { dispose() { listeners.splice(0).forEach((remove) => remove()); } };
+  return { dispose() { listeners.splice(0).forEach((remove) => remove()); }, setEnabled };
 }
