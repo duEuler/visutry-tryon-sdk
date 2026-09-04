@@ -82,7 +82,7 @@ cameraButton?.addEventListener("click", async () => { if (!runtimeSdk) return; c
 tryOnButton?.addEventListener("click", async () => { if (!runtimeSdk) return; try { await runtimeSdk.startTryOn(); tryOnButton.textContent = "Try-on ativo"; } catch { tryOnButton.textContent = "Tentar try-on novamente"; } });
 glbButton?.addEventListener("click", async () => { if (!runtimeSdk) return; glbButton.disabled = true; glbButton.textContent = "Carregando…"; try { const { default: asset } = await import("@visutry/demo-assets/glasses/aviator-classic.json"); await runtimeSdk.loadGlasses(asset); glbButton.textContent = "GLB carregado"; } catch { glbButton.disabled = false; glbButton.textContent = "Tentar GLB novamente"; } });
 evidenceButton?.addEventListener("click", async () => { if (!runtimeAdapter) return; evidenceButton.disabled = true; try { await runtimeAdapter.captureEvidence?.(); evidenceButton.textContent = "Evidência capturada"; } catch { evidenceButton.disabled = false; evidenceButton.textContent = "Tentar evidência novamente"; } });
-stopButton?.addEventListener("click", () => { runtimeSdk?.stopTryOn(); runtimeSdk?.stopCamera(); if (cameraButton) { cameraButton.disabled = false; cameraButton.textContent = "Iniciar câmera"; } if (tryOnButton) tryOnButton.textContent = "Iniciar try-on"; });
+stopButton?.addEventListener("click", () => { runtimeSdk?.stopTryOn(); runtimeSdk?.stopCamera(); runtimeAdapter = null; setRuntimeControls(false); if (cameraButton) cameraButton.textContent = "Iniciar câmera"; if (tryOnButton) tryOnButton.textContent = "Iniciar try-on"; if (glbButton) glbButton.textContent = "Carregar GLB"; if (evidenceButton) evidenceButton.textContent = "Capturar evidência"; });
 window.addEventListener("beforeunload", () => studio.destroy());
 document.getElementById("connect-runtime")?.addEventListener("click", async (event) => {
   const button = event.currentTarget as HTMLButtonElement;
@@ -97,8 +97,9 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
     runtimeSdk = createVisuTryWebSDK({ canvas, privacy: { processOnDeviceOnly: true, allowSnapshotExport: true } });
     runtimeAdapter = createStudioRuntimeAdapter(runtimeSdk);
     await studio.connectRuntime(runtimeAdapter);
-    setRuntimeControls(true);
-    button.textContent = "Runtime conectado";
+    const mode = studio.getMode();
+    setRuntimeControls(mode === "connected");
+    button.textContent = mode === "connected" ? "Runtime conectado" : "Runtime indisponível";
   } catch {
     button.disabled = false;
     button.textContent = "Tentar runtime novamente";
