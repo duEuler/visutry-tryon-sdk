@@ -61,8 +61,17 @@ export function createStudioRuntimeAdapter(sdk: VisuTrySDK, options: StudioRunti
       const semantic = face.landmarks?.semantic;
       const eyeDistance = distance(semantic?.leftEyeCenter, semantic?.rightEyeCenter);
       const cameraWidth = snapshot.camera?.width ?? 640;
+      const explicitRms = asNumber((face as unknown as { rmsError?: unknown }).rmsError);
+      const confidence = asNumber(face.quality?.confidence) ?? 0;
+      const stability = asNumber(face.quality?.stabilityScore) ?? 0;
+      const rmsError = explicitRms ?? Math.max(0.01, (1 - confidence) * 1.5 + (1 - stability) * 0.5);
       publish({
-        face: { ...face, interpupilar: eyeDistance === undefined ? undefined : Math.round(eyeDistance * cameraWidth * 1000) / 1000 },
+        face: {
+          ...face,
+          rmsError,
+          rmsErrorEstimated: explicitRms === undefined,
+          interpupilar: eyeDistance === undefined ? undefined : Math.round(eyeDistance * cameraWidth * 1000) / 1000,
+        },
         tracking: {
           detected: true,
           confidence: face.quality.confidence,

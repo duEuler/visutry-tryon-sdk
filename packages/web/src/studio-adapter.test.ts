@@ -36,6 +36,17 @@ describe("createStudioRuntimeAdapter", () => {
     expect(adapter.getSnapshot()).toMatchObject({ tracking: { landmarks: 478, stability: 0.88 }, face: { interpupilar: 64 }, pose: { yaw: 2, pitch: 1, roll: 3, position: { x: 4, y: 5, z: 6 } } });
   });
 
+  it("publishes an estimated error when the SDK omits RMS", async () => {
+    const sdk = createSdkMock();
+    const adapter = createStudioRuntimeAdapter(sdk as never);
+    await adapter.initialize?.();
+    sdk.handlers.get("faceDetected")?.({ quality: { confidence: 0.9, stabilityScore: 0.8 } });
+    expect(adapter.getSnapshot().face).toMatchObject({ rmsErrorEstimated: true });
+    expect((adapter.getSnapshot().face as { rmsError: number }).rmsError).toBeCloseTo(0.25, 10);
+    sdk.handlers.get("faceDetected")?.({ quality: { confidence: 0.9, stabilityScore: 0.8 }, rmsError: 0.679 });
+    expect(adapter.getSnapshot().face).toMatchObject({ rmsError: 0.679, rmsErrorEstimated: false });
+  });
+
   it("forwards the loaded GLB manifest to the Studio snapshot", async () => {
     const sdk = createSdkMock();
     const adapter = createStudioRuntimeAdapter(sdk as never);
