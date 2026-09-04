@@ -6,7 +6,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": ["dist", "styles", "README.md"],
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }, "./styles.css": "./styles/studio.css", "./golden-layout.css": "./styles/golden-layout.css" },
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }, "./styles.css": "./styles/studio.css", "./golden-layout.css": "./styles/golden-layout.css", "./theme.css": "./styles/theme.css" },
   "scripts": { "build": "tsc -p tsconfig.build.json", "typecheck": "tsc --noEmit" },
   "dependencies": { "golden-layout": "^2.6.0" },
   "peerDependencies": { "golden-layout": "^2.6.0" }

@@ -142,3 +142,7 @@ O contrato de integração do Golden Layout fica disponível separadamente em
 `@visutry/studio/golden-layout.css`. Ele contém sizing dos nós, scroll dos
 containers, bloqueio do layout e controles de minimizar; o tema visual pode
 continuar sendo fornecido pelo aplicativo consumidor.
+
+Para usar o tema visual de referência do Studio, importe também
+`@visutry/studio/theme.css`. O demo mantém separado apenas o CSS de runtime
+(`runtime-canvas.css`), responsável pelas camadas de vídeo e canvas.

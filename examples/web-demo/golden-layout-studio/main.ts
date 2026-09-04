@@ -2,10 +2,10 @@ import { type ComponentContainer } from "golden-layout";
 import { bindStudioToolbar, createAccordionPanel, createDefaultStudioLayout, createGoldenLayoutStudio, createLocalStoragePersistence, createPanelShell, renderEvidenceTimeline, type AuditSnapshot, type StudioPanelDefinition, type StudioRuntimeAdapter } from "@visutry/studio";
 import { panels, accordionSections } from "./panel-catalog";
 import type { VisuTrySDK } from "@visutry/tryon-core";
-import "./styles.css";
 import "./runtime-canvas.css";
 import "@visutry/studio/styles.css";
 import "@visutry/studio/golden-layout.css";
+import "@visutry/studio/theme.css";
 
 const persistence = createLocalStoragePersistence("visutry-golden-layout-state-v7", 7);
 function component(container: ComponentContainer, id: string) {
