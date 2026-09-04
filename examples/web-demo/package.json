@@ -10,6 +10,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@visutry/studio": "workspace:*",
     "@visutry/tryon-core": "workspace:*",
     "@visutry/tryon-web": "workspace:*",
     "@visutry/recommender": "workspace:*",

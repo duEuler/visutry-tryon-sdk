@@ -59,6 +59,9 @@ importers:
       '@visutry/recommender':
         specifier: workspace:*
         version: link:../../packages/recommender
+      '@visutry/studio':
+        specifier: workspace:*
+        version: link:../../packages/studio
       '@visutry/tryon-core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -91,6 +94,12 @@ importers:
       '@visutry/tryon-core':
         specifier: workspace:*
         version: link:../core
+
+  packages/studio:
+    dependencies:
+      golden-layout:
+        specifier: ^2.6.0
+        version: 2.6.0
 
   packages/web:
     dependencies:

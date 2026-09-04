@@ -31,6 +31,8 @@
       "@visutry/tryon-web/*": ["./packages/web/src/*"],
       "@visutry/recommender": ["./packages/recommender/src/index.ts"],
       "@visutry/recommender/*": ["./packages/recommender/src/*"]
+      ,"@visutry/studio": ["./packages/studio/src/index.ts"]
+      ,"@visutry/studio/*": ["./packages/studio/src/*"]
     }
   },
   "exclude": ["node_modules", "dist", "build", "coverage"]

@@ -1,12 +1,12 @@
-import { GoldenLayout, type LayoutConfig, type ComponentContainer } from "golden-layout";
+import { type LayoutConfig, type ComponentContainer } from "golden-layout";
+import { createGoldenLayoutStudio, createLocalStoragePersistence, type StudioPanelDefinition } from "@visutry/studio";
 import "./styles.css";
 import "./collapse.css";
 import "./layout-fix.css";
 import "./accordion-scroll.css";
 import "./viewport-layout.css";
 
-const key = "visutry-golden-layout-state-v6";
-const layoutStateVersion = 6;
+const persistence = createLocalStoragePersistence("visutry-golden-layout-state-v7", 7);
 type Panel = { eyebrow: string; title: string; body: string };
 const panels: Record<string, Panel> = {
   camera: { eyebrow: "01 / CAPTURA", title: "Câmera", body: `<div class="metric-grid"><div class="metric"><label>Fonte</label><strong>Integrated Webcam</strong></div><div class="metric"><label>Estado</label><strong class="status">● Ativa</strong></div><div class="metric"><label>Resolução</label><strong>640 × 480</strong></div><div class="metric"><label>FPS alvo</label><strong>30</strong></div></div>` },
@@ -68,32 +68,15 @@ const defaultLayout: LayoutConfig = {
   },
 };
 const host = document.getElementById("layout-host"); if (!host) throw new Error("layout host ausente");
-const layout = new GoldenLayout(host); Object.keys(panels).forEach((id) => layout.registerComponentFactoryFunction(id, (container) => component(container, id)));
-const readSavedLayout = (): LayoutConfig => {
-  const saved = localStorage.getItem(key);
-  if (!saved) return defaultLayout;
-  const parsed = JSON.parse(saved) as { version?: number; layout?: LayoutConfig } | LayoutConfig;
-  if ("layout" in parsed && parsed.layout) {
-    if (parsed.version !== layoutStateVersion) return defaultLayout;
-    return parsed.layout;
-  }
-  return parsed as LayoutConfig;
-};
-try { layout.loadLayout(readSavedLayout()); } catch { localStorage.removeItem(key); layout.loadLayout(defaultLayout); }
-let resizeFrame: number | null = null;
-const syncLayoutSize = () => {
-  if (resizeFrame !== null) return;
-  resizeFrame = requestAnimationFrame(() => {
-    layout.updateSize(host.clientWidth, host.clientHeight);
-    host.querySelectorAll<HTMLElement>(".lm_item:has(.accordion)>.lm_content").forEach((content) => {
-      content.classList.add("audit-scroll-container");
-    });
-    resizeFrame = null;
-  });
-};
-syncLayoutSize();
-const resizeObserver = new ResizeObserver(syncLayoutSize);
-resizeObserver.observe(host);
-document.getElementById("save-layout")?.addEventListener("click", () => { localStorage.setItem(key, JSON.stringify({ version: layoutStateVersion, layout: layout.saveLayout() })); });
-document.getElementById("reset-layout")?.addEventListener("click", () => { localStorage.removeItem(key); location.reload(); });
-window.addEventListener("beforeunload", () => { resizeObserver.disconnect(); if (resizeFrame !== null) cancelAnimationFrame(resizeFrame); });
+const panelDefinitions: StudioPanelDefinition[] = Object.keys(panels).map((id) => ({
+  id,
+  title: panels[id].title,
+  region: id === "leftDock" ? "left" : id === "rightDock" ? "right" : id === "evidence" || id === "selected" ? "bottom" : "center",
+  scrollable: id === "leftDock" || id === "rightDock",
+  create: (_context, container) => component(container, id),
+}));
+const studio = createGoldenLayoutStudio({ host, panels: panelDefinitions, initialLayout: defaultLayout, persistence });
+studio.mount();
+document.getElementById("save-layout")?.addEventListener("click", () => studio.saveLayout());
+document.getElementById("reset-layout")?.addEventListener("click", () => studio.restoreDefaultLayout());
+window.addEventListener("beforeunload", () => studio.destroy());
