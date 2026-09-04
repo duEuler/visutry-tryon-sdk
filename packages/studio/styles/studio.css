@@ -60,6 +60,18 @@
   text-align: center;
 }
 
+:where(.studio-runtime-hidden) {
+  visibility: hidden;
+}
+
+:where(.runtime-placeholder) {
+  display: block;
+  color: #7f94ab;
+  font-size: 12px;
+  padding: 18px 12px;
+  text-align: center;
+}
+
 :where(.studio-panel--scrollable) {
   min-height: 0;
   overflow: hidden;

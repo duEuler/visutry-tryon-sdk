@@ -47,8 +47,36 @@ function renderSelectedFrame(element: HTMLElement, selected: { id: string; times
 function updateRuntimePresentation(element: HTMLElement, snapshot: AuditSnapshot): void {
   const inactive = snapshot.mode === "static" || snapshot.mode === "degraded";
   element.classList.toggle("studio-panel--inactive", inactive);
-  if (!inactive) return;
-  element.querySelectorAll<HTMLElement>("strong").forEach((value) => { value.textContent = "—"; });
+  const runtimeTexts = element.querySelectorAll<HTMLElement>("[data-studio-active-text]");
+  if (!inactive) {
+    runtimeTexts.forEach((value) => {
+      value.textContent = value.dataset.studioActiveText ?? value.textContent;
+      delete value.dataset.studioActiveText;
+    });
+    element.querySelectorAll<HTMLElement>(".studio-runtime-hidden").forEach((value) => value.classList.remove("studio-runtime-hidden"));
+    element.querySelectorAll(".runtime-placeholder, .panel-empty-state").forEach((value) => value.remove());
+    return;
+  }
+  element.querySelectorAll<HTMLElement>("strong").forEach((value) => {
+    value.dataset.studioActiveText ??= value.textContent ?? "";
+    value.textContent = "—";
+  });
+  element.querySelectorAll<HTMLElement>("small").forEach((value) => {
+    value.dataset.studioActiveText ??= value.textContent ?? "";
+    value.textContent = "runtime desligado";
+  });
+  element.querySelectorAll<HTMLElement>(".studio-live-canvas, .face-wire, svg").forEach((value) => value.classList.add("studio-runtime-hidden"));
+  element.querySelectorAll<HTMLElement>("p").forEach((value) => {
+    if (!value.textContent?.includes("atual ")) return;
+    value.dataset.studioActiveText ??= value.textContent;
+    value.textContent = "Aguardando runtime para métricas de erro.";
+  });
+  if (element.querySelector(".studio-runtime-hidden") && !element.querySelector(".runtime-placeholder")) {
+    const placeholder = document.createElement("span");
+    placeholder.className = "runtime-placeholder";
+    placeholder.textContent = "Runtime desligado";
+    element.querySelector(".panel-body")?.append(placeholder);
+  }
   const timeline = element.querySelector<HTMLElement>(".timeline");
   if (timeline) {
     timeline.replaceChildren();
