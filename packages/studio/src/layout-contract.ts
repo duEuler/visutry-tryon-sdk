@@ -24,6 +24,9 @@ function normalizeNode(value: unknown): LayoutNode | null {
   const content = Array.isArray(node.content) ? node.content.map(normalizeNode).filter((item): item is LayoutNode => item !== null) : [];
   if (!content.length) return null;
   const normalized: LayoutNode = { type, content };
+  if (type === "stack" && Number.isInteger(node.activeItem) && (node.activeItem as number) >= 0) {
+    normalized.activeItem = node.activeItem;
+  }
   const width = finiteSize(node.width); if (width !== undefined) normalized.width = width;
   const height = finiteSize(node.height); if (height !== undefined) normalized.height = height;
   return normalized;

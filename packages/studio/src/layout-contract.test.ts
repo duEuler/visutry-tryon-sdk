@@ -37,4 +37,19 @@ describe("normalizeStudioLayout", () => {
     const layout = normalizeStudioLayout({ root: { type: "component", componentType: "live", id: "resolved" } } as any);
     expect(layout.root).toEqual({ type: "component", componentType: "live" });
   });
+
+  it("preserves the active tab index in a stack", () => {
+    const layout = normalizeStudioLayout({ root: {
+      type: "stack", activeItem: 1, id: "resolved-stack", content: [
+        { type: "component", componentType: "live", id: "runtime-live" },
+        { type: "component", componentType: "viewports" },
+      ],
+    } } as any);
+    expect(layout.root).toEqual({
+      type: "stack", activeItem: 1, content: [
+        { type: "component", componentType: "live" },
+        { type: "component", componentType: "viewports" },
+      ],
+    });
+  });
 });
