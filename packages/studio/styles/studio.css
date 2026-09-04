@@ -43,6 +43,23 @@
   overflow: hidden;
 }
 
+:where(.studio-panel--inactive) {
+  opacity: 0.72;
+}
+
+:where(.studio-panel--inactive) .status {
+  color: #7f94ab;
+}
+
+:where(.timeline-empty),
+:where(.panel-empty-state) {
+  display: block;
+  color: #7f94ab;
+  font-size: 12px;
+  padding: 12px;
+  text-align: center;
+}
+
 :where(.studio-panel--scrollable) {
   min-height: 0;
   overflow: hidden;

@@ -44,6 +44,29 @@ function renderSelectedFrame(element: HTMLElement, selected: { id: string; times
   });
 }
 
+function updateRuntimePresentation(element: HTMLElement, snapshot: AuditSnapshot): void {
+  const inactive = snapshot.mode === "static" || snapshot.mode === "degraded";
+  element.classList.toggle("studio-panel--inactive", inactive);
+  if (!inactive) return;
+  element.querySelectorAll<HTMLElement>("strong").forEach((value) => { value.textContent = "—"; });
+  const timeline = element.querySelector<HTMLElement>(".timeline");
+  if (timeline) {
+    timeline.replaceChildren();
+    const empty = document.createElement("span");
+    empty.className = "timeline-empty";
+    empty.textContent = "Nenhuma evidência disponível";
+    timeline.append(empty);
+  }
+  const body = element.querySelector<HTMLElement>(".panel-body");
+  if (body && element.dataset.panelId === "selected") {
+    body.replaceChildren();
+    const empty = document.createElement("p");
+    empty.className = "panel-empty-state";
+    empty.textContent = "Conecte o runtime para selecionar um frame.";
+    body.append(empty);
+  }
+}
+
 function createPanel(studio: Pick<StudioInstance, "collapsePanel" | "expandPanel">, context: StudioPanelContext, container: ComponentContainer, id: string): void {
   const accordion = id === "leftDock" || id === "rightDock";
   if (accordion) createAccordionPanel(context, container, accordionSections(id === "leftDock" ? ["camera", "diagnostics", "quality", "error"] : ["glb", "overlay", "pose", "metrics"]));
@@ -79,12 +102,19 @@ export function createDefaultPanelDefinitions(studio: Pick<StudioInstance, "coll
     scrollable: id === "leftDock" || id === "rightDock",
     create: (context, container) => createPanel(studio, context, container, id),
     destroy: (element) => { panelCleanups.get(element)?.(); panelCleanups.delete(element); },
-    update: id === "evidence" ? (element, snapshot: AuditSnapshot) => {
+    update: (element, snapshot: AuditSnapshot) => {
+      updateRuntimePresentation(element, snapshot);
+      if (id === "evidence") {
       const items = (snapshot.evidence ?? []) as { id: string; timestamp: number }[];
-      if (items.length) element.querySelector(".timeline")!.innerHTML = renderEvidenceTimeline(items.map((item) => ({ label: new Date(item.timestamp).toLocaleTimeString(), best: item.id === snapshot.selectedFrameId })));
-    } : id === "selected" ? (element, snapshot: AuditSnapshot) => {
+      const timeline = element.querySelector<HTMLElement>(".timeline");
+      if (timeline && snapshot.mode === "connected") timeline.innerHTML = items.length
+        ? renderEvidenceTimeline(items.map((item) => ({ label: new Date(item.timestamp).toLocaleTimeString(), best: item.id === snapshot.selectedFrameId })))
+        : "<span class=\"timeline-empty\">Nenhuma evidência disponível</span>";
+      }
+      if (id === "selected") {
       const selected = ((snapshot.evidence ?? []) as { id: string; timestamp: number }[]).find((item) => item.id === snapshot.selectedFrameId);
-      if (selected) renderSelectedFrame(element, selected);
-    } : undefined,
+      if (selected && snapshot.mode !== "static" && snapshot.mode !== "degraded") renderSelectedFrame(element, selected);
+      }
+    },
   }));
 }

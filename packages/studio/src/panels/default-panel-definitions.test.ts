@@ -17,4 +17,15 @@ describe("createDefaultPanelDefinitions", () => {
     expect(element.querySelector("img")).toBeNull();
     expect(element.querySelector(".panel-body")?.textContent).toContain("<img src=x onerror=alert(1)>");
   });
+
+  it("clears runtime values and evidence while static", () => {
+    const definition = createDefaultPanelDefinitions({ collapsePanel: vi.fn(), expandPanel: vi.fn() }).find((item) => item.id === "evidence");
+    const element = document.createElement("section");
+    element.dataset.panelId = "evidence";
+    element.innerHTML = '<div class="panel-body"><div class="timeline"><span>old frame</span></div><strong>95%</strong></div>';
+    definition?.update?.(element, { mode: "static", evidence: [{ id: "old", timestamp: 1 }] });
+    expect(element.classList.contains("studio-panel--inactive")).toBe(true);
+    expect(element.querySelector("strong")?.textContent).toBe("—");
+    expect(element.querySelector(".timeline-empty")?.textContent).toContain("Nenhuma evidência");
+  });
 });
