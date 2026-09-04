@@ -53,7 +53,7 @@ describe("Studio adapter contracts", () => {
     });
     await expect(runtime.initialize?.()).rejects.toThrow("renderer unavailable");
     expect(runtime.getSnapshot()).toMatchObject({ mode: "degraded", error: expect.any(Error) });
-    expect(calls).toEqual(["camera+", "renderer+", "camera-"]);
+    expect(calls).toEqual(["camera+", "renderer+", "renderer-", "camera-"]);
   });
 
   it("recovers the connected mode on a later successful initialization", async () => {

@@ -47,8 +47,8 @@ export function createCompositeStudioRuntime(adapters: StudioAdapters, initial: 
       const started: StudioLifecycleAdapter[] = [];
       try {
         for (const adapter of lifecycle) {
-          await adapter.initialize?.();
           started.push(adapter);
+          await adapter.initialize?.();
         }
         initialized = true;
         publish({ mode: "connected", error: undefined });
