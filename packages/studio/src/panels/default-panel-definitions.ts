@@ -57,6 +57,7 @@ function updateRuntimePresentation(element: HTMLElement, snapshot: AuditSnapshot
     element.querySelectorAll(".runtime-placeholder, .panel-empty-state").forEach((value) => value.remove());
     return;
   }
+  element.querySelectorAll<HTMLElement>(".studio-live-canvas").forEach((value) => value.classList.remove("studio-runtime-hidden"));
   element.querySelectorAll<HTMLElement>("strong").forEach((value) => {
     value.dataset.studioActiveText ??= value.textContent ?? "";
     value.textContent = "—";
@@ -65,7 +66,7 @@ function updateRuntimePresentation(element: HTMLElement, snapshot: AuditSnapshot
     value.dataset.studioActiveText ??= value.textContent ?? "";
     value.textContent = "runtime desligado";
   });
-  element.querySelectorAll<HTMLElement>(".studio-live-canvas, .face-wire, svg").forEach((value) => value.classList.add("studio-runtime-hidden"));
+  element.querySelectorAll<HTMLElement>(".face-wire, svg").forEach((value) => value.classList.add("studio-runtime-hidden"));
   element.querySelectorAll<HTMLElement>("p").forEach((value) => {
     if (!value.textContent?.includes("atual ")) return;
     value.dataset.studioActiveText ??= value.textContent;

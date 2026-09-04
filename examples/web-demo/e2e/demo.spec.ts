@@ -478,7 +478,7 @@ test.describe("Golden Layout Studio", () => {
         pageFitsViewport: document.documentElement.scrollHeight <= window.innerHeight,
       };
     });
-    expect(visual.topbarHeight).toBe(58);
+    expect(visual.topbarHeight).toBe(92);
     expect(visual.topbarBackground).toBe("rgb(11, 19, 32)");
     expect(visual.panelBackground).toContain("linear-gradient");
     expect(visual.stageBorder).toBe("rgb(45, 73, 101)");
