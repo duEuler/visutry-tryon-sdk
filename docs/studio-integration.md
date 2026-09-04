@@ -102,14 +102,14 @@ recolhidos. JSON inválido ou versões incompatíveis retornam ao layout padrão
 ## Checklist de produção
 
 - [ ] Conceder permissão de câmera apenas após ação do usuário.
-- [ ] Instanciar uma única câmera, tracker e renderer.
-- [ ] Carregar MediaPipe/Three.js/GLB sob demanda.
-- [ ] Pausar try-on quando a aba ou painel Live 3D não estiver visível.
-- [ ] Chamar `dispose()` de todos os adapters em `studio.destroy()`.
+- [x] Instanciar uma única câmera, tracker e renderer no runtime conectado.
+- [x] Carregar MediaPipe/Three.js/GLB sob demanda na rota do Studio.
+- [x] Pausar try-on quando a aba ou painel Live 3D não estiver visível.
+- [x] Chamar `dispose()` de todos os adapters em `studio.destroy()`.
 - [ ] Validar escala/origem/espelhamento do GLB no dispositivo-alvo.
-- [ ] Confirmar que o consumidor React fornece `react`, `react-dom` e os tipos
+- [x] Confirmar que o consumidor React fornece `react`, `react-dom` e os tipos
       correspondentes; eles não são dependências obrigatórias do pacote Studio.
-- [ ] Executar E2E em pelo menos 1366×768 e 1920×1080.
+- [x] Executar E2E em pelo menos 1366×768 e 1920×1080.
 - [ ] Executar a matriz Firefox/WebKit com `VISUTRY_E2E_CROSS_BROWSER=1`.
 - [ ] Fazer teste final com câmera física; a câmera simulada não substitui esse
   teste de hardware.
