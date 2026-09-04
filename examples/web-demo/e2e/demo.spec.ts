@@ -209,6 +209,11 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator('[data-panel-id="selected"]')).toBeVisible();
   });
 
+  test("anchors the live camera stage and overlay canvas together", async ({ page }) => {
+    await expect(page.locator("#stage")).toBeVisible();
+    await expect(page.locator("#stage .studio-live-canvas")).toBeVisible();
+  });
+
   test("keeps accordion columns configured for scrolling", async ({ page }) => {
     const scrollContainers = page.locator(".gl-panel--accordion .accordion");
     await expect(scrollContainers).toHaveCount(2);
