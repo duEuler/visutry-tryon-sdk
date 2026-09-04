@@ -1,5 +1,5 @@
 import { type ComponentContainer } from "golden-layout";
-import { createAccordionPanel, createDefaultStudioLayout, createGoldenLayoutStudio, createLocalStoragePersistence, createPanelShell, renderEvidenceTimeline, type AuditSnapshot, type StudioPanelDefinition, type StudioRuntimeAdapter } from "@visutry/studio";
+import { bindStudioToolbar, createAccordionPanel, createDefaultStudioLayout, createGoldenLayoutStudio, createLocalStoragePersistence, createPanelShell, renderEvidenceTimeline, type AuditSnapshot, type StudioPanelDefinition, type StudioRuntimeAdapter } from "@visutry/studio";
 import { panels, accordionSections } from "./panel-catalog";
 import type { VisuTrySDK } from "@visutry/tryon-core";
 import "./styles.css";
@@ -55,6 +55,7 @@ const panelDefinitions: StudioPanelDefinition[] = Object.keys(panels).map((id) =
 }));
 const studio = createGoldenLayoutStudio({ host, panels: panelDefinitions, initialLayout: defaultLayout, persistence });
 studio.mount();
+const toolbarBinding = bindStudioToolbar(document, studio);
 if (import.meta.env.DEV) {
   (window as Window & { __visutryStudio?: typeof studio }).__visutryStudio = studio;
 }
@@ -66,13 +67,6 @@ const unsubscribeMode = studio.subscribeMode((mode) => { if (modeLabel) modeLabe
 let runtimeSdk: VisuTrySDK | null = null;
 let runtimeAdapter: StudioRuntimeAdapter | null = null;
 let resumeTryOnOnVisible = false;
-document.getElementById("save-layout")?.addEventListener("click", () => studio.saveLayout());
-document.getElementById("reset-layout")?.addEventListener("click", () => studio.restoreDefaultLayout());
-document.getElementById("expand-accordions")?.addEventListener("click", () => { studio.expandPanel("leftDock"); studio.expandPanel("rightDock"); });
-document.getElementById("collapse-accordions")?.addEventListener("click", () => { studio.collapsePanel("leftDock"); studio.collapsePanel("rightDock"); });
-document.getElementById("show-side-panels")?.addEventListener("click", () => { studio.showPanel("leftDock"); studio.showPanel("rightDock"); });
-document.getElementById("hide-side-panels")?.addEventListener("click", () => { studio.hidePanel("leftDock"); studio.hidePanel("rightDock"); });
-document.getElementById("toggle-layout-lock")?.addEventListener("click", (event) => { const button = event.currentTarget as HTMLButtonElement; const locked = !studio.isLayoutLocked(); studio.setLayoutLocked(locked); button.textContent = locked ? "Desbloquear layout" : "Bloquear layout"; });
 const runtimeButton = document.getElementById("connect-runtime") as HTMLButtonElement | null;
 const cameraButton = document.getElementById("start-camera") as HTMLButtonElement | null;
 const tryOnButton = document.getElementById("start-tryon") as HTMLButtonElement | null;
@@ -90,7 +84,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) { runtimeSdk.stopTryOn(); return; }
   if (resumeTryOnOnVisible) void runtimeSdk.startTryOn().catch(() => { if (tryOnButton) tryOnButton.textContent = "Tentar try-on novamente"; });
 });
-window.addEventListener("beforeunload", () => { unsubscribeMode(); studio.destroy(); });
+window.addEventListener("beforeunload", () => { toolbarBinding.dispose(); unsubscribeMode(); studio.destroy(); });
 document.getElementById("connect-runtime")?.addEventListener("click", async (event) => {
   const button = event.currentTarget as HTMLButtonElement;
   const canvas = document.querySelector<HTMLCanvasElement>(".studio-live-canvas");
