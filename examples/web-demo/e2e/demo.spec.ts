@@ -317,6 +317,12 @@ test.describe("Golden Layout Studio", () => {
     expect(geometry.background).toBe("rgb(7, 13, 22)");
   });
 
+  test("applies the public Studio panel style contract", async ({ page }) => {
+    await expect(page.locator('[data-panel-id="live"]')).toHaveClass(/studio-panel/);
+    await expect(page.locator('[data-panel-id="leftDock"]')).toHaveClass(/studio-panel/);
+    await expect(page.locator('[data-panel-id="leftDock"]')).toHaveClass(/studio-panel--scrollable/);
+  });
+
   test("defers heavy runtime bundles until runtime connection", async ({ page }) => {
     const resources = await page.evaluate(() => performance.getEntriesByType("resource").map((entry) => entry.name));
     expect(resources.some((name) => /three-vendor|mediapipe-vendor|VisuTryWebSDK/i.test(name))).toBe(false);
