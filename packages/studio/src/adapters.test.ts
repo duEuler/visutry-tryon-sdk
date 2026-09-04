@@ -69,4 +69,13 @@ describe("Studio adapter contracts", () => {
     expect(runtime.getSnapshot().mode).toBe("connected");
     expect(runtime.getSnapshot().error).toBeUndefined();
   });
+
+  it("preserves nested state when adapters publish partial snapshots", async () => {
+    const runtime = createCompositeStudioRuntime({
+      tracking: { getSnapshot: () => ({ tracking: { detected: true, confidence: 0.95 } }) },
+      renderer: { initialize: async () => undefined },
+    });
+    await runtime.initialize?.();
+    expect(runtime.getSnapshot()).toMatchObject({ tracking: { detected: true, confidence: 0.95 }, camera: {}, render: {} });
+  });
 });

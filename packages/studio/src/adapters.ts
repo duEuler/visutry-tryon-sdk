@@ -4,6 +4,7 @@ import type { TrackingAdapter } from "./adapters/tracking-adapter.js";
 import type { RendererAdapter } from "./adapters/renderer-adapter.js";
 import type { GlbAdapter } from "./adapters/glb-adapter.js";
 import type { EvidenceAdapter } from "./adapters/evidence-adapter.js";
+import { normalizeAuditSnapshot } from "./audit-snapshot.js";
 
 export type { CameraAdapter } from "./adapters/camera-adapter.js";
 export type { TrackingAdapter } from "./adapters/tracking-adapter.js";
@@ -29,13 +30,13 @@ export interface StudioAdapters {
 
 /** Composes independent adapters behind the runtime contract used by Studio. */
 export function createCompositeStudioRuntime(adapters: StudioAdapters, initial: AuditSnapshot = {}): StudioRuntimeAdapter {
-  let snapshot: AuditSnapshot = { mode: "connected", ...initial };
+  let snapshot: AuditSnapshot = normalizeAuditSnapshot({ mode: "connected", ...initial });
   let disposed = false;
   let initialized = false;
   const listeners = new Set<(next: AuditSnapshot) => void>();
   const publish = (next: AuditSnapshot) => {
     if (disposed) return;
-    snapshot = { ...snapshot, ...next };
+    snapshot = normalizeAuditSnapshot(next, snapshot);
     listeners.forEach((listener) => listener(snapshot));
   };
   const lifecycle = [adapters.camera, adapters.tracking, adapters.renderer, adapters.glb, adapters.evidence].filter(Boolean) as StudioLifecycleAdapter[];
