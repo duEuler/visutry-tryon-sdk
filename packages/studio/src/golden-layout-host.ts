@@ -39,6 +39,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   const observer = new ResizeObserver(() => resizeController.schedule());
   let panelStateObserver: MutationObserver | null = null;
   let panelStateRetryFrame: number | null = null;
+  const visibilityFrames = new Set<number>();
   const findItem = (id: string): HTMLElement | null => options.host.querySelector<HTMLElement>(`[data-panel-id="${CSS.escape(id)}"]`)?.closest<HTMLElement>(".lm_item") ?? null;
   const setPanelVisibility = (id: string, visible: boolean) => {
     if (visible) hiddenPanels.delete(id); else hiddenPanels.add(id);
@@ -55,9 +56,13 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
         panel?.classList.remove("studio-panel--hidden");
         const parent = panel?.closest<HTMLElement>(".lm_item");
         if (parent) parent.style.display = "";
-        if (++attempts < 4) requestAnimationFrame(clearHiddenState);
+        if (++attempts < 4) {
+          const frame = requestAnimationFrame(() => { visibilityFrames.delete(frame); clearHiddenState(); });
+          visibilityFrames.add(frame);
+        }
       };
-      requestAnimationFrame(clearHiddenState);
+      const frame = requestAnimationFrame(() => { visibilityFrames.delete(frame); clearHiddenState(); });
+      visibilityFrames.add(frame);
     }
   };
   const setPanelCollapsed = (id: string, collapsed: boolean) => {
@@ -167,6 +172,8 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
         cancelAnimationFrame(panelStateRetryFrame);
         panelStateRetryFrame = null;
       }
+      visibilityFrames.forEach((frame) => cancelAnimationFrame(frame));
+      visibilityFrames.clear();
       options.host.classList.remove("studio-layout-locked");
       resizeController.dispose();
       layout.off("stateChanged", handleLayoutStateChanged);
