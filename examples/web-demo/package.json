@@ -15,6 +15,7 @@
     "@visutry/recommender": "workspace:*",
     "@visutry/demo-assets": "workspace:*",
     "@mediapipe/tasks-vision": "^0.10.18",
+    "golden-layout": "^2.6.0",
     "three": "^0.170.0"
   },
   "devDependencies": {

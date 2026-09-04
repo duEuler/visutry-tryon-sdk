@@ -23,6 +23,7 @@ export default defineConfig({
         "audit-studio": resolve(__dirname, "audit-studio.html"),
         "face-analysis": resolve(__dirname, "face-analysis.html"),
         "compare": resolve(__dirname, "compare.html"),
+        "golden-layout-studio": resolve(__dirname, "golden-layout-studio/index.html"),
       },
       output: {
         manualChunks: {
