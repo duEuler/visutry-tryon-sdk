@@ -123,6 +123,19 @@
   margin: -12px;
 }
 
+/* The live stage must consume the full Golden Layout content area. */
+:where(.studio-panel[data-panel-id="live"] > .panel-body) {
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+:where(.studio-panel[data-panel-id="live"] #stage) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 :where(.studio-panel--scrollable.gl-panel--accordion) .accordion-item {
   border-bottom: 1px solid #243348;
 }
