@@ -267,6 +267,26 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator("#capture-evidence")).toBeDisabled();
   });
 
+  test("connects runtime and starts camera when hardware E2E is enabled", async ({ page }) => {
+    test.skip(!HAS_CAMERA, "Set VISUTRY_E2E_CAMERA=1 to run camera-dependent Studio coverage.");
+    await page.locator("#connect-runtime").click();
+    await expect(page.locator("#connect-runtime")).toHaveText(/Runtime conectado/, { timeout: 30000 });
+    await expect(page.locator("#start-camera")).toBeEnabled();
+    await page.locator("#start-camera").click();
+    await expect(page.locator("#start-camera")).toHaveText(/Câmera ativa/, { timeout: 30000 });
+  });
+
+  test("loads GLB and captures evidence when hardware E2E is enabled", async ({ page }) => {
+    test.skip(!HAS_CAMERA, "Set VISUTRY_E2E_CAMERA=1 to run camera-dependent Studio coverage.");
+    await page.locator("#connect-runtime").click();
+    await expect(page.locator("#connect-runtime")).toHaveText(/Runtime conectado/, { timeout: 30000 });
+    await page.locator("#load-glb").click();
+    await expect(page.locator("#load-glb")).toHaveText(/GLB carregado/, { timeout: 30000 });
+    await page.locator("#capture-evidence").click();
+    await expect(page.locator("#capture-evidence")).toHaveText(/Evidência capturada/, { timeout: 30000 });
+    await expect(page.locator('[data-panel-id="evidence"] .thumb')).toHaveCount(1);
+  });
+
   test("hides and restores both side docks without moving the bottom row", async ({ page }) => {
     await page.locator("#hide-side-panels").click();
     await expect(page.locator('[data-panel-id="leftDock"]')).toBeHidden();
