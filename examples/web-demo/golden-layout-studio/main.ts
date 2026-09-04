@@ -65,6 +65,16 @@ const unsubscribeMode = studio.subscribeMode((mode) => { if (modeLabel) modeLabe
 let runtimeSdk: VisuTrySDK | null = null;
 let runtimeAdapter: StudioRuntimeAdapter | null = null;
 let resumeTryOnOnVisible = false;
+const unsubscribePanelVisibility = studio.subscribePanelVisibility((id, visible) => {
+  if (id !== "live" || !runtimeSdk) return;
+  if (!visible) {
+    runtimeSdk.stopTryOn();
+    return;
+  }
+  if (resumeTryOnOnVisible && !document.hidden) void runtimeSdk.startTryOn().catch(() => {
+    if (tryOnButton) tryOnButton.textContent = "Tentar try-on novamente";
+  });
+});
 const runtimeButton = document.getElementById("connect-runtime") as HTMLButtonElement | null;
 const cameraButton = document.getElementById("start-camera") as HTMLButtonElement | null;
 const tryOnButton = document.getElementById("start-tryon") as HTMLButtonElement | null;
@@ -94,7 +104,7 @@ const stageObserver = typeof IntersectionObserver === "function" && stageElement
     }, { threshold: 0.01 })
   : null;
 stageObserver?.observe(stageElement);
-window.addEventListener("beforeunload", () => { toolbarBinding.dispose(); unsubscribeMode(); studio.destroy(); });
+window.addEventListener("beforeunload", () => { toolbarBinding.dispose(); unsubscribeMode(); unsubscribePanelVisibility(); studio.destroy(); });
 window.addEventListener("beforeunload", () => stageObserver?.disconnect());
 document.getElementById("connect-runtime")?.addEventListener("click", async (event) => {
   const button = event.currentTarget as HTMLButtonElement;
