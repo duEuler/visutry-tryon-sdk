@@ -1,4 +1,5 @@
 import type { AuditSnapshot } from "./types.js";
+import { normalizeAuditSnapshot } from "./audit-snapshot.js";
 
 export type SnapshotListener = (snapshot: AuditSnapshot) => void;
 
@@ -7,11 +8,11 @@ export class AuditStore {
   private readonly listeners = new Set<SnapshotListener>();
   private destroyed = false;
 
-  constructor(initial: AuditSnapshot = {}) { this.snapshot = initial; }
+  constructor(initial: AuditSnapshot = {}) { this.snapshot = normalizeAuditSnapshot(initial); }
   getSnapshot(): AuditSnapshot { return this.snapshot; }
   setSnapshot(next: AuditSnapshot): void {
     if (this.destroyed) return;
-    this.snapshot = next;
+    this.snapshot = normalizeAuditSnapshot(next, this.snapshot);
     this.listeners.forEach((listener) => listener(this.snapshot));
   }
   subscribe(listener: SnapshotListener): () => void {

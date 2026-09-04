@@ -1,4 +1,5 @@
 export { AuditStore } from "./audit-store.js";
+export { normalizeAuditSnapshot } from "./audit-snapshot.js";
 export { createLocalStoragePersistence } from "./layout-persistence.js";
 export { createGoldenLayoutStudio } from "./golden-layout-host.js";
 export { createLayoutResizeController } from "./layout-resize-controller.js";
