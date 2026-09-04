@@ -7,14 +7,35 @@
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">V</span><strong>VISUTRY</strong><span>/ GOLDEN LAYOUT STUDIO</span></div>
-      <div class="session"><span class="dot"></span> <span id="studio-mode">static</span> <span id="studio-status" class="muted" role="status" aria-live="polite">Pronto</span> <span class="muted">React-ready</span></div>
+      <div class="brand">
+        <span class="brand-mark">V</span><strong>VISUTRY</strong><span>/ GOLDEN LAYOUT STUDIO</span>
+      </div>
+      <div class="session">
+        <span class="dot"></span> <span id="studio-mode">static</span>
+        <span id="studio-status" class="muted" role="status" aria-live="polite">Pronto</span>
+        <span class="muted">React-ready</span>
+      </div>
       <div class="toolbar-shell">
         <div class="toolbar toolbar-layout" aria-label="Controles de layout">
-          <button id="expand-accordions" data-studio-action="expand">Expandir painéis</button><button id="collapse-accordions" data-studio-action="collapse">Recolher painéis</button><button id="show-side-panels" data-studio-action="show-side-panels">Mostrar laterais</button><button id="hide-side-panels" data-studio-action="hide-side-panels">Ocultar laterais</button><button id="toggle-layout-lock" data-studio-action="lock" aria-pressed="false">Bloquear layout</button><button id="save-layout" data-studio-action="save">Salvar layout</button><button id="reset-layout" data-studio-action="restore">Restaurar padrão</button>
+          <button id="expand-accordions" data-studio-action="expand">Expandir painéis</button
+          ><button id="collapse-accordions" data-studio-action="collapse">Recolher painéis</button
+          ><button id="show-side-panels" data-studio-action="show-side-panels">
+            Mostrar laterais</button
+          ><button id="hide-side-panels" data-studio-action="hide-side-panels">
+            Ocultar laterais</button
+          ><button id="toggle-layout-lock" data-studio-action="lock" aria-pressed="false">
+            Bloquear layout</button
+          ><button id="save-layout" data-studio-action="save">Salvar layout</button
+          ><button id="reset-layout" data-studio-action="restore">Restaurar padrão</button>
         </div>
         <div class="toolbar toolbar-runtime" aria-label="Controles de runtime">
-          <button id="connect-runtime">Conectar runtime</button><button id="start-camera" disabled>Iniciar câmera</button><button id="start-tryon" disabled>Iniciar try-on</button><button id="load-glb" disabled>Carregar GLB</button><button id="capture-evidence" disabled>Capturar evidência</button><button id="stop-runtime" disabled>Parar runtime</button>
+          <button id="connect-runtime" data-runtime-control="connect">Conectar runtime</button
+          ><button id="start-camera" data-runtime-control="camera" disabled>Iniciar câmera</button
+          ><button id="start-tryon" data-runtime-control="tryon" disabled>Iniciar try-on</button
+          ><button id="load-glb" data-runtime-control="glb" disabled>Carregar GLB</button
+          ><button id="capture-evidence" data-runtime-control="evidence" disabled>
+            Capturar evidência</button
+          ><button id="stop-runtime" data-runtime-control="stop" disabled>Parar runtime</button>
         </div>
       </div>
     </header>

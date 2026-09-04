@@ -13,14 +13,22 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   const hasRegisteredPanels = (node: unknown): boolean => {
     if (!node || typeof node !== "object") return false;
     const value = node as { type?: unknown; componentType?: unknown; content?: unknown };
-    if (value.type === "component") return typeof value.componentType === "string" && registry.get(value.componentType) !== undefined;
+    if (value.type === "component")
+      return (
+        typeof value.componentType === "string" && registry.get(value.componentType) !== undefined
+      );
     if (value.type === "row" || value.type === "column" || value.type === "stack") {
-      return Array.isArray(value.content) && value.content.length > 0 && value.content.every(hasRegisteredPanels);
+      return (
+        Array.isArray(value.content) &&
+        value.content.length > 0 &&
+        value.content.every(hasRegisteredPanels)
+      );
     }
     return false;
   };
   const ensureRegisteredPanels = (candidate: LayoutConfig): LayoutConfig => {
-    if (!hasRegisteredPanels((candidate as unknown as { root?: unknown }).root)) throw new Error("Studio layout references an unknown panel");
+    if (!hasRegisteredPanels((candidate as unknown as { root?: unknown }).root))
+      throw new Error("Studio layout references an unknown panel");
     return candidate;
   };
   let mounted = false;
@@ -49,20 +57,37 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
 
   registry.list().forEach((panel) => {
     layout.registerComponentFactoryFunction(panel.id, (container) => {
-      registry.create(panel.id, { panelId: panel.id, getSnapshot: () => store.getSnapshot() }, container);
+      registry.create(
+        panel.id,
+        { panelId: panel.id, getSnapshot: () => store.getSnapshot() },
+        container,
+      );
       registry.update(panel.id, container.element, store.getSnapshot());
       container.element.classList.toggle("studio-panel--scrollable", panel.scrollable);
-      container.element.querySelector<HTMLElement>(`[data-panel-id="${CSS.escape(panel.id)}"]`)?.classList.toggle("studio-panel--scrollable", panel.scrollable);
+      container.element
+        .querySelector<HTMLElement>(`[data-panel-id="${CSS.escape(panel.id)}"]`)
+        ?.classList.toggle("studio-panel--scrollable", panel.scrollable);
       container.element.classList.toggle("studio-panel--hidden", hiddenPanels.has(panel.id));
-      panelItem(container.element)?.classList.toggle("studio-panel-item--scrollable", panel.scrollable);
-      const unsubscribe = store.subscribe((snapshot) => registry.update(panel.id, container.element, snapshot));
-      container.on("destroy", () => { unsubscribe(); registry.destroy(panel.id, container.element); });
+      panelItem(container.element)?.classList.toggle(
+        "studio-panel-item--scrollable",
+        panel.scrollable,
+      );
+      const unsubscribe = store.subscribe((snapshot) =>
+        registry.update(panel.id, container.element, snapshot),
+      );
+      container.on("destroy", () => {
+        unsubscribe();
+        registry.destroy(panel.id, container.element);
+      });
     });
   });
 
   const resizeController = createLayoutResizeController(layout, options.host);
   let reapplyPanelState: (() => void) | null = null;
-  const handleLayoutStateChanged = () => { resizeController.schedule(); reapplyPanelState?.(); };
+  const handleLayoutStateChanged = () => {
+    resizeController.schedule();
+    reapplyPanelState?.();
+  };
   layout.on("stateChanged", handleLayoutStateChanged);
   const observer = new ResizeObserver(() => resizeController.schedule());
   let panelStateObserver: MutationObserver | null = null;
@@ -71,8 +96,10 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   const findItem = (id: string): HTMLElement | null => panelItem(panelElement(options.host, id));
   const setPanelVisibility = (id: string, visible: boolean) => {
     const wasVisible = !hiddenPanels.has(id);
-    if (visible) hiddenPanels.delete(id); else hiddenPanels.add(id);
-    if (wasVisible !== visible) panelVisibilityListeners.forEach((listener) => listener(id, visible));
+    if (visible) hiddenPanels.delete(id);
+    else hiddenPanels.add(id);
+    if (wasVisible !== visible)
+      panelVisibilityListeners.forEach((listener) => listener(id, visible));
     const item = findItem(id);
     const element = panelElement(options.host, id);
     element?.classList.toggle("studio-panel--hidden", !visible);
@@ -87,22 +114,30 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
         const parent = panelItem(panel);
         if (parent) parent.style.display = "";
         if (++attempts < 4) {
-          const frame = requestAnimationFrame(() => { visibilityFrames.delete(frame); clearHiddenState(); });
+          const frame = requestAnimationFrame(() => {
+            visibilityFrames.delete(frame);
+            clearHiddenState();
+          });
           visibilityFrames.add(frame);
         }
       };
-      const frame = requestAnimationFrame(() => { visibilityFrames.delete(frame); clearHiddenState(); });
+      const frame = requestAnimationFrame(() => {
+        visibilityFrames.delete(frame);
+        clearHiddenState();
+      });
       visibilityFrames.add(frame);
     }
   };
   const setPanelCollapsed = (id: string, collapsed: boolean) => {
-    if (collapsed) collapsedPanels.add(id); else collapsedPanels.delete(id);
+    if (collapsed) collapsedPanels.add(id);
+    else collapsedPanels.delete(id);
     const item = findItem(id);
     if (!item) return;
     const content = itemContent(item);
     item.classList.toggle("studio-panel-collapsed", collapsed);
     if (content) content.style.display = collapsed ? "none" : "";
-    if (collapsed) item.style.height = "28px"; else item.style.height = "";
+    if (collapsed) item.style.height = "28px";
+    else item.style.height = "";
     resizeController.schedule();
   };
 
@@ -115,12 +150,22 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       const persisted = options.persistence?.loadState?.();
       persisted?.hiddenPanels.forEach((id) => hiddenPanels.add(id));
       persisted?.collapsedPanels.forEach((id) => collapsedPanels.add(id));
-      if (layoutDestroyed) { layout.init(); layout.on("stateChanged", handleLayoutStateChanged); layoutDestroyed = false; }
-      const loadedCandidate = (persisted?.layout ?? options.persistence?.load() ?? options.initialLayout) as unknown as LayoutConfig;
+      if (layoutDestroyed) {
+        layout.init();
+        layout.on("stateChanged", handleLayoutStateChanged);
+        layoutDestroyed = false;
+      }
+      const loadedCandidate = (persisted?.layout ??
+        options.persistence?.load() ??
+        options.initialLayout) as unknown as LayoutConfig;
       let loadedLayout: LayoutConfig;
-      try { loadedLayout = normalizeStudioLayout(loadedCandidate); }
-      catch { loadedLayout = normalizeStudioLayout(options.initialLayout); }
-      if (!hasRegisteredPanels((loadedLayout as unknown as { root?: unknown }).root)) loadedLayout = normalizeStudioLayout(options.initialLayout);
+      try {
+        loadedLayout = normalizeStudioLayout(loadedCandidate);
+      } catch {
+        loadedLayout = normalizeStudioLayout(options.initialLayout);
+      }
+      if (!hasRegisteredPanels((loadedLayout as unknown as { root?: unknown }).root))
+        loadedLayout = normalizeStudioLayout(options.initialLayout);
       lastCompleteLayout = loadedLayout;
       layout.loadLayout(loadedLayout);
       const applyPersistedPanelState = () => {
@@ -134,7 +179,8 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       applyPersistedPanelState();
       const retryPersistedPanelState = (attempt = 0) => {
         applyPersistedPanelState();
-        if (attempt < 10) panelStateRetryFrame = requestAnimationFrame(() => retryPersistedPanelState(attempt + 1));
+        if (attempt < 10)
+          panelStateRetryFrame = requestAnimationFrame(() => retryPersistedPanelState(attempt + 1));
         else panelStateRetryFrame = null;
       };
       if (panelStateRetryFrame !== null) cancelAnimationFrame(panelStateRetryFrame);
@@ -149,11 +195,26 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       const currentDeclarativeLayout = normalizeStudioLayout(currentLayout);
       const nextLayout = hiddenPanels.size > 0 ? lastCompleteLayout : currentDeclarativeLayout;
       if (hiddenPanels.size === 0) lastCompleteLayout = currentDeclarativeLayout;
-      if (options.persistence?.saveState) options.persistence.saveState({ version: 1, layout: nextLayout, hiddenPanels: [...hiddenPanels], collapsedPanels: [...collapsedPanels] });
+      if (options.persistence?.saveState)
+        options.persistence.saveState({
+          version: 1,
+          layout: nextLayout,
+          hiddenPanels: [...hiddenPanels],
+          collapsedPanels: [...collapsedPanels],
+        });
       else options.persistence?.save(nextLayout);
     },
-    restoreDefaultLayout() { options.persistence?.clear(); hiddenPanels.clear(); collapsedPanels.clear(); lastCompleteLayout = options.initialLayout; layout.loadLayout(options.initialLayout); resizeController.schedule(); },
-    getLayout() { return normalizeStudioLayout(layout.saveLayout() as unknown as LayoutConfig); },
+    restoreDefaultLayout() {
+      options.persistence?.clear();
+      hiddenPanels.clear();
+      collapsedPanels.clear();
+      lastCompleteLayout = options.initialLayout;
+      layout.loadLayout(options.initialLayout);
+      resizeController.schedule();
+    },
+    getLayout() {
+      return normalizeStudioLayout(layout.saveLayout() as unknown as LayoutConfig);
+    },
     setLayout(next: LayoutConfig) {
       const normalized = ensureRegisteredPanels(normalizeStudioLayout(next));
       lastCompleteLayout = normalized;
@@ -161,20 +222,37 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       reapplyPanelState?.();
       resizeController.schedule();
     },
-    showPanel(id) { setPanelVisibility(id, true); },
-    hidePanel(id) { setPanelVisibility(id, false); },
-    collapsePanel(id) { setPanelCollapsed(id, true); },
-    expandPanel(id) { setPanelCollapsed(id, false); },
-    setLayoutLocked(locked) { layoutLocked = locked; options.host.classList.toggle("studio-layout-locked", locked); },
-    isLayoutLocked() { return layoutLocked; },
-    getMode() { return mode; },
+    showPanel(id) {
+      setPanelVisibility(id, true);
+    },
+    hidePanel(id) {
+      setPanelVisibility(id, false);
+    },
+    collapsePanel(id) {
+      setPanelCollapsed(id, true);
+    },
+    expandPanel(id) {
+      setPanelCollapsed(id, false);
+    },
+    setLayoutLocked(locked) {
+      layoutLocked = locked;
+      options.host.classList.toggle("studio-layout-locked", locked);
+    },
+    isLayoutLocked() {
+      return layoutLocked;
+    },
+    getMode() {
+      return mode;
+    },
     subscribeMode(listener) {
       if (destroyed) return () => false;
       modeListeners.add(listener);
       listener(mode);
       return () => modeListeners.delete(listener);
     },
-    subscribeSnapshot(listener) { return store.subscribe(listener); },
+    subscribeSnapshot(listener) {
+      return store.subscribe(listener);
+    },
     subscribePanelVisibility(listener) {
       if (destroyed) return () => false;
       panelVisibilityListeners.add(listener);
@@ -192,7 +270,11 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
         if (snapshot.mode) setMode(snapshot.mode);
         store.setSnapshot(snapshot);
       });
-      try { await runtime.initialize?.(); } catch { setMode("degraded"); }
+      try {
+        await runtime.initialize?.();
+      } catch {
+        setMode("degraded");
+      }
     },
     disconnectRuntime() {
       runtimeUnsubscribe?.();
@@ -200,7 +282,38 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       activeRuntime?.dispose?.();
       activeRuntime = undefined;
       setMode("static");
-      store.setSnapshot({ mode: "static", camera: { active: false }, tracking: { detected: false }, pose: null, glb: null, render: {} });
+      store.setSnapshot({
+        mode: "static",
+        camera: {
+          active: false,
+          width: undefined,
+          height: undefined,
+          fps: undefined,
+          source: undefined,
+        },
+        tracking: {
+          detected: false,
+          confidence: undefined,
+          landmarks: undefined,
+          stability: undefined,
+          latencyMs: undefined,
+        },
+        pose: null,
+        glb: null,
+        render: {
+          drawCalls: undefined,
+          triangles: undefined,
+          frameTimeMs: undefined,
+          dpr: undefined,
+          width: undefined,
+          height: undefined,
+        },
+        evidence: [],
+        selectedFrameId: null,
+        face: null,
+        performance: null,
+        error: null,
+      });
     },
     destroy() {
       if (!mounted) return;
