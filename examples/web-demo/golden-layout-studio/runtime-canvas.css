@@ -1,3 +1,4 @@
 #stage #camera-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .studio-live-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:2}
+.studio-landmark-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:4}
 #stage .face-wire,#stage>span{z-index:3}

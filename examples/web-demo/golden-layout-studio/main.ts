@@ -8,7 +8,8 @@ import {
   type StudioMode,
   type StudioRuntimeAdapter,
 } from "@visutry/studio";
-import type { VisuTrySDK } from "@visutry/tryon-core";
+import type { NormalizedFaceResult, VisuTrySDK } from "@visutry/tryon-core";
+import { LandmarkOverlay } from "@visutry/tryon-web";
 import "./runtime-canvas.css";
 import "@visutry/studio/styles.css";
 import "@visutry/studio/golden-layout.css";
@@ -32,6 +33,14 @@ studio = createGoldenLayoutStudio({
   persistence,
 });
 studio.mount();
+const landmarkCanvas = document.querySelector<HTMLCanvasElement>(".studio-landmark-canvas");
+const landmarkOverlay = landmarkCanvas ? new LandmarkOverlay(landmarkCanvas, {
+  tesselationColor: "rgba(104, 183, 224, 0.48)",
+  contourColor: "rgba(66, 218, 238, 0.92)",
+  irisColor: "rgba(242, 177, 74, 0.9)",
+  highlightColor: "#39dca2",
+}) : null;
+let lastFace: NormalizedFaceResult | null = null;
 const toolbarBinding = bindStudioToolbar(document, studio);
 if (import.meta.env.DEV) {
   (window as Window & { __visutryStudio?: typeof studio }).__visutryStudio = studio;
@@ -57,6 +66,16 @@ const syncModeLabel = () => {
 };
 const unsubscribeSnapshot = studio.subscribeSnapshot((snapshot) => {
   if (snapshot.error) setStatus(formatRuntimeError(snapshot.error));
+  const face = snapshot.face as NormalizedFaceResult | undefined;
+  if (face?.landmarks?.raw?.length) lastFace = face;
+  if (landmarkOverlay && snapshot.mode === "connected" && snapshot.tracking?.detected && lastFace?.landmarks?.raw?.length) {
+    landmarkCanvas?.classList.remove("studio-runtime-hidden");
+    landmarkOverlay.renderFromFace(lastFace, snapshot.camera?.width ?? 640, snapshot.camera?.height ?? 480);
+  } else {
+    if (!snapshot.tracking?.detected || snapshot.mode !== "connected") lastFace = null;
+    landmarkOverlay?.clear();
+    landmarkCanvas?.classList.add("studio-runtime-hidden");
+  }
 });
 let runtimeSdk: VisuTrySDK | null = null;
 let runtimeAdapter: StudioRuntimeAdapter | null = null;
@@ -95,7 +114,7 @@ const setRuntimeControls = (mode: StudioMode) => {
 };
 const applyDiagnosticVisibility = (target: string, visible: boolean) => {
   const selectors: Record<string, string> = {
-    landmarks: '#stage .face-wire',
+    landmarks: '#stage .face-wire, #stage .studio-landmark-canvas',
     readout: '#stage .studio-runtime-caption',
     error: '[data-panel-id="leftDock"] [data-accordion-id="error"]',
     snapshots: '[data-panel-id="evidence"]',
