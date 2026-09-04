@@ -317,6 +317,15 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator('[data-panel-id="leftDock"]')).toBeVisible();
     await expect(page.locator('[data-panel-id="rightDock"]')).toBeVisible();
     await expect(page.locator('[data-panel-id="evidence"]')).toBeVisible();
+    await page.evaluate(() => localStorage.setItem("visutry-golden-layout-state-v7", JSON.stringify({
+      version: 7,
+      layout: { root: { type: "component", componentType: "removed-panel" } },
+      hiddenPanels: [],
+      collapsedPanels: [],
+    })));
+    await page.reload();
+    await expect(page.locator('[data-panel-id="leftDock"]')).toBeVisible();
+    await expect(page.locator('[data-panel-id="rightDock"]')).toBeVisible();
   });
 
   test("keeps page scrolling disabled while panel scrolling remains available", async ({ page }) => {

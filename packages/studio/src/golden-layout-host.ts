@@ -9,6 +9,19 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   const store = new AuditStore(options.snapshot);
   const registry = createPanelRegistry(options.panels);
   const layout = new GoldenLayout(options.host);
+  const hasRegisteredPanels = (node: unknown): boolean => {
+    if (!node || typeof node !== "object") return false;
+    const value = node as { type?: unknown; componentType?: unknown; content?: unknown };
+    if (value.type === "component") return typeof value.componentType === "string" && registry.get(value.componentType) !== undefined;
+    if (value.type === "row" || value.type === "column" || value.type === "stack") {
+      return Array.isArray(value.content) && value.content.length > 0 && value.content.every(hasRegisteredPanels);
+    }
+    return false;
+  };
+  const ensureRegisteredPanels = (candidate: LayoutConfig): LayoutConfig => {
+    if (!hasRegisteredPanels((candidate as unknown as { root?: unknown }).root)) throw new Error("Studio layout references an unknown panel");
+    return candidate;
+  };
   let mounted = false;
   let layoutDestroyed = false;
   let mode: StudioMode = options.runtime ? "connected" : "static";
@@ -103,6 +116,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       let loadedLayout: LayoutConfig;
       try { loadedLayout = normalizeStudioLayout(loadedCandidate); }
       catch { loadedLayout = normalizeStudioLayout(options.initialLayout); }
+      if (!hasRegisteredPanels((loadedLayout as unknown as { root?: unknown }).root)) loadedLayout = normalizeStudioLayout(options.initialLayout);
       lastCompleteLayout = loadedLayout;
       layout.loadLayout(loadedLayout);
       const applyPersistedPanelState = () => {
@@ -137,7 +151,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     restoreDefaultLayout() { options.persistence?.clear(); hiddenPanels.clear(); collapsedPanels.clear(); lastCompleteLayout = options.initialLayout; layout.loadLayout(options.initialLayout); resizeController.schedule(); },
     getLayout() { return normalizeStudioLayout(layout.saveLayout() as unknown as LayoutConfig); },
     setLayout(next: LayoutConfig) {
-      const normalized = normalizeStudioLayout(next);
+      const normalized = ensureRegisteredPanels(normalizeStudioLayout(next));
       lastCompleteLayout = normalized;
       layout.loadLayout(normalized);
       reapplyPanelState?.();
