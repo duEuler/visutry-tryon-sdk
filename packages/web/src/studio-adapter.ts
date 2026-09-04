@@ -1,4 +1,4 @@
-import type { StudioRuntimeAdapter, AuditSnapshot } from "@visutry/studio";
+import type { StudioRuntimeAdapter, AuditSnapshot, EvidenceFrame } from "@visutry/studio";
 import type { VisuTrySDK, VisuTrySDKEvents } from "@visutry/tryon-core";
 
 /** Adapts the public web SDK event stream to the Studio runtime contract. */
@@ -23,6 +23,13 @@ export function createStudioRuntimeAdapter(sdk: VisuTrySDK): StudioRuntimeAdapte
   return {
     getSnapshot: () => snapshot,
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
+    async captureEvidence(): Promise<EvidenceFrame> {
+      const result = await sdk.snapshot({ format: "image/png", mirror: true });
+      const frame: EvidenceFrame = { id: `evidence-${result.timestamp}`, timestamp: result.timestamp, dataUrl: result.dataUrl };
+      const evidence = [...((snapshot.evidence as EvidenceFrame[] | undefined) ?? []), frame];
+      publish({ evidence, selectedFrameId: frame.id });
+      return frame;
+    },
     async initialize() {
       (Object.keys(handlers) as (keyof VisuTrySDKEvents)[]).forEach((eventName) => sdk.on(eventName, handlers[eventName]));
       try { await sdk.initialize(); } catch (error) { publish({ mode: "degraded", error }); throw error; }

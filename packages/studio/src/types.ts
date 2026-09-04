@@ -25,6 +25,7 @@ export type StudioMode = "static" | "connected" | "degraded";
 export interface StudioRuntimeAdapter {
   getSnapshot(): AuditSnapshot;
   subscribe(listener: (snapshot: AuditSnapshot) => void): () => void;
+  captureEvidence?(): Promise<EvidenceFrame>;
   initialize?(): Promise<void>;
   dispose?(): void;
 }

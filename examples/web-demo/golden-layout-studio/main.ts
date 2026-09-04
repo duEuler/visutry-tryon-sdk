@@ -1,5 +1,5 @@
 import { type ComponentContainer } from "golden-layout";
-import { bindAccordion, createDefaultStudioLayout, createGoldenLayoutStudio, createLocalStoragePersistence, createPanelShell, renderAccordion, type StudioPanelDefinition } from "@visutry/studio";
+import { bindAccordion, createDefaultStudioLayout, createGoldenLayoutStudio, createLocalStoragePersistence, createPanelShell, renderAccordion, type StudioPanelDefinition, type StudioRuntimeAdapter } from "@visutry/studio";
 import type { VisuTrySDK } from "@visutry/tryon-core";
 import "./styles.css";
 import "./collapse.css";
@@ -66,6 +66,7 @@ const panelDefinitions: StudioPanelDefinition[] = Object.keys(panels).map((id) =
 const studio = createGoldenLayoutStudio({ host, panels: panelDefinitions, initialLayout: defaultLayout, persistence });
 studio.mount();
 let runtimeSdk: VisuTrySDK | null = null;
+let runtimeAdapter: StudioRuntimeAdapter | null = null;
 document.getElementById("save-layout")?.addEventListener("click", () => studio.saveLayout());
 document.getElementById("reset-layout")?.addEventListener("click", () => studio.restoreDefaultLayout());
 document.getElementById("expand-accordions")?.addEventListener("click", () => { studio.expandPanel("leftDock"); studio.expandPanel("rightDock"); });
@@ -80,7 +81,7 @@ const setRuntimeControls = (connected: boolean) => { [cameraButton, tryOnButton,
 cameraButton?.addEventListener("click", async () => { if (!runtimeSdk) return; cameraButton.disabled = true; try { await runtimeSdk.startCamera(); cameraButton.textContent = "Câmera ativa"; } catch { cameraButton.disabled = false; cameraButton.textContent = "Tentar câmera novamente"; } });
 tryOnButton?.addEventListener("click", async () => { if (!runtimeSdk) return; try { await runtimeSdk.startTryOn(); tryOnButton.textContent = "Try-on ativo"; } catch { tryOnButton.textContent = "Tentar try-on novamente"; } });
 glbButton?.addEventListener("click", async () => { if (!runtimeSdk) return; glbButton.disabled = true; glbButton.textContent = "Carregando…"; try { const { default: asset } = await import("@visutry/demo-assets/glasses/aviator-classic.json"); await runtimeSdk.loadGlasses(asset); glbButton.textContent = "GLB carregado"; } catch { glbButton.disabled = false; glbButton.textContent = "Tentar GLB novamente"; } });
-evidenceButton?.addEventListener("click", async () => { if (!runtimeSdk) return; evidenceButton.disabled = true; try { await runtimeSdk.snapshot({ format: "image/png", mirror: true }); evidenceButton.textContent = "Evidência capturada"; } catch { evidenceButton.disabled = false; evidenceButton.textContent = "Tentar evidência novamente"; } });
+evidenceButton?.addEventListener("click", async () => { if (!runtimeAdapter) return; evidenceButton.disabled = true; try { await runtimeAdapter.captureEvidence?.(); evidenceButton.textContent = "Evidência capturada"; } catch { evidenceButton.disabled = false; evidenceButton.textContent = "Tentar evidência novamente"; } });
 stopButton?.addEventListener("click", () => { runtimeSdk?.stopTryOn(); runtimeSdk?.stopCamera(); if (cameraButton) { cameraButton.disabled = false; cameraButton.textContent = "Iniciar câmera"; } if (tryOnButton) tryOnButton.textContent = "Iniciar try-on"; });
 window.addEventListener("beforeunload", () => studio.destroy());
 document.getElementById("connect-runtime")?.addEventListener("click", async (event) => {
@@ -94,7 +95,8 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
     // Snapshot export is available only through the explicit evidence button;
     // all camera and tracking processing remains on-device.
     runtimeSdk = createVisuTryWebSDK({ canvas, privacy: { processOnDeviceOnly: true, allowSnapshotExport: true } });
-    await studio.connectRuntime(createStudioRuntimeAdapter(runtimeSdk));
+    runtimeAdapter = createStudioRuntimeAdapter(runtimeSdk);
+    await studio.connectRuntime(runtimeAdapter);
     setRuntimeControls(true);
     button.textContent = "Runtime conectado";
   } catch {
