@@ -24,6 +24,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     return candidate;
   };
   let mounted = false;
+  let destroyed = false;
   let layoutDestroyed = false;
   let mode: StudioMode = options.runtime ? "connected" : "static";
   let runtimeUnsubscribe: (() => void) | null = null;
@@ -107,6 +108,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   const instance: StudioInstance = {
     mount() {
       if (mounted) return;
+      destroyed = false;
       mounted = true;
       if (activeRuntime) void instance.connectRuntime(activeRuntime);
       const persisted = options.persistence?.loadState?.();
@@ -165,9 +167,18 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     setLayoutLocked(locked) { layoutLocked = locked; options.host.classList.toggle("studio-layout-locked", locked); },
     isLayoutLocked() { return layoutLocked; },
     getMode() { return mode; },
-    subscribeMode(listener) { modeListeners.add(listener); listener(mode); return () => modeListeners.delete(listener); },
+    subscribeMode(listener) {
+      if (destroyed) return () => false;
+      modeListeners.add(listener);
+      listener(mode);
+      return () => modeListeners.delete(listener);
+    },
     subscribeSnapshot(listener) { return store.subscribe(listener); },
-    subscribePanelVisibility(listener) { panelVisibilityListeners.add(listener); return () => panelVisibilityListeners.delete(listener); },
+    subscribePanelVisibility(listener) {
+      if (destroyed) return () => false;
+      panelVisibilityListeners.add(listener);
+      return () => panelVisibilityListeners.delete(listener);
+    },
     async connectRuntime(runtime) {
       runtimeUnsubscribe?.();
       // Mount can call connectRuntime with the adapter already supplied in
@@ -193,6 +204,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     destroy() {
       if (!mounted) return;
       mounted = false;
+      destroyed = true;
       observer.disconnect();
       panelStateObserver?.disconnect();
       panelStateObserver = null;
