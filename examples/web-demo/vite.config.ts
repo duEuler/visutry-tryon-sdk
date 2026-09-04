@@ -20,6 +20,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
+        "audit-studio": resolve(__dirname, "audit-studio.html"),
         "face-analysis": resolve(__dirname, "face-analysis.html"),
         "compare": resolve(__dirname, "compare.html"),
       },
