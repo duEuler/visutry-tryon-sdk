@@ -2,7 +2,7 @@ import { GoldenLayout, type LayoutConfig, type ComponentContainer } from "golden
 import "./styles.css";
 import "./collapse.css";
 
-const key = "visutry-golden-layout-state-v1";
+const key = "visutry-golden-layout-state-v2";
 type Panel = { eyebrow: string; title: string; body: string };
 const panels: Record<string, Panel> = {
   camera: { eyebrow: "01 / CAPTURA", title: "Câmera", body: `<div class="metric-grid"><div class="metric"><label>Fonte</label><strong>Integrated Webcam</strong></div><div class="metric"><label>Estado</label><strong class="status">● Ativa</strong></div><div class="metric"><label>Resolução</label><strong>640 × 480</strong></div><div class="metric"><label>FPS alvo</label><strong>30</strong></div></div>` },
@@ -45,13 +45,13 @@ const defaultLayout: LayoutConfig = {
     type: "column",
     content: [
       { type: "row", height: 82, content: [
-        { type: "column", width: 20, content: [
+        { type: "column", width: 20, content: [{ type: "stack", content: [
           { type: "component", componentType: "camera", title: "Câmera" }, { type: "component", componentType: "diagnostics", title: "Diagnóstico" }, { type: "component", componentType: "quality", title: "Tracking quality" }, { type: "component", componentType: "error", title: "Curva de erro" },
-        ] },
+        ] }] },
         { type: "row", width: 58, content: [{ type: "component", componentType: "live", title: "Live 3D" }, { type: "component", componentType: "viewports", title: "Viewports 3D", width: 28 }] },
-        { type: "column", width: 22, content: [
+        { type: "column", width: 22, content: [{ type: "stack", content: [
           { type: "component", componentType: "glb", title: "GLB objective" }, { type: "component", componentType: "overlay", title: "Overlay & alignment" }, { type: "component", componentType: "pose", title: "Pose & landmarks" }, { type: "component", componentType: "metrics", title: "Render metrics" },
-        ] },
+        ] }] },
       ] },
       { type: "row", height: 18, content: [{ type: "component", componentType: "evidence", title: "Evidence timeline", width: 78 }, { type: "component", componentType: "selected", title: "Selected frame", width: 22 }] },
     ],
