@@ -9,7 +9,7 @@ describe("createLayoutResizeController", () => {
     vi.stubGlobal("requestAnimationFrame", request);
     vi.stubGlobal("cancelAnimationFrame", cancel);
     const host = { clientWidth: 800, clientHeight: 600 } as HTMLElement;
-    const layout = { updateSize: vi.fn() } as never;
+    const layout = { updateSize: vi.fn() } as unknown as import("golden-layout").GoldenLayout;
     const controller = createLayoutResizeController(layout, host);
     controller.schedule();
     controller.schedule();

@@ -17,7 +17,7 @@ import type {
 // ---------------------------------------------------------------------------
 
 vi.mock("three", () => ({
-  Box3: vi.fn(() => ({ min: { x: 0 }, max: { x: 0 }, setFromObject: vi.fn(function () { return this; }) })),
+  Box3: vi.fn(() => ({ min: { x: 0 }, max: { x: 0 }, setFromObject: vi.fn(function (this: unknown) { return this; }) })),
   WebGLRenderer: vi.fn(() => ({
     setPixelRatio: vi.fn(),
     setSize: vi.fn(),

@@ -6,7 +6,7 @@ describe("AuditStore", () => {
     const store = new AuditStore({ mode: "static" });
     const listener = vi.fn();
     const unsubscribe = store.subscribe(listener);
-    const next = { mode: "connected" };
+    const next = { mode: "connected" as const };
     store.setSnapshot(next);
     expect(store.getSnapshot()).toBe(next);
     expect(listener).toHaveBeenCalledWith(next);

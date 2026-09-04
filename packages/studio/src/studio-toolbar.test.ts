@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { bindStudioToolbar } from "./studio-toolbar.js";
+import type { StudioInstance } from "./types.js";
 
 function studioMock() {
   let locked = false;
@@ -7,7 +8,7 @@ function studioMock() {
     saveLayout: vi.fn(), restoreDefaultLayout: vi.fn(), expandPanel: vi.fn(), collapsePanel: vi.fn(),
     showPanel: vi.fn(), hidePanel: vi.fn(), setLayoutLocked: vi.fn((next: boolean) => { locked = next; }),
     isLayoutLocked: vi.fn(() => locked),
-  } as never;
+  } as unknown as StudioInstance;
 }
 
 describe("bindStudioToolbar", () => {
