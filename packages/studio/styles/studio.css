@@ -17,6 +17,35 @@
   overflow: hidden;
 }
 
+/* Accordion panels own the only vertical scroll region in a dock. */
+:where(.studio-panel--scrollable.gl-panel--accordion) > .panel-body {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+:where(.studio-panel--scrollable.gl-panel--accordion) .accordion {
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #2d4965 #0b1320;
+}
+
+:where(.studio-panel--scrollable.gl-panel--accordion) .accordion::-webkit-scrollbar {
+  width: 8px;
+}
+
+:where(.studio-panel--scrollable.gl-panel--accordion) .accordion::-webkit-scrollbar-thumb {
+  background: #2d4965;
+  border-radius: 4px;
+}
+
+:where(.studio-panel--scrollable.gl-panel--accordion) .accordion::-webkit-scrollbar-track {
+  background: #0b1320;
+}
+
 :where(.studio-panel--hidden) {
   display: none !important;
 }
