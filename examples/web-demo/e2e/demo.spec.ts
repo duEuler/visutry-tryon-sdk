@@ -309,14 +309,11 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator("#connect-runtime")).toHaveText(/Runtime conectado/, {
       timeout: 30000,
     });
-    for (const id of [
-      "start-camera",
-      "start-tryon",
-      "load-glb",
-      "capture-evidence",
-      "stop-runtime",
-    ]) {
+    for (const id of ["capture-evidence", "stop-runtime"]) {
       await expect(page.locator(`#${id}`)).toBeEnabled();
+    }
+    for (const id of ["start-camera", "start-tryon", "load-glb"]) {
+      await expect(page.locator(`#${id}`)).toBeDisabled();
     }
     await page.locator("#stop-runtime").click();
     await expect(page.locator("#studio-mode")).toHaveText("static");
