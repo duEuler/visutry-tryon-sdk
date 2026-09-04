@@ -1,4 +1,5 @@
 export type Panel = { eyebrow: string; title: string; body: string };
+export type AccordionSection = { id: string; title: string; body: string };
 
 export const panels: Record<string, Panel> = {
   camera: { eyebrow: "01 / CAPTURA", title: "Câmera", body: `<div class="metric-grid"><div class="metric"><label>Fonte</label><strong>Integrated Webcam</strong></div><div class="metric"><label>Estado</label><strong class="status">● Ativa</strong></div><div class="metric"><label>Resolução</label><strong>640 × 480</strong></div><div class="metric"><label>FPS alvo</label><strong>30</strong></div></div>` },
@@ -16,6 +17,10 @@ export const panels: Record<string, Panel> = {
 };
 
 export function accordionBody(ids: string[]): string { return `<div class="accordion">${ids.map((id) => { const p = panels[id]; const contentId = `accordion-content-${id}`; return `<article class="accordion-item is-open"><button class="accordion-trigger" type="button" aria-expanded="true" aria-controls="${contentId}"><span>${p.title}</span><span aria-hidden="true">−</span></button><div id="${contentId}" class="accordion-content" role="region" aria-label="${p.title}">${p.body}</div></article>`; }).join("")}</div>`; }
+
+export function accordionSections(ids: string[]): AccordionSection[] {
+  return ids.map((id) => ({ id, title: panels[id].title, body: panels[id].body }));
+}
 
 panels.leftDock = { eyebrow: "AUDITORIA", title: "Captura e diagnóstico", body: accordionBody(["camera", "diagnostics", "quality", "error"]) };
 panels.rightDock = { eyebrow: "LEITURA ESPACIAL", title: "Auditoria do objetivo", body: accordionBody(["glb", "overlay", "pose", "metrics"]) };

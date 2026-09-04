@@ -1,6 +1,6 @@
 import { type ComponentContainer } from "golden-layout";
-import { bindAccordion, createDefaultStudioLayout, createGoldenLayoutStudio, createLocalStoragePersistence, createPanelShell, renderEvidenceTimeline, type AuditSnapshot, type StudioPanelDefinition, type StudioRuntimeAdapter } from "@visutry/studio";
-import { panels, accordionBody } from "./panel-catalog";
+import { createAccordionPanel, createDefaultStudioLayout, createGoldenLayoutStudio, createLocalStoragePersistence, createPanelShell, renderEvidenceTimeline, type AuditSnapshot, type StudioPanelDefinition, type StudioRuntimeAdapter } from "@visutry/studio";
+import { panels, accordionSections } from "./panel-catalog";
 import type { VisuTrySDK } from "@visutry/tryon-core";
 import "./styles.css";
 import "./collapse.css";
@@ -10,7 +10,6 @@ import "./viewport-layout.css";
 import "./runtime-canvas.css";
 
 const persistence = createLocalStoragePersistence("visutry-golden-layout-state-v7", 7);
-function accordion(ids: string[]) { return accordionBody(ids); }
 function component(container: ComponentContainer, id: string) {
   const p = panels[id] ?? panels.camera;
   const isAccordionPanel = id === "leftDock" || id === "rightDock";
@@ -34,8 +33,7 @@ function component(container: ComponentContainer, id: string) {
     });
   }
   if (isAccordionPanel) {
-    container.element.querySelector<HTMLElement>(".panel-body")!.innerHTML = accordion(id === "leftDock" ? ["camera", "diagnostics", "quality", "error"] : ["glb", "overlay", "pose", "metrics"]);
-    bindAccordion(container);
+    createAccordionPanel({ panelId: id, getSnapshot: () => ({}) }, container, accordionSections(id === "leftDock" ? ["camera", "diagnostics", "quality", "error"] : ["glb", "overlay", "pose", "metrics"]));
   }
 }
 const defaultLayout = createDefaultStudioLayout();
