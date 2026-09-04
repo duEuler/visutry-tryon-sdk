@@ -195,6 +195,14 @@ ação e remove todos os listeners em `dispose()`.
 For another layout, pass `accordionPanelIds` to avoid coupling the toolbar to
 the demo's `leftDock` and `rightDock` IDs.
 
+When the runtime is unavailable, pass `enabled: false` to disable every bound
+button and prevent action listeners from being registered. This keeps the
+toolbar safe during degraded or reconnecting states:
+
+```ts
+const toolbar = bindStudioToolbar(document, studio, { enabled: runtimeReady });
+```
+
 The optional stylesheet is available as `@visutry/studio/styles.css`; import
 it once in the host that renders the Studio panels.
 
