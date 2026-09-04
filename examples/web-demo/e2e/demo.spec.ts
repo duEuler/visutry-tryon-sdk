@@ -304,4 +304,17 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator('[data-panel-id="rightDock"]')).toBeVisible();
     await expect(page.locator('[data-panel-id="evidence"]')).toHaveCount(1);
   });
+
+  test("persists hidden and collapsed side-panel state", async ({ page }) => {
+    await page.locator("#hide-side-panels").click();
+    await page.locator("#save-layout").click();
+    await page.reload();
+    await expect(page.locator('[data-panel-id="leftDock"]')).toBeHidden();
+    await expect(page.locator('[data-panel-id="rightDock"]')).toBeHidden();
+    await page.locator("#show-side-panels").click();
+    await page.locator("#collapse-accordions").click();
+    await page.locator("#save-layout").click();
+    await page.reload();
+    await expect(page.locator(".studio-panel-collapsed")).toHaveCount(2);
+  });
 });
