@@ -70,13 +70,13 @@ function updateRuntimePresentation(element: HTMLElement, snapshot: AuditSnapshot
     setMany("overlay-position", [pose?.position ? `${pose.position.x} · ${pose.position.y} · ${pose.position.z}` : undefined]);
     setMany("overlay-rotation", [pose ? `${pose.yaw ?? "—"}° / ${pose.pitch ?? "—"}° / ${pose.roll ?? "—"}°` : undefined]);
     setMany("overlay-mode", [pose ? "Eyes Center" : undefined]);
-    const face = snapshot.face as { rmsError?: number } | undefined;
+    const face = snapshot.face as { rmsError?: number; interpupilar?: number; bbox?: { width?: number; height?: number } } | undefined;
     setMany("overlay-error", [face?.rmsError === undefined ? undefined : `${face.rmsError} mm`]);
     const errorSummary = element.querySelector<HTMLElement>('[data-studio-field="error-summary"]');
     if (errorSummary) errorSummary.textContent = face?.rmsError === undefined ? "Aguardando amostras do runtime." : `Erro atual: ${face.rmsError} mm`;
     setMany("landmarks", [tracking.landmarks ? `${tracking.landmarks} / ${tracking.landmarks}` : undefined]);
-    setMany("interpupilar", [undefined]);
-    setMany("bounding-box", [undefined]);
+    setMany("interpupilar", [face?.interpupilar === undefined ? undefined : `${Math.round(face.interpupilar * 10) / 10} px`]);
+    setMany("bounding-box", [face?.bbox ? `${Math.round((face.bbox.width ?? 0) * 1000) / 10} × ${Math.round((face.bbox.height ?? 0) * 1000) / 10}%` : undefined]);
     const render = snapshot.render ?? {};
     setMany("draw-calls", [render.drawCalls]);
     setMany("triangles", [render.triangles]);

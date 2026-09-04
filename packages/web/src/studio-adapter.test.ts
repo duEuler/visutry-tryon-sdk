@@ -23,6 +23,19 @@ describe("createStudioRuntimeAdapter", () => {
     expect(adapter.getSnapshot()).toMatchObject({ tracking: { detected: true, confidence: 0.91 }, pose: { yaw: 2 } });
   });
 
+  it("normalizes SDK pose rotation and face geometry for Studio panels", async () => {
+    const sdk = createSdkMock();
+    const adapter = createStudioRuntimeAdapter(sdk as never);
+    await adapter.initialize?.();
+    sdk.handlers.get("faceDetected")?.({
+      quality: { confidence: 0.9, stabilityScore: 0.88 },
+      landmarks: { raw: new Array(478), semantic: { leftEyeCenter: { x: 0.4, y: 0.4, z: 0 }, rightEyeCenter: { x: 0.5, y: 0.4, z: 0 } } },
+      bbox: { width: 0.2, height: 0.3 },
+    });
+    sdk.handlers.get("poseUpdated")?.({ rotation: { x: 1, y: 2, z: 3 }, position: { x: 4, y: 5, z: 6 } });
+    expect(adapter.getSnapshot()).toMatchObject({ tracking: { landmarks: 478, stability: 0.88 }, face: { interpupilar: 64 }, pose: { yaw: 2, pitch: 1, roll: 3, position: { x: 4, y: 5, z: 6 } } });
+  });
+
   it("forwards the loaded GLB manifest to the Studio snapshot", async () => {
     const sdk = createSdkMock();
     const adapter = createStudioRuntimeAdapter(sdk as never);

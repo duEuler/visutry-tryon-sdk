@@ -29,6 +29,27 @@ export function createStudioRuntimeAdapter(sdk: VisuTrySDK, options: StudioRunti
   let snapshot: AuditSnapshot = normalizeAuditSnapshot({ mode: "connected", camera: { active: false }, tracking: { detected: false } });
   let initialized = false;
   let disposed = false;
+  const asNumber = (value: unknown): number | undefined => typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  const distance = (a: unknown, b: unknown): number | undefined => {
+    if (!a || !b || typeof a !== "object" || typeof b !== "object") return undefined;
+    const first = a as { x?: unknown; y?: unknown; z?: unknown };
+    const second = b as { x?: unknown; y?: unknown; z?: unknown };
+    const x1 = asNumber(first.x); const y1 = asNumber(first.y); const z1 = asNumber(first.z);
+    const x2 = asNumber(second.x); const y2 = asNumber(second.y); const z2 = asNumber(second.z);
+    if ([x1, y1, z1, x2, y2, z2].some((value) => value === undefined)) return undefined;
+    return Math.sqrt((x2! - x1!) ** 2 + (y2! - y1!) ** 2 + (z2! - z1!) ** 2);
+  };
+  const normalizePose = (value: unknown) => {
+    if (!value || typeof value !== "object") return null;
+    const pose = value as { yaw?: unknown; pitch?: unknown; roll?: unknown; position?: unknown; rotation?: unknown };
+    const rotation = pose.rotation as { x?: unknown; y?: unknown; z?: unknown } | undefined;
+    return {
+      yaw: asNumber(pose.yaw) ?? asNumber(rotation?.y),
+      pitch: asNumber(pose.pitch) ?? asNumber(rotation?.x),
+      roll: asNumber(pose.roll) ?? asNumber(rotation?.z),
+      position: pose.position as { x: number; y: number; z: number } | undefined,
+    };
+  };
   const publish = (patch: AuditSnapshot) => {
     if (disposed) return;
     snapshot = normalizeAuditSnapshot(patch, snapshot);
@@ -36,9 +57,22 @@ export function createStudioRuntimeAdapter(sdk: VisuTrySDK, options: StudioRunti
   };
   const handlers: { [K in keyof VisuTrySDKEvents]: VisuTrySDKEvents[K] } = {
     ready: () => publish({ mode: "connected" }),
-    faceDetected: (face) => publish({ face, tracking: { detected: true, confidence: face.quality.confidence } }),
+    faceDetected: (face) => {
+      const semantic = face.landmarks?.semantic;
+      const eyeDistance = distance(semantic?.leftEyeCenter, semantic?.rightEyeCenter);
+      const cameraWidth = snapshot.camera?.width ?? 640;
+      publish({
+        face: { ...face, interpupilar: eyeDistance === undefined ? undefined : Math.round(eyeDistance * cameraWidth * 1000) / 1000 },
+        tracking: {
+          detected: true,
+          confidence: face.quality.confidence,
+          stability: face.quality.stabilityScore,
+          landmarks: face.landmarks?.raw?.length,
+        },
+      });
+    },
     faceLost: () => publish({ tracking: { detected: false } }),
-    poseUpdated: (pose) => publish({ pose }),
+    poseUpdated: (pose) => publish({ pose: normalizePose(pose) }),
     glassesLoaded: (asset) => publish({ glb: asset }),
     glassesLoadFailed: (error) => publish({ mode: "degraded", error }),
     faceShapeAnalyzed: (result) => publish({ faceShape: result }),
