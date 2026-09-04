@@ -5,7 +5,8 @@ import "./layout-fix.css";
 import "./accordion-scroll.css";
 import "./viewport-layout.css";
 
-const key = "visutry-golden-layout-state-v5";
+const key = "visutry-golden-layout-state-v6";
+const layoutStateVersion = 6;
 type Panel = { eyebrow: string; title: string; body: string };
 const panels: Record<string, Panel> = {
   camera: { eyebrow: "01 / CAPTURA", title: "Câmera", body: `<div class="metric-grid"><div class="metric"><label>Fonte</label><strong>Integrated Webcam</strong></div><div class="metric"><label>Estado</label><strong class="status">● Ativa</strong></div><div class="metric"><label>Resolução</label><strong>640 × 480</strong></div><div class="metric"><label>FPS alvo</label><strong>30</strong></div></div>` },
@@ -21,12 +22,13 @@ const panels: Record<string, Panel> = {
   evidence: { eyebrow: "EVIDÊNCIAS", title: "Evidence timeline", body: `<div class="timeline"><div class="thumb">10:15:23</div><div class="thumb">10:15:24</div><div class="thumb best">BEST · 10:15:26</div><div class="thumb">10:15:27</div><div class="thumb">10:15:28</div></div>` },
   selected: { eyebrow: "FRAME SELECIONADO", title: "Selected frame", body: `<div class="gl-row"><span>Time</span><strong>10:15:26.120</strong></div><div class="gl-row"><span>RMS Error</span><strong class="status">0.679 mm</strong></div><div class="gl-row"><span>Confidence</span><strong>95%</strong></div><div class="gl-row"><span>Pose</span><strong>-32.7° / 5.1° / 0.0°</strong></div><div class="gl-row"><span>Notes</span><strong>Optimal alignment</strong></div>` },
 };
-function accordion(ids: string[]) { return `<div class="accordion">${ids.map((id) => { const p = panels[id]; return `<article class="accordion-item is-open"><button class="accordion-trigger" type="button" aria-expanded="true"><span>${p.title}</span><span>−</span></button><div class="accordion-content">${p.body}</div></article>`; }).join("")}</div>`; }
+function accordion(ids: string[]) { return `<div class="accordion">${ids.map((id) => { const p = panels[id]; const contentId = `accordion-content-${id}`; return `<article class="accordion-item is-open"><button class="accordion-trigger" type="button" aria-expanded="true" aria-controls="${contentId}"><span>${p.title}</span><span aria-hidden="true">−</span></button><div id="${contentId}" class="accordion-content" role="region" aria-label="${p.title}">${p.body}</div></article>`; }).join("")}</div>`; }
 panels.leftDock = { eyebrow: "AUDITORIA", title: "Captura e diagnóstico", body: accordion(["camera", "diagnostics", "quality", "error"]) };
 panels.rightDock = { eyebrow: "LEITURA ESPACIAL", title: "Auditoria do objetivo", body: accordion(["glb", "overlay", "pose", "metrics"]) };
 function component(container: ComponentContainer, id: string) {
   const p = panels[id] ?? panels.camera;
-  container.element.innerHTML = `<section class="gl-panel"><div class="panel-body">${p.body}</div></section>`;
+  const isAccordionPanel = id === "leftDock" || id === "rightDock";
+  container.element.innerHTML = `<section class="gl-panel${isAccordionPanel ? " gl-panel--accordion" : ""}" data-panel-id="${id}"><div class="panel-body">${p.body}</div></section>`;
   const item = container.element.closest<HTMLElement>(".lm_item");
   const controls = item?.querySelector<HTMLElement>(".lm_controls");
   if (controls && !controls.querySelector(".audit-collapse-control")) {
@@ -67,15 +69,31 @@ const defaultLayout: LayoutConfig = {
 };
 const host = document.getElementById("layout-host"); if (!host) throw new Error("layout host ausente");
 const layout = new GoldenLayout(host); Object.keys(panels).forEach((id) => layout.registerComponentFactoryFunction(id, (container) => component(container, id)));
-const saved = localStorage.getItem(key); try { layout.loadLayout(saved ? JSON.parse(saved) : defaultLayout); } catch { layout.loadLayout(defaultLayout); }
+const readSavedLayout = (): LayoutConfig => {
+  const saved = localStorage.getItem(key);
+  if (!saved) return defaultLayout;
+  const parsed = JSON.parse(saved) as { version?: number; layout?: LayoutConfig } | LayoutConfig;
+  if ("layout" in parsed && parsed.layout) {
+    if (parsed.version !== layoutStateVersion) return defaultLayout;
+    return parsed.layout;
+  }
+  return parsed as LayoutConfig;
+};
+try { layout.loadLayout(readSavedLayout()); } catch { localStorage.removeItem(key); layout.loadLayout(defaultLayout); }
+let resizeFrame: number | null = null;
 const syncLayoutSize = () => {
-  layout.updateSize(host.clientWidth, host.clientHeight);
-  host.querySelectorAll<HTMLElement>(".lm_item:has(.accordion)>.lm_content").forEach((content) => {
-    content.style.overflowY = "auto";
-    content.style.overflowX = "hidden";
+  if (resizeFrame !== null) return;
+  resizeFrame = requestAnimationFrame(() => {
+    layout.updateSize(host.clientWidth, host.clientHeight);
+    host.querySelectorAll<HTMLElement>(".lm_item:has(.accordion)>.lm_content").forEach((content) => {
+      content.classList.add("audit-scroll-container");
+    });
+    resizeFrame = null;
   });
 };
-requestAnimationFrame(syncLayoutSize);
-new ResizeObserver(syncLayoutSize).observe(host);
-document.getElementById("save-layout")?.addEventListener("click", () => { localStorage.setItem(key, JSON.stringify(layout.saveLayout())); });
+syncLayoutSize();
+const resizeObserver = new ResizeObserver(syncLayoutSize);
+resizeObserver.observe(host);
+document.getElementById("save-layout")?.addEventListener("click", () => { localStorage.setItem(key, JSON.stringify({ version: layoutStateVersion, layout: layout.saveLayout() })); });
 document.getElementById("reset-layout")?.addEventListener("click", () => { localStorage.removeItem(key); location.reload(); });
+window.addEventListener("beforeunload", () => { resizeObserver.disconnect(); if (resizeFrame !== null) cancelAnimationFrame(resizeFrame); });
