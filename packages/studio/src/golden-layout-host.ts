@@ -1,9 +1,11 @@
 import { GoldenLayout, type LayoutConfig } from "golden-layout";
 import { AuditStore } from "./audit-store.js";
+import { createPanelRegistry } from "./panel-registry.js";
 import type { StudioInstance, StudioMode, StudioOptions, StudioRuntimeAdapter } from "./types.js";
 
 export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance {
   const store = new AuditStore(options.snapshot);
+  const registry = createPanelRegistry(options.panels);
   const layout = new GoldenLayout(options.host);
   let resizeFrame: number | null = null;
   let mounted = false;
@@ -11,11 +13,11 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   let runtimeUnsubscribe: (() => void) | null = null;
   let activeRuntime: StudioRuntimeAdapter | undefined = options.runtime;
 
-  options.panels.forEach((panel) => {
+  registry.list().forEach((panel) => {
     layout.registerComponentFactoryFunction(panel.id, (container) => {
-      panel.create({ panelId: panel.id, getSnapshot: () => store.getSnapshot() }, container);
+      registry.create(panel.id, { panelId: panel.id, getSnapshot: () => store.getSnapshot() }, container);
       container.element.classList.toggle("studio-panel--scrollable", panel.scrollable);
-      const unsubscribe = store.subscribe((snapshot) => panel.update?.(container.element, snapshot));
+      const unsubscribe = store.subscribe((snapshot) => registry.update(panel.id, container.element, snapshot));
       container.on("destroy", () => { unsubscribe(); panel.destroy?.(container.element); });
     });
   });

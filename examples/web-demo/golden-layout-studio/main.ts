@@ -1,5 +1,5 @@
-import { type LayoutConfig, type ComponentContainer } from "golden-layout";
-import { createGoldenLayoutStudio, createLocalStoragePersistence, type StudioPanelDefinition } from "@visutry/studio";
+import { type ComponentContainer } from "golden-layout";
+import { bindAccordion, createDefaultStudioLayout, createGoldenLayoutStudio, createLocalStoragePersistence, createPanelShell, renderAccordion, type StudioPanelDefinition } from "@visutry/studio";
 import type { VisuTrySDK } from "@visutry/tryon-core";
 import "./styles.css";
 import "./collapse.css";
@@ -24,13 +24,13 @@ const panels: Record<string, Panel> = {
   evidence: { eyebrow: "EVIDÊNCIAS", title: "Evidence timeline", body: `<div class="timeline"><div class="thumb">10:15:23</div><div class="thumb">10:15:24</div><div class="thumb best">BEST · 10:15:26</div><div class="thumb">10:15:27</div><div class="thumb">10:15:28</div></div>` },
   selected: { eyebrow: "FRAME SELECIONADO", title: "Selected frame", body: `<div class="gl-row"><span>Time</span><strong>10:15:26.120</strong></div><div class="gl-row"><span>RMS Error</span><strong class="status">0.679 mm</strong></div><div class="gl-row"><span>Confidence</span><strong>95%</strong></div><div class="gl-row"><span>Pose</span><strong>-32.7° / 5.1° / 0.0°</strong></div><div class="gl-row"><span>Notes</span><strong>Optimal alignment</strong></div>` },
 };
-function accordion(ids: string[]) { return `<div class="accordion">${ids.map((id) => { const p = panels[id]; const contentId = `accordion-content-${id}`; return `<article class="accordion-item is-open"><button class="accordion-trigger" type="button" aria-expanded="true" aria-controls="${contentId}"><span>${p.title}</span><span aria-hidden="true">−</span></button><div id="${contentId}" class="accordion-content" role="region" aria-label="${p.title}">${p.body}</div></article>`; }).join("")}</div>`; }
+function accordion(ids: string[]) { return renderAccordion(ids.map((id) => ({ id, title: panels[id].title, body: panels[id].body }))); }
 panels.leftDock = { eyebrow: "AUDITORIA", title: "Captura e diagnóstico", body: accordion(["camera", "diagnostics", "quality", "error"]) };
 panels.rightDock = { eyebrow: "LEITURA ESPACIAL", title: "Auditoria do objetivo", body: accordion(["glb", "overlay", "pose", "metrics"]) };
 function component(container: ComponentContainer, id: string) {
   const p = panels[id] ?? panels.camera;
   const isAccordionPanel = id === "leftDock" || id === "rightDock";
-  container.element.innerHTML = `<section class="gl-panel${isAccordionPanel ? " gl-panel--accordion" : ""}" data-panel-id="${id}"><div class="panel-body">${p.body}</div></section>`;
+  createPanelShell({ panelId: id, getSnapshot: () => ({}) }, container, { panelId: id, body: p.body, accordion: isAccordionPanel });
   const item = container.element.closest<HTMLElement>(".lm_item");
   const controls = item?.querySelector<HTMLElement>(".lm_controls");
   if (controls && !controls.querySelector(".audit-collapse-control")) {
@@ -49,26 +49,12 @@ function component(container: ComponentContainer, id: string) {
       toggle.setAttribute("aria-label", toggle.title);
     });
   }
-  container.element.querySelectorAll<HTMLButtonElement>(".accordion-trigger").forEach((trigger) => trigger.addEventListener("click", () => {
-    const item = trigger.closest(".accordion-item");
-    const open = item?.classList.toggle("is-open") ?? false;
-    trigger.setAttribute("aria-expanded", String(open));
-    if (trigger.lastElementChild) trigger.lastElementChild.textContent = open ? "−" : "+";
-  }));
+  if (isAccordionPanel) {
+    container.element.querySelector<HTMLElement>(".panel-body")!.innerHTML = accordion(id === "leftDock" ? ["camera", "diagnostics", "quality", "error"] : ["glb", "overlay", "pose", "metrics"]);
+    bindAccordion(container);
+  }
 }
-const defaultLayout: LayoutConfig = {
-  root: {
-    type: "row",
-    content: [
-        { type: "component", width: 20, componentType: "leftDock", title: "Captura e diagnóstico" },
-        { type: "column", width: 58, content: [
-          { type: "row", height: 82, content: [{ type: "component", componentType: "live", title: "Live 3D" }, { type: "component", componentType: "viewports", title: "Viewports 3D", width: 28 }] },
-          { type: "row", height: 18, content: [{ type: "component", componentType: "evidence", title: "Evidence timeline", width: 78 }, { type: "component", componentType: "selected", title: "Selected frame", width: 22 }] },
-        ] },
-        { type: "component", width: 22, componentType: "rightDock", title: "Auditoria espacial" },
-      ],
-  },
-};
+const defaultLayout = createDefaultStudioLayout();
 const host = document.getElementById("layout-host"); if (!host) throw new Error("layout host ausente");
 const panelDefinitions: StudioPanelDefinition[] = Object.keys(panels).map((id) => ({
   id,
