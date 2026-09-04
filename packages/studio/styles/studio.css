@@ -82,6 +82,11 @@
   cursor: not-allowed;
 }
 
+:where(.topbar #connect-runtime) {
+  border-color: #24c8f2;
+  color: #dff8ff;
+}
+
 :where(.studio-panel) {
   min-width: 0;
   min-height: 0;
