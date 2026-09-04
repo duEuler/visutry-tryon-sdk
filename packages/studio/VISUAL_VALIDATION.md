@@ -45,3 +45,21 @@ resize, agrupamento de abas, persistência, ocultação e remontagem.
 
 O baseline é desktop-only por decisão de escopo; responsividade mobile não faz
 parte desta etapa.
+
+## Medição da sessão atual
+
+Validação executada em 04/09/2026 na rota local com viewport 1132 × 912 px:
+
+| Região | Largura observada | Altura | Overflow vertical |
+| --- | ---: | ---: | --- |
+| Host Golden Layout | 1132 px | 834 px | `visible` (página contida) |
+| Dock esquerdo | 225 px | 834 px | `auto` |
+| Live 3D | 415 px | 677 px | `hidden` |
+| Viewports 3D | 231 px | 677 px | `hidden` |
+| Evidence timeline | 504 px | 132 px | `hidden` |
+| Selected frame | 142 px | 132 px | `hidden` |
+| Dock direito | 246 px | 834 px | `auto` |
+
+As medições confirmam que o bottom nasce dentro do centro e que somente os
+docks com accordions recebem scroll próprio; a página e os painéis simples não
+criam uma barra global.
