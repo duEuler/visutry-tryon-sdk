@@ -1,12 +1,12 @@
-import { renderViewportGrid } from "@visutry/studio";
+import { renderMetricGrid, renderViewportGrid } from "@visutry/studio";
 
 export type Panel = { eyebrow: string; title: string; body: string };
 export type AccordionSection = { id: string; title: string; body: string };
 
 export const panels: Record<string, Panel> = {
-  camera: { eyebrow: "01 / CAPTURA", title: "Câmera", body: `<div class="metric-grid"><div class="metric"><label>Fonte</label><strong>Integrated Webcam</strong></div><div class="metric"><label>Estado</label><strong class="status">● Ativa</strong></div><div class="metric"><label>Resolução</label><strong>640 × 480</strong></div><div class="metric"><label>FPS alvo</label><strong>30</strong></div></div>` },
+  camera: { eyebrow: "01 / CAPTURA", title: "Câmera", body: renderMetricGrid([{ label: "Fonte", value: "Integrated Webcam" }, { label: "Estado", value: "● Ativa", status: true }, { label: "Resolução", value: "640 × 480" }, { label: "FPS alvo", value: "30" }]) },
   diagnostics: { eyebrow: "02 / OBSERVAÇÃO", title: "Diagnóstico", body: `<div class="gl-row"><span>Landmarks e overlay</span><strong class="status">ATIVO</strong></div><div class="gl-row"><span>Readout sobre o vídeo</span><strong>ATIVO</strong></div><div class="gl-row"><span>Curva de erro</span><strong>ATIVO</strong></div><div class="gl-row"><span>Snapshots manuais</span><strong>DESATIVADO</strong></div>` },
-  quality: { eyebrow: "03 / QUALIDADE", title: "Tracking quality", body: `<div class="metric-grid"><div class="metric"><label>Confiança</label><strong>95%</strong></div><div class="metric"><label>Rosto</label><strong class="status">Detectado</strong></div><div class="metric"><label>Estabilidade</label><strong>0.98</strong></div><div class="metric"><label>Latência</label><strong>19.9 ms</strong></div></div>` },
+  quality: { eyebrow: "03 / QUALIDADE", title: "Tracking quality", body: renderMetricGrid([{ label: "Confiança", value: "95%" }, { label: "Rosto", value: "Detectado", status: true }, { label: "Estabilidade", value: "0.98" }, { label: "Latência", value: "19.9 ms" }]) },
   error: { eyebrow: "04 / MÉTRICAS", title: "Curva de erro", body: `<div class="visual" style="height:120px"><svg viewBox="0 0 300 100" width="100%" height="100%"><polyline fill="none" stroke="#43e39b" stroke-width="2" points="0,72 30,64 60,67 90,50 120,55 150,35 180,46 210,40 240,48 270,22 300,30"/></svg></div><p>atual <b>0.679 mm</b> · média 0.82 mm · status <span class="status">OK</span></p>` },
   live: { eyebrow: "PALCO CENTRAL", title: "Live 3D / Face overlay", body: `<div id="stage" class="visual"><canvas class="studio-live-canvas" aria-label="Canvas Live 3D"></canvas><div class="face-wire"><div class="glasses"></div></div><span style="position:absolute;bottom:10px;left:12px;color:#6f89a6">rosto ciano · GLB âmbar · anchors verdes</span></div>` },
   viewports: { eyebrow: "GEOMETRIA", title: "Viewports 3D", body: renderViewportGrid(["FRONT", "TOP", "LEFT", "RIGHT"].map((label) => ({ label, body: `<div class="visual"><div class="face-wire small"><div class="glasses"></div></div></div><small>3D ao vivo · agora</small>` }))) },
