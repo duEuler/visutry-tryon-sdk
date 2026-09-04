@@ -426,3 +426,11 @@ test.describe("Golden Layout Studio", () => {
   });
 
 });
+
+test.describe("Legacy audit route compatibility", () => {
+  test("keeps audit-studio.html structurally available during migration", async ({ page }) => {
+    await page.goto("/audit-studio.html");
+    await expect(page.locator("#app")).toBeVisible();
+    await expect(page.locator("#stage")).toBeVisible();
+  });
+});
