@@ -19,6 +19,8 @@ describe("createLayoutResizeController", () => {
     controller.schedule();
     controller.dispose();
     expect(cancel).toHaveBeenCalledWith(7);
+    controller.schedule();
+    expect(request).toHaveBeenCalledOnce();
     vi.unstubAllGlobals();
   });
 });
