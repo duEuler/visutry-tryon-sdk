@@ -89,6 +89,24 @@
   border-left: 2px solid #39dca2;
 }
 
+/* Viewport panels stay stacked vertically instead of creating a second scroll. */
+:where(.studio-panel) .viewport-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: auto;
+}
+
+:where(.studio-panel) .viewport-grid .mini {
+  height: 138px;
+  min-height: 138px;
+  flex: 0 0 138px;
+}
+
+:where(.studio-panel) .viewport-grid .mini .visual {
+  min-height: 90px;
+}
+
 :where(.studio-panel--hidden) {
   display: none !important;
 }

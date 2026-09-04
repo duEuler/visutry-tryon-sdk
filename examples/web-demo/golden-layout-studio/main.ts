@@ -5,7 +5,6 @@ import type { VisuTrySDK } from "@visutry/tryon-core";
 import "./styles.css";
 import "./collapse.css";
 import "./layout-fix.css";
-import "./viewport-layout.css";
 import "./runtime-canvas.css";
 import "@visutry/studio/styles.css";
 
