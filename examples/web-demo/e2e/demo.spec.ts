@@ -285,6 +285,25 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator('[data-panel-id="live"]')).toBeVisible();
   });
 
+  test("resets volatile runtime state when disconnected", async ({ page }) => {
+    const snapshot = await page.evaluate(async () => {
+      const studio = (window as Window & { __visutryStudio?: { connectRuntime(runtime: unknown): Promise<void>; disconnectRuntime(): void; subscribeSnapshot(listener: (snapshot: any) => void): () => void } }).__visutryStudio;
+      let latest: any = null;
+      const unsubscribe = studio?.subscribeSnapshot((next) => { latest = next; });
+      await studio?.connectRuntime({
+        getSnapshot: () => ({ mode: "connected", camera: { active: true }, tracking: { detected: true }, pose: { yaw: 12 }, glb: { id: "demo" }, render: { frameTimeMs: 2 } }),
+        subscribe: () => () => undefined,
+        initialize: async () => undefined,
+        dispose: () => undefined,
+      });
+      studio?.disconnectRuntime();
+      unsubscribe?.();
+      return latest;
+    });
+    expect(snapshot).toMatchObject({ mode: "static", camera: { active: false }, tracking: { detected: false }, pose: null, glb: null, render: {} });
+    await expect(page.locator('[data-panel-id="live"]')).toBeVisible();
+  });
+
   test("keeps layout persistence controls visible beside the scrollable toolbar", async ({ page }) => {
     await expect(page.locator("#save-layout")).toBeVisible();
     await expect(page.locator("#reset-layout")).toBeVisible();

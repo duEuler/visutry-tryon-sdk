@@ -188,7 +188,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       activeRuntime?.dispose?.();
       activeRuntime = undefined;
       setMode("static");
-      store.setSnapshot({ mode: "static" });
+      store.setSnapshot({ mode: "static", camera: { active: false }, tracking: { detected: false }, pose: null, glb: null, render: {} });
     },
     destroy() {
       if (!mounted) return;
