@@ -23,6 +23,15 @@ describe("createStudioRuntimeAdapter", () => {
     expect(adapter.getSnapshot()).toMatchObject({ tracking: { detected: true, confidence: 0.91 }, pose: { yaw: 2 } });
   });
 
+  it("forwards the loaded GLB manifest to the Studio snapshot", async () => {
+    const sdk = createSdkMock();
+    const adapter = createStudioRuntimeAdapter(sdk as never);
+    await adapter.initialize?.();
+    const manifest = { id: "aviator", name: "Classic Aviator", modelUrl: "/aviator.glb" };
+    sdk.handlers.get("glassesLoaded")?.(manifest);
+    expect(adapter.getSnapshot().glb).toEqual(manifest);
+  });
+
   it("normalizes performance metrics for Studio panels", async () => {
     const sdk = createSdkMock();
     const adapter = createStudioRuntimeAdapter(sdk as never);
