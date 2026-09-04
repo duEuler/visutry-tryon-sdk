@@ -56,6 +56,16 @@ describe("createStudioRuntimeAdapter", () => {
     expect(adapter.getSnapshot()).toMatchObject({ mode: "degraded", error: expect.any(Error) });
   });
 
+  it("switches to degraded mode on runtime and asset errors", async () => {
+    const sdk = createSdkMock();
+    const adapter = createStudioRuntimeAdapter(sdk as never);
+    await adapter.initialize?.();
+    sdk.handlers.get("glassesLoadFailed")?.({ code: "MODEL_LOAD_FAILED", message: "model unavailable" });
+    expect(adapter.getSnapshot()).toMatchObject({ mode: "degraded", error: { code: "MODEL_LOAD_FAILED" } });
+    sdk.handlers.get("ready")?.();
+    expect(adapter.getSnapshot().mode).toBe("connected");
+  });
+
   it("unsubscribes SDK events and destroys the SDK", async () => {
     const sdk = createSdkMock();
     const adapter = createStudioRuntimeAdapter(sdk as never);
