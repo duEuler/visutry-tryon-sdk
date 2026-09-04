@@ -89,4 +89,4 @@ jobs:
           VISUTRY_E2E_CAMERA: "1"
           VISUTRY_E2E_FAKE_CAMERA: "1"
           VISUTRY_E2E_CROSS_BROWSER: "1"
-        run: pnpm --filter visutry-web-demo test:e2e -- --project=${{ matrix.project }} --grep "Golden Layout Studio"
+        run: pnpm --filter visutry-web-demo exec playwright test --project=${{ matrix.project }} --grep "Golden Layout Studio"
