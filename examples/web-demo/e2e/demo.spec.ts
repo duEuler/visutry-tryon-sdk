@@ -365,6 +365,8 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator("#start-camera")).toBeEnabled();
     await page.locator("#start-camera").click();
     await expect(page.locator("#start-camera")).toHaveText(/Câmera ativa/, { timeout: 30000 });
+    await expect(page.locator('[data-panel-id="leftDock"]')).toContainText("Integrated Webcam");
+    await expect(page.locator('[data-panel-id="leftDock"]')).toContainText("640 × 480");
   });
 
   test("loads GLB and captures evidence when hardware E2E is enabled", async ({ page }) => {

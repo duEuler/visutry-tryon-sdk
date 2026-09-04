@@ -54,6 +54,9 @@ export function createStudioRuntimeAdapter(sdk: VisuTrySDK, options: StudioRunti
   };
   return {
     getSnapshot: () => snapshot,
+    setSnapshot(patch) {
+      publish(patch);
+    },
     subscribe(listener) {
       if (disposed) return () => false;
       listeners.add(listener);

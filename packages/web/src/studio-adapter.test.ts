@@ -40,6 +40,13 @@ describe("createStudioRuntimeAdapter", () => {
     expect(adapter.getSnapshot()).toMatchObject({ tracking: { latencyMs: 12 }, render: { frameTimeMs: 4 } });
   });
 
+  it("publishes camera state supplied by the host after the stream starts", () => {
+    const sdk = createSdkMock();
+    const adapter = createStudioRuntimeAdapter(sdk as never);
+    adapter.setSnapshot?.({ camera: { active: true, source: "Integrated Webcam", width: 640, height: 480, fps: 30 } });
+    expect(adapter.getSnapshot()).toMatchObject({ camera: { active: true, source: "Integrated Webcam", width: 640, height: 480, fps: 30 } });
+  });
+
   it("preserves nested snapshot blocks across SDK events", async () => {
     const sdk = createSdkMock();
     const adapter = createStudioRuntimeAdapter(sdk as never);
