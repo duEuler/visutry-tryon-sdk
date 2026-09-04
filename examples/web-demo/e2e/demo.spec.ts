@@ -245,4 +245,22 @@ test.describe("Golden Layout Studio", () => {
     await page.locator("#toggle-layout-lock").click();
     await expect(page.locator("#toggle-layout-lock")).toHaveText("Bloquear layout");
   });
+
+  test("exposes safe controls before runtime connection", async ({ page }) => {
+    await expect(page.locator("#connect-runtime")).toBeEnabled();
+    await expect(page.locator("#start-camera")).toBeDisabled();
+    await expect(page.locator("#start-tryon")).toBeDisabled();
+    await expect(page.locator("#load-glb")).toBeDisabled();
+    await expect(page.locator("#capture-evidence")).toBeDisabled();
+  });
+
+  test("hides and restores both side docks without moving the bottom row", async ({ page }) => {
+    await page.locator("#hide-side-panels").click();
+    await expect(page.locator('[data-panel-id="leftDock"]')).toBeHidden();
+    await expect(page.locator('[data-panel-id="rightDock"]')).toBeHidden();
+    await expect(page.locator('[data-panel-id="evidence"]')).toBeVisible();
+    await page.locator("#show-side-panels").click();
+    await expect(page.locator('[data-panel-id="leftDock"]')).toBeVisible();
+    await expect(page.locator('[data-panel-id="rightDock"]')).toBeVisible();
+  });
 });
