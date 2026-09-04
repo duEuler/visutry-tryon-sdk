@@ -5,14 +5,15 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist", "styles", "README.md"],
+  "files": ["dist", "styles", "examples", "README.md"],
   "exports": {
     ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
     "./audit-snapshot": { "types": "./dist/audit-snapshot.d.ts", "import": "./dist/audit-snapshot.js" },
     "./adapters/*": { "types": "./dist/adapters/*.d.ts", "import": "./dist/adapters/*.js" },
     "./styles.css": "./styles/studio.css",
     "./golden-layout.css": "./styles/golden-layout.css",
-    "./theme.css": "./styles/theme.css"
+    "./theme.css": "./styles/theme.css",
+    "./examples/*": "./examples/*"
   },
   "scripts": { "build": "tsc -p tsconfig.build.json", "typecheck": "tsc --noEmit" },
   "dependencies": { "golden-layout": "^2.6.0" },
