@@ -299,9 +299,16 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
     setRuntimeControls(mode);
     button.textContent = mode === "connected" ? "Runtime conectado" : "Runtime indisponível";
   } catch (error) {
+    const failure = error instanceof Error ? error : new Error("Runtime indisponível");
+    runtimeAdapter?.setSnapshot?.({ mode: "degraded", error: failure });
+    runtimeSdk?.stopTryOn();
+    runtimeSdk?.stopCamera();
+    resumeTryOnOnVisible = false;
+    landmarkOverlay?.clear();
+    landmarkCanvas?.classList.add("studio-runtime-hidden");
     button.disabled = false;
     button.textContent = "Tentar runtime novamente";
     syncModeLabel();
-    setStatus(error instanceof Error ? error.message : "Runtime indisponível");
+    setStatus(failure.message);
   }
 });
