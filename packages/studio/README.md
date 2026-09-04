@@ -38,6 +38,13 @@ scroll policy, resize scheduling and persistence. Runtime adapters implement
 `StudioRuntimeAdapter` and may publish snapshots or capture evidence without
 requiring React-specific code.
 
+For incremental integrations, the package also exports `StudioAdapters` with
+independent `CameraAdapter`, `TrackingAdapter`, `RendererAdapter`, `GlbAdapter`
+and `EvidenceAdapter` contracts. Each adapter may be supplied independently;
+the optional `runtime` field is the composed facade used by
+`connectRuntime()`. Every adapter follows the same `initialize()`/`dispose()`
+lifecycle so a React host can release resources in one cleanup.
+
 ### Static/offline mode
 
 For previews, Storybook or an unavailable device runtime, use the built-in
