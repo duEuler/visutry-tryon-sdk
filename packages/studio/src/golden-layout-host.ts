@@ -2,6 +2,7 @@ import { GoldenLayout, type LayoutConfig } from "golden-layout";
 import { AuditStore } from "./audit-store.js";
 import { createPanelRegistry } from "./panel-registry.js";
 import { createLayoutResizeController } from "./layout-resize-controller.js";
+import { normalizeStudioLayout } from "./layout-contract.js";
 import type { StudioInstance, StudioMode, StudioOptions, StudioRuntimeAdapter } from "./types.js";
 
 export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance {
@@ -78,7 +79,10 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       persisted?.hiddenPanels.forEach((id) => hiddenPanels.add(id));
       persisted?.collapsedPanels.forEach((id) => collapsedPanels.add(id));
       if (layoutDestroyed) { layout.init(); layout.on("stateChanged", handleLayoutStateChanged); layoutDestroyed = false; }
-      const loadedLayout = (persisted?.layout ?? options.persistence?.load() ?? options.initialLayout) as unknown as LayoutConfig;
+      const loadedCandidate = (persisted?.layout ?? options.persistence?.load() ?? options.initialLayout) as unknown as LayoutConfig;
+      let loadedLayout: LayoutConfig;
+      try { loadedLayout = normalizeStudioLayout(loadedCandidate); }
+      catch { loadedLayout = normalizeStudioLayout(options.initialLayout); }
       lastCompleteLayout = loadedLayout;
       layout.loadLayout(loadedLayout);
       const applyPersistedPanelState = () => {
@@ -102,16 +106,18 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       const currentLayout = layout.saveLayout() as unknown as LayoutConfig;
       // Golden Layout may omit items whose stack is temporarily hidden. Keep
       // the last complete tree so hidden panels can be restored after reload.
-      const nextLayout = hiddenPanels.size > 0 ? lastCompleteLayout : currentLayout;
-      if (hiddenPanels.size === 0) lastCompleteLayout = currentLayout;
+      const currentDeclarativeLayout = normalizeStudioLayout(currentLayout);
+      const nextLayout = hiddenPanels.size > 0 ? lastCompleteLayout : currentDeclarativeLayout;
+      if (hiddenPanels.size === 0) lastCompleteLayout = currentDeclarativeLayout;
       if (options.persistence?.saveState) options.persistence.saveState({ version: 1, layout: nextLayout, hiddenPanels: [...hiddenPanels], collapsedPanels: [...collapsedPanels] });
       else options.persistence?.save(nextLayout);
     },
     restoreDefaultLayout() { options.persistence?.clear(); hiddenPanels.clear(); collapsedPanels.clear(); lastCompleteLayout = options.initialLayout; layout.loadLayout(options.initialLayout); resizeController.schedule(); },
     getLayout() { return layout.saveLayout() as unknown as LayoutConfig; },
     setLayout(next: LayoutConfig) {
-      lastCompleteLayout = next;
-      layout.loadLayout(next);
+      const normalized = normalizeStudioLayout(next);
+      lastCompleteLayout = normalized;
+      layout.loadLayout(normalized);
       reapplyPanelState?.();
       resizeController.schedule();
     },

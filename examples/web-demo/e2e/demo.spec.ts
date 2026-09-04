@@ -412,4 +412,14 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator('[data-panel-id="rightDock"]')).toBeHidden();
   });
 
+  test("persists collapsed side-panel state across reloads", async ({ page }) => {
+    await page.locator("#collapse-accordions").click();
+    await expect(page.locator(".studio-panel-collapsed")).toHaveCount(2);
+    await page.locator("#save-layout").click();
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("visutry-golden-layout-state-v7") ?? "{}").collapsedPanels ?? [])).toHaveLength(2);
+    await page.reload();
+    await expect(page.locator('[data-panel-id="evidence"]')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("visutry-golden-layout-state-v7") ?? "{}").collapsedPanels ?? [])).toHaveLength(2);
+  });
+
 });
