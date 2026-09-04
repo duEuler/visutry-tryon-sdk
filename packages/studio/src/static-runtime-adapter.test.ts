@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createStaticRuntimeAdapter } from "./static-runtime-adapter.js";
 
 describe("createStaticRuntimeAdapter", () => {
@@ -9,5 +9,15 @@ describe("createStaticRuntimeAdapter", () => {
     adapter.setSnapshot?.({ tracking: { detected: true } });
     expect(adapter.getSnapshot()).toMatchObject({ mode: "static", camera: { active: false }, tracking: { detected: true } });
     expect(snapshots).toHaveLength(1);
+  });
+
+  it("does not accept subscriptions or updates after dispose", () => {
+    const adapter = createStaticRuntimeAdapter();
+    adapter.dispose?.();
+    const listener = vi.fn();
+    adapter.subscribe(listener);
+    adapter.setSnapshot?.({ tracking: { detected: true } });
+    expect(listener).not.toHaveBeenCalled();
+    expect(adapter.getSnapshot()).toMatchObject({ mode: "static" });
   });
 });
