@@ -27,6 +27,23 @@ const panels: Record<string, Panel> = {
 
 const accordionSections = (ids: string[]): AccordionSection[] => ids.map((id) => ({ id, title: panels[id].title, body: panels[id].body }));
 
+function renderSelectedFrame(element: HTMLElement, selected: { id: string; timestamp: number }): void {
+  const body = element.querySelector<HTMLElement>(".panel-body");
+  if (!body) return;
+  body.replaceChildren();
+  const rows: [string, string][] = [["Time", new Date(selected.timestamp).toLocaleTimeString()], ["Frame", selected.id]];
+  rows.forEach(([label, value]) => {
+    const row = document.createElement("div");
+    row.className = "gl-row";
+    const labelElement = document.createElement("span");
+    labelElement.textContent = label;
+    const valueElement = document.createElement("strong");
+    valueElement.textContent = value;
+    row.append(labelElement, valueElement);
+    body.append(row);
+  });
+}
+
 function createPanel(studio: Pick<StudioInstance, "collapsePanel" | "expandPanel">, context: StudioPanelContext, container: ComponentContainer, id: string): void {
   const accordion = id === "leftDock" || id === "rightDock";
   if (accordion) createAccordionPanel(context, container, accordionSections(id === "leftDock" ? ["camera", "diagnostics", "quality", "error"] : ["glb", "overlay", "pose", "metrics"]));
@@ -67,7 +84,7 @@ export function createDefaultPanelDefinitions(studio: Pick<StudioInstance, "coll
       if (items.length) element.querySelector(".timeline")!.innerHTML = renderEvidenceTimeline(items.map((item) => ({ label: new Date(item.timestamp).toLocaleTimeString(), best: item.id === snapshot.selectedFrameId })));
     } : id === "selected" ? (element, snapshot: AuditSnapshot) => {
       const selected = ((snapshot.evidence ?? []) as { id: string; timestamp: number }[]).find((item) => item.id === snapshot.selectedFrameId);
-      if (selected) element.querySelector(".panel-body")!.innerHTML = `<div class="gl-row"><span>Time</span><strong>${new Date(selected.timestamp).toLocaleTimeString()}</strong></div><div class="gl-row"><span>Frame</span><strong>${selected.id}</strong></div>`;
+      if (selected) renderSelectedFrame(element, selected);
     } : undefined,
   }));
 }
