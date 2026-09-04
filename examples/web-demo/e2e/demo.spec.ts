@@ -343,6 +343,24 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator(".gl-panel--accordion .accordion").first()).toHaveCSS("overflow-y", "auto");
   });
 
+  test("scrolls accordion columns when their content exceeds the dock", async ({ page }) => {
+    const result = await page.evaluate(() => {
+      const accordions = [...document.querySelectorAll<HTMLElement>(".lm_content.studio-panel--scrollable .accordion")];
+      accordions.forEach((accordion) => {
+        const filler = document.createElement("div");
+        filler.style.height = "1200px";
+        filler.dataset.testOverflow = "true";
+        accordion.append(filler);
+      });
+      return accordions.map((accordion) => {
+        const before = accordion.scrollTop;
+        accordion.scrollTop = 240;
+        return { overflowing: accordion.scrollHeight > accordion.clientHeight, moved: accordion.scrollTop > before };
+      });
+    });
+    expect(result).toEqual([{ overflowing: true, moved: true }, { overflowing: true, moved: true }]);
+  });
+
   test("preserves the desktop visual geometry baseline", async ({ page }) => {
     const geometry = await page.evaluate(() => {
       const box = (selector: string) => document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
