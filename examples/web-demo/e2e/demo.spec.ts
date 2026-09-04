@@ -31,7 +31,9 @@ test.describe("VisuTry Web Demo", () => {
       // The loading overlay should be visible on first paint.
       const overlay = page.locator("#loading-overlay");
       await expect(overlay).toBeVisible();
-      await expect(page.locator("#loading-text")).toContainText(/VisuTry|Initializing|Starting|Error:/i);
+      await expect(page.locator("#loading-text")).toContainText(
+        /VisuTry|Initializing|Starting|Error:/i,
+      );
     });
 
     test("glasses selector renders 5 glasses cards", async ({ page }) => {
@@ -45,7 +47,11 @@ test.describe("VisuTry Web Demo", () => {
         await expect(cards).toHaveCount(5, { timeout: 30000 });
       } catch {
         let loadingText = "";
-        try { loadingText = (await page.locator("#loading-text").textContent()) ?? ""; } catch { /* browser closed after SDK timeout */ }
+        try {
+          loadingText = (await page.locator("#loading-text").textContent()) ?? "";
+        } catch {
+          /* browser closed after SDK timeout */
+        }
         if (/Error:|CAMERA_NOT_AVAILABLE|MediaPipe/i.test(loadingText ?? "")) {
           test.skip(true, "SDK initialization unavailable in this browser environment.");
         }
@@ -222,7 +228,7 @@ test.describe("Golden Layout Studio", () => {
 
   test("keeps accordion columns configured for scrolling", async ({ page }) => {
     const scrollContainers = page.locator(".gl-panel--accordion .accordion");
-    const panelContents = page.locator('.lm_content.studio-panel--scrollable');
+    const panelContents = page.locator(".lm_content.studio-panel--scrollable");
     await expect(scrollContainers).toHaveCount(2);
     await expect(panelContents).toHaveCount(2);
     await expect(panelContents.nth(0)).toHaveCSS("overflow-y", "auto");
@@ -236,7 +242,10 @@ test.describe("Golden Layout Studio", () => {
   test("renders the four viewports as a non-scrolling stack", async ({ page }) => {
     const viewports = page.locator('[data-panel-id="viewports"] .viewport-grid .mini');
     await expect(viewports).toHaveCount(4);
-    await expect(page.locator('[data-panel-id="viewports"] .viewport-grid')).toHaveCSS("overflow-y", "visible");
+    await expect(page.locator('[data-panel-id="viewports"] .viewport-grid')).toHaveCSS(
+      "overflow-y",
+      "visible",
+    );
   });
 
   test("starts accordions expanded and exposes accessible controls", async ({ page }) => {
@@ -244,7 +253,10 @@ test.describe("Golden Layout Studio", () => {
     await expect(triggers).toHaveCount(8);
     await expect(triggers.first()).toHaveAttribute("aria-expanded", "true");
     await expect(triggers.first()).toHaveAttribute("aria-controls", /accordion-content-/);
-    await expect(page.locator(".gl-panel--accordion .accordion-content").first()).toHaveAttribute("role", "region");
+    await expect(page.locator(".gl-panel--accordion .accordion-content").first()).toHaveAttribute(
+      "role",
+      "region",
+    );
   });
 
   test("toolbar collapses and expands both side columns", async ({ page }) => {
@@ -264,8 +276,11 @@ test.describe("Golden Layout Studio", () => {
 
   test("exposes safe controls before runtime connection", async ({ page }) => {
     await expect(page.locator("#studio-mode")).toHaveText("static");
+    await expect(page.locator("body")).toHaveAttribute("data-runtime-mode", "static");
     await expect(page.locator("#connect-runtime")).toBeEnabled();
     await expect(page.locator("#start-camera")).toBeDisabled();
+    await expect(page.locator("#start-camera")).toHaveAttribute("aria-disabled", "true");
+    await expect(page.locator("#start-camera")).toHaveAttribute("title", /Conecte o runtime/);
     await expect(page.locator("#start-tryon")).toBeDisabled();
     await expect(page.locator("#load-glb")).toBeDisabled();
     await expect(page.locator("#capture-evidence")).toBeDisabled();
@@ -276,31 +291,51 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator('[data-panel-id="rightDock"]')).not.toContainText("Classic Aviator");
     await expect(page.locator('[data-panel-id="rightDock"]')).toContainText("—");
     await expect(page.locator('[data-panel-id="live"]')).not.toContainText("rosto ciano");
-    await expect(page.locator('[data-panel-id="evidence"] .timeline-empty')).toHaveText("Nenhuma evidência disponível");
+    await expect(page.locator('[data-panel-id="evidence"] .timeline-empty')).toHaveText(
+      "Nenhuma evidência disponível",
+    );
     await expect(page.locator('[data-panel-id="evidence"] .thumb')).toHaveCount(0);
   });
 
   test("syncs runtime controls across connect and stop", async ({ page }) => {
     test.skip(!HAS_CAMERA, "Set VISUTRY_E2E_CAMERA=1 to run runtime control coverage.");
     await page.locator("#connect-runtime").click();
-    await expect(page.locator("#connect-runtime")).toHaveText(/Runtime conectado/, { timeout: 30000 });
-    for (const id of ["start-camera", "start-tryon", "load-glb", "capture-evidence", "stop-runtime"]) {
+    await expect(page.locator("#connect-runtime")).toHaveText(/Runtime conectado/, {
+      timeout: 30000,
+    });
+    for (const id of [
+      "start-camera",
+      "start-tryon",
+      "load-glb",
+      "capture-evidence",
+      "stop-runtime",
+    ]) {
       await expect(page.locator(`#${id}`)).toBeEnabled();
     }
     await page.locator("#stop-runtime").click();
     await expect(page.locator("#studio-mode")).toHaveText("static");
-    for (const id of ["start-camera", "start-tryon", "load-glb", "capture-evidence", "stop-runtime"]) {
+    for (const id of [
+      "start-camera",
+      "start-tryon",
+      "load-glb",
+      "capture-evidence",
+      "stop-runtime",
+    ]) {
       await expect(page.locator(`#${id}`)).toBeDisabled();
     }
   });
 
   test("keeps the workspace mounted in degraded runtime mode", async ({ page }) => {
     await page.evaluate(async () => {
-      const studio = (window as Window & { __visutryStudio?: { connectRuntime(runtime: unknown): Promise<void> } }).__visutryStudio;
+      const studio = (
+        window as Window & { __visutryStudio?: { connectRuntime(runtime: unknown): Promise<void> } }
+      ).__visutryStudio;
       await studio?.connectRuntime({
         getSnapshot: () => ({ mode: "connected" }),
         subscribe: () => () => undefined,
-        initialize: async () => { throw new Error("runtime unavailable"); },
+        initialize: async () => {
+          throw new Error("runtime unavailable");
+        },
         dispose: () => undefined,
       });
     });
@@ -315,11 +350,28 @@ test.describe("Golden Layout Studio", () => {
 
   test("resets volatile runtime state when disconnected", async ({ page }) => {
     const snapshot = await page.evaluate(async () => {
-      const studio = (window as Window & { __visutryStudio?: { connectRuntime(runtime: unknown): Promise<void>; disconnectRuntime(): void; subscribeSnapshot(listener: (snapshot: any) => void): () => void } }).__visutryStudio;
+      const studio = (
+        window as Window & {
+          __visutryStudio?: {
+            connectRuntime(runtime: unknown): Promise<void>;
+            disconnectRuntime(): void;
+            subscribeSnapshot(listener: (snapshot: any) => void): () => void;
+          };
+        }
+      ).__visutryStudio;
       let latest: any = null;
-      const unsubscribe = studio?.subscribeSnapshot((next) => { latest = next; });
+      const unsubscribe = studio?.subscribeSnapshot((next) => {
+        latest = next;
+      });
       await studio?.connectRuntime({
-        getSnapshot: () => ({ mode: "connected", camera: { active: true }, tracking: { detected: true }, pose: { yaw: 12 }, glb: { id: "demo" }, render: { frameTimeMs: 2 } }),
+        getSnapshot: () => ({
+          mode: "connected",
+          camera: { active: true },
+          tracking: { detected: true },
+          pose: { yaw: 12 },
+          glb: { id: "demo" },
+          render: { frameTimeMs: 2 },
+        }),
         subscribe: () => () => undefined,
         initialize: async () => undefined,
         dispose: () => undefined,
@@ -328,11 +380,25 @@ test.describe("Golden Layout Studio", () => {
       unsubscribe?.();
       return latest;
     });
-    expect(snapshot).toMatchObject({ mode: "static", camera: { active: false }, tracking: { detected: false }, pose: null, glb: null, render: {} });
+    expect(snapshot).toMatchObject({
+      mode: "static",
+      camera: { active: false },
+      tracking: { detected: false },
+      pose: null,
+      glb: null,
+      render: {},
+      evidence: [],
+      selectedFrameId: null,
+      face: null,
+      performance: null,
+      error: null,
+    });
     await expect(page.locator('[data-panel-id="live"]')).toBeVisible();
   });
 
-  test("keeps layout persistence controls visible beside the scrollable toolbar", async ({ page }) => {
+  test("keeps layout persistence controls visible beside the scrollable toolbar", async ({
+    page,
+  }) => {
     await expect(page.locator("#save-layout")).toBeVisible();
     await expect(page.locator("#reset-layout")).toBeVisible();
     const controls = await page.evaluate(() => {
@@ -365,9 +431,14 @@ test.describe("Golden Layout Studio", () => {
         return false;
       }
     });
-    test.skip(!hasUsableCamera, "No usable camera stream is exposed by the current browser environment.");
+    test.skip(
+      !hasUsableCamera,
+      "No usable camera stream is exposed by the current browser environment.",
+    );
     await page.locator("#connect-runtime").click();
-    await expect(page.locator("#connect-runtime")).toHaveText(/Runtime conectado/, { timeout: 30000 });
+    await expect(page.locator("#connect-runtime")).toHaveText(/Runtime conectado/, {
+      timeout: 30000,
+    });
     await expect(page.locator("#start-camera")).toBeEnabled();
     await page.locator("#start-camera").click();
     await expect(page.locator("#start-camera")).toHaveText(/Câmera ativa/, { timeout: 30000 });
@@ -378,13 +449,19 @@ test.describe("Golden Layout Studio", () => {
   test("loads GLB and captures evidence when hardware E2E is enabled", async ({ page }) => {
     test.skip(!HAS_CAMERA, "Set VISUTRY_E2E_CAMERA=1 to run camera-dependent Studio coverage.");
     await page.locator("#connect-runtime").click();
-    await expect(page.locator("#connect-runtime")).toHaveText(/Runtime conectado/, { timeout: 30000 });
+    await expect(page.locator("#connect-runtime")).toHaveText(/Runtime conectado/, {
+      timeout: 30000,
+    });
     await page.locator("#load-glb").click();
     await expect(page.locator("#load-glb")).toHaveText(/GLB carregado/, { timeout: 30000 });
     await expect(page.locator('[data-panel-id="rightDock"]')).toContainText("Classic Aviator");
-    await expect(page.locator('[data-panel-id="rightDock"]')).toContainText("SunglassesKhronos.glb");
+    await expect(page.locator('[data-panel-id="rightDock"]')).toContainText(
+      "SunglassesKhronos.glb",
+    );
     await page.locator("#capture-evidence").click();
-    await expect(page.locator("#capture-evidence")).toHaveText(/Evidência capturada/, { timeout: 30000 });
+    await expect(page.locator("#capture-evidence")).toHaveText(/Evidência capturada/, {
+      timeout: 30000,
+    });
     await expect(page.locator('[data-panel-id="evidence"] .thumb')).toHaveCount(1);
     await expect(page.locator('[data-panel-id="evidence"] .thumb-image')).toHaveCount(1);
   });
@@ -401,16 +478,29 @@ test.describe("Golden Layout Studio", () => {
 
   test("emits public panel visibility events", async ({ page }) => {
     const events = await page.evaluate(() => {
-      const studio = (window as Window & { __visutryStudio?: { subscribePanelVisibility(listener: (id: string, visible: boolean) => void): () => void; hidePanel(id: string): void; showPanel(id: string): void } }).__visutryStudio;
+      const studio = (
+        window as Window & {
+          __visutryStudio?: {
+            subscribePanelVisibility(listener: (id: string, visible: boolean) => void): () => void;
+            hidePanel(id: string): void;
+            showPanel(id: string): void;
+          };
+        }
+      ).__visutryStudio;
       if (!studio) return [];
       const received: Array<[string, boolean]> = [];
-      const unsubscribe = studio.subscribePanelVisibility((id, visible) => received.push([id, visible]));
+      const unsubscribe = studio.subscribePanelVisibility((id, visible) =>
+        received.push([id, visible]),
+      );
       studio.hidePanel("leftDock");
       studio.showPanel("leftDock");
       unsubscribe();
       return received;
     });
-    expect(events).toEqual([["leftDock", false], ["leftDock", true]]);
+    expect(events).toEqual([
+      ["leftDock", false],
+      ["leftDock", true],
+    ]);
   });
 
   test("falls back to the default layout when persisted state is invalid", async ({ page }) => {
@@ -419,18 +509,25 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator('[data-panel-id="leftDock"]')).toBeVisible();
     await expect(page.locator('[data-panel-id="rightDock"]')).toBeVisible();
     await expect(page.locator('[data-panel-id="evidence"]')).toBeVisible();
-    await page.evaluate(() => localStorage.setItem("visutry-golden-layout-state-v7", JSON.stringify({
-      version: 7,
-      layout: { root: { type: "component", componentType: "removed-panel" } },
-      hiddenPanels: [],
-      collapsedPanels: [],
-    })));
+    await page.evaluate(() =>
+      localStorage.setItem(
+        "visutry-golden-layout-state-v7",
+        JSON.stringify({
+          version: 7,
+          layout: { root: { type: "component", componentType: "removed-panel" } },
+          hiddenPanels: [],
+          collapsedPanels: [],
+        }),
+      ),
+    );
     await page.reload();
     await expect(page.locator('[data-panel-id="leftDock"]')).toBeVisible();
     await expect(page.locator('[data-panel-id="rightDock"]')).toBeVisible();
   });
 
-  test("keeps page scrolling disabled while panel scrolling remains available", async ({ page }) => {
+  test("keeps page scrolling disabled while panel scrolling remains available", async ({
+    page,
+  }) => {
     const dimensions = await page.evaluate(() => ({
       pageHeight: document.documentElement.scrollHeight,
       viewportHeight: window.innerHeight,
@@ -441,12 +538,19 @@ test.describe("Golden Layout Studio", () => {
     expect(dimensions.pageHeight).toBeLessThanOrEqual(dimensions.viewportHeight);
     expect(dimensions.pageWidth).toBeLessThanOrEqual(dimensions.viewportWidth);
     expect(dimensions.bodyOverflow).toBe("hidden");
-    await expect(page.locator(".gl-panel--accordion .accordion").first()).toHaveCSS("overflow-y", "auto");
+    await expect(page.locator(".gl-panel--accordion .accordion").first()).toHaveCSS(
+      "overflow-y",
+      "auto",
+    );
   });
 
   test("scrolls accordion columns when their content exceeds the dock", async ({ page }) => {
     const result = await page.evaluate(() => {
-      const accordions = [...document.querySelectorAll<HTMLElement>(".lm_content.studio-panel--scrollable .accordion")];
+      const accordions = [
+        ...document.querySelectorAll<HTMLElement>(
+          ".lm_content.studio-panel--scrollable .accordion",
+        ),
+      ];
       accordions.forEach((accordion) => {
         const filler = document.createElement("div");
         filler.style.height = "1200px";
@@ -456,15 +560,22 @@ test.describe("Golden Layout Studio", () => {
       return accordions.map((accordion) => {
         const before = accordion.scrollTop;
         accordion.scrollTop = 240;
-        return { overflowing: accordion.scrollHeight > accordion.clientHeight, moved: accordion.scrollTop > before };
+        return {
+          overflowing: accordion.scrollHeight > accordion.clientHeight,
+          moved: accordion.scrollTop > before,
+        };
       });
     });
-    expect(result).toEqual([{ overflowing: true, moved: true }, { overflowing: true, moved: true }]);
+    expect(result).toEqual([
+      { overflowing: true, moved: true },
+      { overflowing: true, moved: true },
+    ]);
   });
 
   test("preserves the desktop visual geometry baseline", async ({ page }) => {
     const geometry = await page.evaluate(() => {
-      const box = (selector: string) => document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
+      const box = (selector: string) =>
+        document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
       const left = box('[data-panel-id="leftDock"]');
       const live = box('[data-panel-id="live"]');
       const viewports = box('[data-panel-id="viewports"]');
@@ -472,12 +583,19 @@ test.describe("Golden Layout Studio", () => {
       const evidence = box('[data-panel-id="evidence"]');
       const host = box("#layout-host");
       return {
-        left, live, viewports, right, evidence, host,
+        left,
+        live,
+        viewports,
+        right,
+        evidence,
+        host,
         background: getComputedStyle(document.body).backgroundColor,
         hostHeight: document.getElementById("layout-host")?.getBoundingClientRect().height ?? 0,
       };
     });
-    expect(geometry.left && geometry.live && geometry.viewports && geometry.right && geometry.evidence).toBeTruthy();
+    expect(
+      geometry.left && geometry.live && geometry.viewports && geometry.right && geometry.evidence,
+    ).toBeTruthy();
     expect(geometry.left!.left).toBeLessThan(geometry.live!.left);
     expect(geometry.live!.right).toBeLessThan(geometry.right!.left);
     expect(geometry.evidence!.top).toBeGreaterThanOrEqual(geometry.live!.bottom - 2);
@@ -490,7 +608,7 @@ test.describe("Golden Layout Studio", () => {
     expect(geometry.right!.width / geometry.host!.width).toBeLessThan(0.29);
     const centerWidth = geometry.live!.width + geometry.viewports!.width;
     expect(centerWidth / geometry.host!.width).toBeGreaterThan(0.48);
-    expect(centerWidth / geometry.host!.width).toBeLessThan(0.70);
+    expect(centerWidth / geometry.host!.width).toBeLessThan(0.7);
     const centerLeft = Math.min(geometry.live!.left, geometry.viewports!.left);
     const centerRight = Math.max(geometry.live!.right, geometry.viewports!.right);
     expect(geometry.evidence!.left).toBeGreaterThanOrEqual(centerLeft - 2);
@@ -523,7 +641,8 @@ test.describe("Golden Layout Studio", () => {
     const splitter = page.locator("#layout-host .lm_splitter").first();
     await expect(splitter).toBeVisible();
     const before = await page.evaluate(() => {
-      const box = (selector: string) => document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
+      const box = (selector: string) =>
+        document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
       return { left: box('[data-panel-id="leftDock"]'), live: box('[data-panel-id="live"]') };
     });
     const rect = await splitter.boundingBox();
@@ -534,7 +653,8 @@ test.describe("Golden Layout Studio", () => {
     await page.mouse.up();
     await page.waitForTimeout(80);
     const after = await page.evaluate(() => {
-      const box = (selector: string) => document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
+      const box = (selector: string) =>
+        document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
       return { left: box('[data-panel-id="leftDock"]'), live: box('[data-panel-id="live"]') };
     });
     expect(after.left && after.live).toBeTruthy();
@@ -545,7 +665,8 @@ test.describe("Golden Layout Studio", () => {
 
   test("groups panels into a single tab stack through the public layout API", async ({ page }) => {
     await page.evaluate(() => {
-      const studio = (window as Window & { __visutryStudio?: { setLayout(layout: unknown): void } }).__visutryStudio;
+      const studio = (window as Window & { __visutryStudio?: { setLayout(layout: unknown): void } })
+        .__visutryStudio;
       studio?.setLayout({
         root: {
           type: "stack",
@@ -566,20 +687,34 @@ test.describe("Golden Layout Studio", () => {
   test("applies the public Studio panel style contract", async ({ page }) => {
     await expect(page.locator('[data-panel-id="live"]')).toHaveClass(/studio-panel/);
     await expect(page.locator('[data-panel-id="leftDock"]')).toHaveClass(/studio-panel/);
-    await expect(page.locator('[data-panel-id="leftDock"]')).toHaveClass(/studio-panel--scrollable/);
+    await expect(page.locator('[data-panel-id="leftDock"]')).toHaveClass(
+      /studio-panel--scrollable/,
+    );
     await expect(page.locator("#layout-host")).toHaveAttribute("data-studio-mode", "static");
     await expect(page.locator("#layout-host")).toHaveClass(/studio-mode--static/);
   });
 
   test("defers heavy runtime bundles until runtime connection", async ({ page }) => {
-    const resources = await page.evaluate(() => performance.getEntriesByType("resource").map((entry) => entry.name));
-    expect(resources.some((name) => /three-vendor|mediapipe-vendor|VisuTryWebSDK/i.test(name))).toBe(false);
+    const resources = await page.evaluate(() =>
+      performance.getEntriesByType("resource").map((entry) => entry.name),
+    );
+    expect(
+      resources.some((name) => /three-vendor|mediapipe-vendor|VisuTryWebSDK/i.test(name)),
+    ).toBe(false);
   });
 
   test("destroys and remounts without duplicating the workspace", async ({ page }) => {
-    await page.evaluate(() => (window as Window & { __visutryStudio?: { destroy(): void; mount(): void } }).__visutryStudio?.destroy());
+    await page.evaluate(() =>
+      (
+        window as Window & { __visutryStudio?: { destroy(): void; mount(): void } }
+      ).__visutryStudio?.destroy(),
+    );
     await expect(page.locator("#layout-host .lm_item")).toHaveCount(0);
-    await page.evaluate(() => (window as Window & { __visutryStudio?: { destroy(): void; mount(): void } }).__visutryStudio?.mount());
+    await page.evaluate(() =>
+      (
+        window as Window & { __visutryStudio?: { destroy(): void; mount(): void } }
+      ).__visutryStudio?.mount(),
+    );
     await expect(page.locator('[data-panel-id="leftDock"]')).toBeVisible();
     await expect(page.locator('[data-panel-id="rightDock"]')).toBeVisible();
     await expect(page.locator('[data-panel-id="evidence"]')).toHaveCount(1);
@@ -588,7 +723,15 @@ test.describe("Golden Layout Studio", () => {
   test("persists hidden side-panel state across reloads", async ({ page }) => {
     await page.locator("#hide-side-panels").click();
     await page.locator("#save-layout").click();
-    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("visutry-golden-layout-state-v7") ?? "{}").hiddenPanels ?? [])).toContain("leftDock");
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            JSON.parse(localStorage.getItem("visutry-golden-layout-state-v7") ?? "{}")
+              .hiddenPanels ?? [],
+        ),
+      )
+      .toContain("leftDock");
     await page.reload();
     await expect(page.locator('[data-panel-id="leftDock"]')).toBeHidden();
     await expect(page.locator('[data-panel-id="rightDock"]')).toBeHidden();
@@ -598,13 +741,28 @@ test.describe("Golden Layout Studio", () => {
     await page.locator("#collapse-accordions").click();
     await expect(page.locator(".studio-panel-collapsed")).toHaveCount(2);
     await page.locator("#save-layout").click();
-    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("visutry-golden-layout-state-v7") ?? "{}").collapsedPanels ?? [])).toHaveLength(2);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            JSON.parse(localStorage.getItem("visutry-golden-layout-state-v7") ?? "{}")
+              .collapsedPanels ?? [],
+        ),
+      )
+      .toHaveLength(2);
     await page.reload();
     await expect(page.locator('[data-panel-id="evidence"]')).toBeVisible();
     await expect(page.locator(".studio-panel-collapsed")).toHaveCount(2);
-    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("visutry-golden-layout-state-v7") ?? "{}").collapsedPanels ?? [])).toHaveLength(2);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            JSON.parse(localStorage.getItem("visutry-golden-layout-state-v7") ?? "{}")
+              .collapsedPanels ?? [],
+        ),
+      )
+      .toHaveLength(2);
   });
-
 });
 
 test.describe("Legacy audit route compatibility", () => {
@@ -612,10 +770,15 @@ test.describe("Legacy audit route compatibility", () => {
     await page.goto("/audit-studio.html");
     await expect(page.locator("#app")).toBeVisible();
     await expect(page.locator("#stage")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Abrir Golden Layout Studio" })).toHaveAttribute("href", "/golden-layout-studio/index.html");
+    await expect(page.getByRole("link", { name: "Abrir Golden Layout Studio" })).toHaveAttribute(
+      "href",
+      "/golden-layout-studio/index.html",
+    );
   });
 
-  test("offers an opt-in bridge from the legacy route to Golden Layout Studio", async ({ page }) => {
+  test("offers an opt-in bridge from the legacy route to Golden Layout Studio", async ({
+    page,
+  }) => {
     await page.goto("/audit-studio.html?studio=golden");
     await expect(page).toHaveURL(/\/golden-layout-studio\/index\.html\?from=legacy$/);
     await expect(page.locator("#layout-host")).toBeVisible();
