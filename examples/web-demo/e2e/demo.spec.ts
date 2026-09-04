@@ -341,6 +341,26 @@ test.describe("Golden Layout Studio", () => {
     expect(before.live?.width).toBeGreaterThan(0);
   });
 
+  test("groups panels into a single tab stack through the public layout API", async ({ page }) => {
+    await page.evaluate(() => {
+      const studio = (window as Window & { __visutryStudio?: { setLayout(layout: unknown): void } }).__visutryStudio;
+      studio?.setLayout({
+        root: {
+          type: "stack",
+          content: [
+            { type: "component", componentType: "live", title: "Live 3D" },
+            { type: "component", componentType: "viewports", title: "Viewports 3D" },
+          ],
+        },
+      });
+    });
+    const stack = page.locator("#layout-host .lm_stack");
+    await expect(stack).toHaveCount(1);
+    await expect(stack.locator(".lm_tab")).toHaveCount(2);
+    await expect(page.locator("#layout-host .lm_item")).toHaveCount(2);
+    await expect(page.locator("#layout-host .lm_window")).toHaveCount(0);
+  });
+
   test("applies the public Studio panel style contract", async ({ page }) => {
     await expect(page.locator('[data-panel-id="live"]')).toHaveClass(/studio-panel/);
     await expect(page.locator('[data-panel-id="leftDock"]')).toHaveClass(/studio-panel/);
