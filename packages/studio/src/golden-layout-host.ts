@@ -22,6 +22,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     layout.registerComponentFactoryFunction(panel.id, (container) => {
       registry.create(panel.id, { panelId: panel.id, getSnapshot: () => store.getSnapshot() }, container);
       container.element.classList.toggle("studio-panel--scrollable", panel.scrollable);
+      container.element.classList.toggle("studio-panel--hidden", hiddenPanels.has(panel.id));
       container.element.closest<HTMLElement>(".lm_item")?.classList.toggle("studio-panel-item--scrollable", panel.scrollable);
       const unsubscribe = store.subscribe((snapshot) => registry.update(panel.id, container.element, snapshot));
       container.on("destroy", () => { unsubscribe(); panel.destroy?.(container.element); });
@@ -29,13 +30,17 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   });
 
   const resizeController = createLayoutResizeController(layout, options.host);
-  const handleLayoutStateChanged = () => resizeController.schedule();
+  let reapplyPanelState: (() => void) | null = null;
+  const handleLayoutStateChanged = () => { resizeController.schedule(); reapplyPanelState?.(); };
   layout.on("stateChanged", handleLayoutStateChanged);
   const observer = new ResizeObserver(() => resizeController.schedule());
+  let panelStateObserver: MutationObserver | null = null;
   const findItem = (id: string): HTMLElement | null => options.host.querySelector<HTMLElement>(`[data-panel-id="${CSS.escape(id)}"]`)?.closest<HTMLElement>(".lm_item") ?? null;
   const setPanelVisibility = (id: string, visible: boolean) => {
     if (visible) hiddenPanels.delete(id); else hiddenPanels.add(id);
     const item = findItem(id);
+    const panelElement = options.host.querySelector<HTMLElement>(`[data-panel-id="${CSS.escape(id)}"]`);
+    panelElement?.classList.toggle("studio-panel--hidden", !visible);
     if (!item) return;
     item.style.display = visible ? "" : "none";
     resizeController.schedule();
@@ -61,8 +66,20 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       persisted?.collapsedPanels.forEach((id) => collapsedPanels.add(id));
       if (layoutDestroyed) { layout.init(); layout.on("stateChanged", handleLayoutStateChanged); layoutDestroyed = false; }
       layout.loadLayout((persisted?.layout ?? options.persistence?.load() ?? options.initialLayout) as unknown as LayoutConfig);
-      hiddenPanels.forEach((id) => setPanelVisibility(id, false));
-      collapsedPanels.forEach((id) => setPanelCollapsed(id, true));
+      const applyPersistedPanelState = () => {
+        hiddenPanels.forEach((id) => setPanelVisibility(id, false));
+        collapsedPanels.forEach((id) => setPanelCollapsed(id, true));
+      };
+      reapplyPanelState = applyPersistedPanelState;
+      panelStateObserver?.disconnect();
+      panelStateObserver = new MutationObserver(() => applyPersistedPanelState());
+      panelStateObserver.observe(options.host, { childList: true, subtree: true });
+      applyPersistedPanelState();
+      const retryPersistedPanelState = (attempt = 0) => {
+        applyPersistedPanelState();
+        if (attempt < 10) requestAnimationFrame(() => retryPersistedPanelState(attempt + 1));
+      };
+      requestAnimationFrame(() => retryPersistedPanelState());
       observer.observe(options.host);
       resizeController.schedule();
     },
@@ -110,9 +127,12 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       if (!mounted) return;
       mounted = false;
       observer.disconnect();
+      panelStateObserver?.disconnect();
+      panelStateObserver = null;
       options.host.classList.remove("studio-layout-locked");
       resizeController.dispose();
       layout.off("stateChanged", handleLayoutStateChanged);
+      reapplyPanelState = null;
       store.destroy();
       runtimeUnsubscribe?.();
       runtimeUnsubscribe = null;

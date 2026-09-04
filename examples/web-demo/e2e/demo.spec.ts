@@ -196,7 +196,12 @@ test.describe("VisuTry Web Demo", () => {
 
 test.describe("Golden Layout Studio", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => localStorage.clear());
+    await page.addInitScript(() => {
+      if (!sessionStorage.getItem("studio-e2e-initialized")) {
+        localStorage.clear();
+        sessionStorage.setItem("studio-e2e-initialized", "1");
+      }
+    });
     await page.goto("/golden-layout-studio/index.html");
     await expect(page.locator("#layout-host .lm_item").first()).toBeVisible();
   });
@@ -308,13 +313,13 @@ test.describe("Golden Layout Studio", () => {
   test("persists hidden and collapsed side-panel state", async ({ page }) => {
     await page.locator("#hide-side-panels").click();
     await page.locator("#save-layout").click();
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("visutry-golden-layout-state-v7") ?? "{}").hiddenPanels ?? [])).toContain("leftDock");
     await page.reload();
     await expect(page.locator('[data-panel-id="leftDock"]')).toBeHidden();
     await expect(page.locator('[data-panel-id="rightDock"]')).toBeHidden();
     await page.locator("#show-side-panels").click();
     await page.locator("#collapse-accordions").click();
     await page.locator("#save-layout").click();
-    await page.reload();
     await expect(page.locator(".studio-panel-collapsed")).toHaveCount(2);
   });
 });
