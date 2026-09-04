@@ -5,6 +5,6 @@ export interface PanelShellOptions { panelId: string; body: string; accordion?: 
 
 export function createPanelShell(context: StudioPanelContext, container: ComponentContainer, options: PanelShellOptions): HTMLElement {
   void context;
-  container.element.innerHTML = `<section class="gl-panel${options.accordion ? " gl-panel--accordion" : ""}" data-panel-id="${options.panelId}"><div class="panel-body">${options.body}</div></section>`;
+  container.element.innerHTML = `<section class="studio-panel gl-panel${options.accordion ? " gl-panel--accordion" : ""}" data-panel-id="${options.panelId}"><div class="panel-body">${options.body}</div></section>`;
   return container.element;
 }

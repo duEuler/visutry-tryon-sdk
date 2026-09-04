@@ -21,7 +21,7 @@ export function bindAccordion(container: ComponentContainer | HTMLElement): void
 }
 
 export function createAccordionPanel(context: StudioPanelContext, container: ComponentContainer, sections: AccordionSection[]): HTMLElement {
-  container.element.innerHTML = `<section class="gl-panel gl-panel--accordion" data-panel-id="${context.panelId}"><div class="panel-body">${renderAccordion(sections)}</div></section>`;
+  container.element.innerHTML = `<section class="studio-panel gl-panel gl-panel--accordion" data-panel-id="${context.panelId}"><div class="panel-body">${renderAccordion(sections)}</div></section>`;
   bindAccordion(container);
   return container.element;
 }
