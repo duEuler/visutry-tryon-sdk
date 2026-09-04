@@ -79,4 +79,6 @@ const studio = createGoldenLayoutStudio({ host, panels: panelDefinitions, initia
 studio.mount();
 document.getElementById("save-layout")?.addEventListener("click", () => studio.saveLayout());
 document.getElementById("reset-layout")?.addEventListener("click", () => studio.restoreDefaultLayout());
+document.getElementById("expand-accordions")?.addEventListener("click", () => { studio.expandPanel("leftDock"); studio.expandPanel("rightDock"); });
+document.getElementById("collapse-accordions")?.addEventListener("click", () => { studio.collapsePanel("leftDock"); studio.collapsePanel("rightDock"); });
 window.addEventListener("beforeunload", () => studio.destroy());
