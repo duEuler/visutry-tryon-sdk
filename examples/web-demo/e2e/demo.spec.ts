@@ -271,6 +271,14 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator("#capture-evidence")).toBeDisabled();
   });
 
+  test("does not show simulated metrics or evidence while static", async ({ page }) => {
+    await expect(page.locator("#studio-mode")).toHaveText("static");
+    await expect(page.locator('[data-panel-id="rightDock"]')).not.toContainText("Classic Aviator");
+    await expect(page.locator('[data-panel-id="rightDock"]')).toContainText("—");
+    await expect(page.locator('[data-panel-id="evidence"] .timeline-empty')).toHaveText("Nenhuma evidência disponível");
+    await expect(page.locator('[data-panel-id="evidence"] .thumb')).toHaveCount(0);
+  });
+
   test("syncs runtime controls across connect and stop", async ({ page }) => {
     test.skip(!HAS_CAMERA, "Set VISUTRY_E2E_CAMERA=1 to run runtime control coverage.");
     await page.locator("#connect-runtime").click();
