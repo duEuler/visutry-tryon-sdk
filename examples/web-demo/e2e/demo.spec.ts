@@ -237,4 +237,12 @@ test.describe("Golden Layout Studio", () => {
     await page.locator("#expand-accordions").click();
     await expect(page.locator(".studio-panel-collapsed")).toHaveCount(0);
   });
+
+  test("locks and unlocks the Golden Layout workspace", async ({ page }) => {
+    await page.locator("#toggle-layout-lock").click();
+    await expect(page.locator("#toggle-layout-lock")).toHaveText("Desbloquear layout");
+    await expect(page.locator("#layout-host")).toHaveClass(/studio-layout-locked/);
+    await page.locator("#toggle-layout-lock").click();
+    await expect(page.locator("#toggle-layout-lock")).toHaveText("Bloquear layout");
+  });
 });

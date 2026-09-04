@@ -82,6 +82,8 @@ export interface StudioInstance {
   hidePanel(id: PanelId): void;
   collapsePanel(id: PanelId): void;
   expandPanel(id: PanelId): void;
+  setLayoutLocked(locked: boolean): void;
+  isLayoutLocked(): boolean;
   destroy(): void;
   getMode(): StudioMode;
   connectRuntime(runtime: StudioRuntimeAdapter): Promise<void>;

@@ -71,6 +71,7 @@ document.getElementById("save-layout")?.addEventListener("click", () => studio.s
 document.getElementById("reset-layout")?.addEventListener("click", () => studio.restoreDefaultLayout());
 document.getElementById("expand-accordions")?.addEventListener("click", () => { studio.expandPanel("leftDock"); studio.expandPanel("rightDock"); });
 document.getElementById("collapse-accordions")?.addEventListener("click", () => { studio.collapsePanel("leftDock"); studio.collapsePanel("rightDock"); });
+document.getElementById("toggle-layout-lock")?.addEventListener("click", (event) => { const button = event.currentTarget as HTMLButtonElement; const locked = !studio.isLayoutLocked(); studio.setLayoutLocked(locked); button.textContent = locked ? "Desbloquear layout" : "Bloquear layout"; });
 const runtimeButton = document.getElementById("connect-runtime") as HTMLButtonElement | null;
 const cameraButton = document.getElementById("start-camera") as HTMLButtonElement | null;
 const tryOnButton = document.getElementById("start-tryon") as HTMLButtonElement | null;

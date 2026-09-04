@@ -14,11 +14,13 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   let activeRuntime: StudioRuntimeAdapter | undefined = options.runtime;
   const hiddenPanels = new Set<string>();
   const collapsedPanels = new Set<string>();
+  let layoutLocked = false;
 
   registry.list().forEach((panel) => {
     layout.registerComponentFactoryFunction(panel.id, (container) => {
       registry.create(panel.id, { panelId: panel.id, getSnapshot: () => store.getSnapshot() }, container);
       container.element.classList.toggle("studio-panel--scrollable", panel.scrollable);
+      container.element.closest<HTMLElement>(".lm_item")?.classList.toggle("studio-panel-item--scrollable", panel.scrollable);
       const unsubscribe = store.subscribe((snapshot) => registry.update(panel.id, container.element, snapshot));
       container.on("destroy", () => { unsubscribe(); panel.destroy?.(container.element); });
     });
@@ -71,6 +73,8 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     hidePanel(id) { setPanelVisibility(id, false); },
     collapsePanel(id) { setPanelCollapsed(id, true); },
     expandPanel(id) { setPanelCollapsed(id, false); },
+    setLayoutLocked(locked) { layoutLocked = locked; options.host.classList.toggle("studio-layout-locked", locked); },
+    isLayoutLocked() { return layoutLocked; },
     getMode() { return mode; },
     async connectRuntime(runtime) {
       runtimeUnsubscribe?.();
@@ -83,6 +87,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     },
     destroy() {
       observer.disconnect();
+      options.host.classList.remove("studio-layout-locked");
       resizeController.dispose();
       store.destroy();
       runtimeUnsubscribe?.();
