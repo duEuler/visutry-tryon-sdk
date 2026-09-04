@@ -85,6 +85,14 @@ provides the same runtime facade used by `connectRuntime()`, including reverse
 order disposal, rollback on partial initialization, degraded state and evidence
 registration.
 
+Os contratos também podem ser importados diretamente pelos subcaminhos ESM,
+quando uma integração quer depender de apenas uma fronteira:
+
+```ts
+import type { CameraAdapter } from "@visutry/studio/adapters/camera-adapter";
+import type { EvidenceAdapter } from "@visutry/studio/adapters/evidence-adapter";
+```
+
 ### Static/offline mode
 
 For previews, Storybook or an unavailable device runtime, use the built-in
