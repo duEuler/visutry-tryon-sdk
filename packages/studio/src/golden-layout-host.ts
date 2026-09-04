@@ -78,7 +78,9 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     getMode() { return mode; },
     async connectRuntime(runtime) {
       runtimeUnsubscribe?.();
-      activeRuntime?.dispose?.();
+      // Mount can call connectRuntime with the adapter already supplied in
+      // options. Never dispose that same instance before initialize().
+      if (activeRuntime && activeRuntime !== runtime) activeRuntime.dispose?.();
       activeRuntime = runtime;
       mode = "connected";
       store.setSnapshot(runtime.getSnapshot());
