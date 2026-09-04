@@ -27,4 +27,10 @@ describe("StudioPanelRegistry", () => {
     expect(registry.get("dynamic")).toBeUndefined();
     expect(registry.unregister("dynamic")).toBe(false);
   });
+
+  it("rejects malformed runtime definitions", () => {
+    expect(() => createPanelRegistry([{ id: "", title: "", region: "left", scrollable: false, create: vi.fn() } as never])).toThrow(/id is required/);
+    expect(() => createPanelRegistry([{ id: "bad", title: "Bad", region: "floating", scrollable: false, create: vi.fn() } as never])).toThrow(/Invalid Studio panel region/);
+    expect(() => createPanelRegistry([{ id: "factory", title: "Factory", region: "center", scrollable: false } as never])).toThrow(/factory is required/);
+  });
 });
