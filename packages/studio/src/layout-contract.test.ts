@@ -32,4 +32,9 @@ describe("normalizeStudioLayout", () => {
   it("rejects trees without a valid component node", () => {
     expect(() => normalizeStudioLayout({ root: { type: "row", content: [{ type: "component" }] } } as any)).toThrow("Invalid Studio layout root");
   });
+
+  it("returns a reusable declarative layout shape", () => {
+    const layout = normalizeStudioLayout({ root: { type: "component", componentType: "live", id: "resolved" } } as any);
+    expect(layout.root).toEqual({ type: "component", componentType: "live" });
+  });
 });

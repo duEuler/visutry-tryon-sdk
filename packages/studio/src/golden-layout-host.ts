@@ -121,7 +121,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       else options.persistence?.save(nextLayout);
     },
     restoreDefaultLayout() { options.persistence?.clear(); hiddenPanels.clear(); collapsedPanels.clear(); lastCompleteLayout = options.initialLayout; layout.loadLayout(options.initialLayout); resizeController.schedule(); },
-    getLayout() { return layout.saveLayout() as unknown as LayoutConfig; },
+    getLayout() { return normalizeStudioLayout(layout.saveLayout() as unknown as LayoutConfig); },
     setLayout(next: LayoutConfig) {
       const normalized = normalizeStudioLayout(next);
       lastCompleteLayout = normalized;
