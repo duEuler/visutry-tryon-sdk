@@ -60,8 +60,7 @@ const defaultLayout: LayoutConfig = {
           { type: "row", height: 18, content: [{ type: "component", componentType: "evidence", title: "Evidence timeline", width: 78 }, { type: "component", componentType: "selected", title: "Selected frame", width: 22 }] },
         ] },
         { type: "component", width: 22, componentType: "rightDock", title: "Auditoria espacial" },
-      ]
-    ],
+      ],
   },
 };
 const host = document.getElementById("layout-host"); if (!host) throw new Error("layout host ausente");
