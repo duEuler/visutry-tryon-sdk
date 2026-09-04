@@ -613,4 +613,10 @@ test.describe("Legacy audit route compatibility", () => {
     await expect(page.locator("#stage")).toBeVisible();
     await expect(page.getByRole("link", { name: "Abrir Golden Layout Studio" })).toHaveAttribute("href", "/golden-layout-studio/index.html");
   });
+
+  test("offers an opt-in bridge from the legacy route to Golden Layout Studio", async ({ page }) => {
+    await page.goto("/audit-studio.html?studio=golden");
+    await expect(page).toHaveURL(/\/golden-layout-studio\/index\.html\?from=legacy$/);
+    await expect(page.locator("#layout-host")).toBeVisible();
+  });
 });

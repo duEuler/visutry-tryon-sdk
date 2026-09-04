@@ -6,6 +6,13 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' blob: https://cdn.jsdelivr.net https://storage.googleapis.com https://cdn.visutry.com; worker-src 'self' blob:;" />
   <title>VisuTry · Audit Studio</title>
   <link rel="stylesheet" href="/src/audit-studio.css" />
+  <script>
+    // Gradual migration bridge: preserve the legacy route unless the caller
+    // explicitly opts into the Golden Layout Studio experience.
+    if (new URLSearchParams(window.location.search).get("studio") === "golden") {
+      window.location.replace("/golden-layout-studio/index.html?from=legacy");
+    }
+  </script>
 </head>
 <body>
   <div id="app" class="audit-studio">
@@ -13,7 +20,7 @@
     <header class="studio-header">
       <div class="brand"><span class="brand-mark">V</span><div><strong>VISUTRY</strong><span>/ AUDIT STUDIO</span></div><small>laboratório de encaixe AR</small></div>
       <div class="header-session"><span class="session-label">Sessão local</span><strong>ACR-001 · Órbita 01</strong><span class="privacy-badge">dados processados no dispositivo</span></div>
-      <div class="header-actions"><a class="back-link" href="/">Demonstração antiga</a><a class="back-link" href="/golden-layout-studio/index.html">Abrir Golden Layout Studio</a><button id="btn-diagnostic" class="diagnostic-toggle" type="button" aria-pressed="false">Diagnóstico</button></div>
+      <div class="header-actions"><a class="back-link" href="/">Demonstração antiga</a><a class="back-link" href="/golden-layout-studio/index.html">Abrir Golden Layout Studio</a><a class="back-link" href="/audit-studio.html?studio=golden">Migrar para o novo Studio</a><button id="btn-diagnostic" class="diagnostic-toggle" type="button" aria-pressed="false">Diagnóstico</button></div>
     </header>
 
     <aside id="camera-audit" class="camera-audit left-rail" aria-live="polite">
