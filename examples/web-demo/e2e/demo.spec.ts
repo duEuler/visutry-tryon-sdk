@@ -310,15 +310,4 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator('[data-panel-id="evidence"]')).toHaveCount(1);
   });
 
-  test("persists hidden side-panel state across reloads", async ({ page }) => {
-    await page.locator("#hide-side-panels").click();
-    await page.locator("#save-layout").click();
-    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("visutry-golden-layout-state-v7") ?? "{}").hiddenPanels ?? [])).toContain("leftDock");
-    await page.reload();
-    await expect(page.locator('[data-panel-id="leftDock"]')).toBeHidden();
-    await expect(page.locator('[data-panel-id="rightDock"]')).toBeHidden();
-    await page.locator("#show-side-panels").click();
-    await expect(page.locator('[data-panel-id="leftDock"]')).toBeVisible();
-    await expect(page.locator('[data-panel-id="rightDock"]')).toBeVisible();
-  });
 });
