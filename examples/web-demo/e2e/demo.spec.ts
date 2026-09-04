@@ -225,4 +225,11 @@ test.describe("Golden Layout Studio", () => {
     await expect(triggers.first()).toHaveAttribute("aria-controls", /accordion-content-/);
     await expect(page.locator(".gl-panel--accordion .accordion-content").first()).toHaveAttribute("role", "region");
   });
+
+  test("toolbar collapses and expands both side columns", async ({ page }) => {
+    await page.locator("#collapse-accordions").click();
+    await expect(page.locator(".studio-panel-collapsed")).toHaveCount(2);
+    await page.locator("#expand-accordions").click();
+    await expect(page.locator(".studio-panel-collapsed")).toHaveCount(0);
+  });
 });
