@@ -24,7 +24,8 @@ function component(container: ComponentContainer, id: string) {
     controls.prepend(toggle);
     toggle.addEventListener("click", (event) => {
       event.stopPropagation();
-      const collapsed = item.classList.toggle("audit-collapsed");
+      const collapsed = !item.classList.contains("studio-panel-collapsed");
+      if (collapsed) studio.collapsePanel(id); else studio.expandPanel(id);
       toggle.textContent = collapsed ? "▲" : "▼";
       toggle.title = collapsed ? "Expandir janela" : "Minimizar janela";
       toggle.setAttribute("aria-label", toggle.title);
