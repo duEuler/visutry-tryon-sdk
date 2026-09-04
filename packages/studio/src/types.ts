@@ -3,7 +3,23 @@ import type { LayoutConfig, ComponentContainer } from "golden-layout";
 export type PanelId = string;
 export type StudioRegion = "left" | "center" | "right" | "bottom";
 
-export interface AuditSnapshot { [key: string]: unknown }
+export interface CameraState { active?: boolean; width?: number; height?: number; fps?: number; source?: string; }
+export interface TrackingState { detected?: boolean; confidence?: number; landmarks?: number; stability?: number; latencyMs?: number; }
+export interface FacePose { yaw?: number; pitch?: number; roll?: number; position?: { x: number; y: number; z: number }; }
+export interface GlassesAssetManifest { id?: string; name?: string; modelUrl?: string; }
+export interface RenderMetrics { drawCalls?: number; triangles?: number; frameTimeMs?: number; dpr?: number; width?: number; height?: number; }
+export interface EvidenceFrame { id: string; timestamp: number; dataUrl?: string; rmsError?: number; confidence?: number; }
+export interface AuditSnapshot {
+  mode?: StudioMode;
+  camera?: CameraState;
+  tracking?: TrackingState;
+  pose?: FacePose | null;
+  glb?: GlassesAssetManifest | null;
+  render?: RenderMetrics;
+  evidence?: EvidenceFrame[];
+  selectedFrameId?: string | null;
+  [key: string]: unknown;
+}
 export type StudioMode = "static" | "connected" | "degraded";
 
 export interface StudioRuntimeAdapter {

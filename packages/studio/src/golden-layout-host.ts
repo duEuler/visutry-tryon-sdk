@@ -12,6 +12,8 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   let mode: StudioMode = options.runtime ? "connected" : "static";
   let runtimeUnsubscribe: (() => void) | null = null;
   let activeRuntime: StudioRuntimeAdapter | undefined = options.runtime;
+  const hiddenPanels = new Set<string>();
+  const collapsedPanels = new Set<string>();
 
   registry.list().forEach((panel) => {
     layout.registerComponentFactoryFunction(panel.id, (container) => {
@@ -26,12 +28,14 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   const observer = new ResizeObserver(() => resizeController.schedule());
   const findItem = (id: string): HTMLElement | null => options.host.querySelector<HTMLElement>(`[data-panel-id="${CSS.escape(id)}"]`)?.closest<HTMLElement>(".lm_item") ?? null;
   const setPanelVisibility = (id: string, visible: boolean) => {
+    if (visible) hiddenPanels.delete(id); else hiddenPanels.add(id);
     const item = findItem(id);
     if (!item) return;
     item.style.display = visible ? "" : "none";
     resizeController.schedule();
   };
   const setPanelCollapsed = (id: string, collapsed: boolean) => {
+    if (collapsed) collapsedPanels.add(id); else collapsedPanels.delete(id);
     const item = findItem(id);
     if (!item) return;
     const content = item.querySelector<HTMLElement>(".lm_content");
@@ -46,12 +50,21 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       if (mounted) return;
       mounted = true;
       if (activeRuntime) void instance.connectRuntime(activeRuntime);
-      layout.loadLayout((options.persistence?.load() ?? options.initialLayout) as unknown as LayoutConfig);
+      const persisted = options.persistence?.loadState?.();
+      persisted?.hiddenPanels.forEach((id) => hiddenPanels.add(id));
+      persisted?.collapsedPanels.forEach((id) => collapsedPanels.add(id));
+      layout.loadLayout((persisted?.layout ?? options.persistence?.load() ?? options.initialLayout) as unknown as LayoutConfig);
+      hiddenPanels.forEach((id) => setPanelVisibility(id, false));
+      collapsedPanels.forEach((id) => setPanelCollapsed(id, true));
       observer.observe(options.host);
       resizeController.schedule();
     },
-    saveLayout() { options.persistence?.save(layout.saveLayout() as unknown as LayoutConfig); },
-    restoreDefaultLayout() { options.persistence?.clear(); layout.loadLayout(options.initialLayout); resizeController.schedule(); },
+    saveLayout() {
+      const nextLayout = layout.saveLayout() as unknown as LayoutConfig;
+      options.persistence?.saveState?.({ version: 1, layout: nextLayout, hiddenPanels: [...hiddenPanels], collapsedPanels: [...collapsedPanels] });
+      options.persistence?.save(nextLayout);
+    },
+    restoreDefaultLayout() { options.persistence?.clear(); hiddenPanels.clear(); collapsedPanels.clear(); layout.loadLayout(options.initialLayout); resizeController.schedule(); },
     getLayout() { return layout.saveLayout() as unknown as LayoutConfig; },
     setLayout(next: LayoutConfig) { layout.loadLayout(next); resizeController.schedule(); },
     showPanel(id) { setPanelVisibility(id, true); },
