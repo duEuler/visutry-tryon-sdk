@@ -4,8 +4,13 @@ export interface StudioToolbarBinding {
   dispose(): void;
 }
 
+export interface StudioToolbarOptions {
+  accordionPanelIds?: string[];
+}
+
 /** Binds declarative toolbar actions to a Studio instance. */
-export function bindStudioToolbar(root: ParentNode, studio: StudioInstance): StudioToolbarBinding {
+export function bindStudioToolbar(root: ParentNode, studio: StudioInstance, options: StudioToolbarOptions = {}): StudioToolbarBinding {
+  const panelIds = options.accordionPanelIds ?? ["leftDock", "rightDock"];
   const listeners: Array<() => void> = [];
   const on = (selector: string, handler: (button: HTMLButtonElement) => void) => {
     const button = root.querySelector<HTMLButtonElement>(selector);
@@ -16,10 +21,10 @@ export function bindStudioToolbar(root: ParentNode, studio: StudioInstance): Stu
   };
   on('[data-studio-action="save"]', () => studio.saveLayout());
   on('[data-studio-action="restore"]', () => studio.restoreDefaultLayout());
-  on('[data-studio-action="expand"]', () => { studio.expandPanel("leftDock"); studio.expandPanel("rightDock"); });
-  on('[data-studio-action="collapse"]', () => { studio.collapsePanel("leftDock"); studio.collapsePanel("rightDock"); });
-  on('[data-studio-action="show-side-panels"]', () => { studio.showPanel("leftDock"); studio.showPanel("rightDock"); });
-  on('[data-studio-action="hide-side-panels"]', () => { studio.hidePanel("leftDock"); studio.hidePanel("rightDock"); });
+  on('[data-studio-action="expand"]', () => panelIds.forEach((id) => studio.expandPanel(id)));
+  on('[data-studio-action="collapse"]', () => panelIds.forEach((id) => studio.collapsePanel(id)));
+  on('[data-studio-action="show-side-panels"]', () => panelIds.forEach((id) => studio.showPanel(id)));
+  on('[data-studio-action="hide-side-panels"]', () => panelIds.forEach((id) => studio.hidePanel(id)));
   on('[data-studio-action="lock"]', (button) => {
     const locked = !studio.isLayoutLocked();
     studio.setLayoutLocked(locked);

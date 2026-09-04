@@ -96,5 +96,8 @@ toolbar.dispose();
 studio.destroy();
 ```
 
+For another layout, pass `accordionPanelIds` to avoid coupling the toolbar to
+the demo's `leftDock` and `rightDock` IDs.
+
 The optional stylesheet is available as `@visutry/studio/styles.css`; import
 it once in the host that renders the Studio panels.

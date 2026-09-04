@@ -33,4 +33,14 @@ describe("bindStudioToolbar", () => {
     document.querySelector<HTMLButtonElement>('[data-studio-action="save"]')!.click();
     expect(studio.saveLayout).toHaveBeenCalledOnce();
   });
+
+  it("supports custom accordion panel ids", () => {
+    document.body.innerHTML = '<button data-studio-action="collapse"></button>';
+    const studio = studioMock();
+    const binding = bindStudioToolbar(document, studio, { accordionPanelIds: ["inspector", "diagnostics"] });
+    document.querySelector<HTMLButtonElement>('[data-studio-action="collapse"]')!.click();
+    expect(studio.collapsePanel).toHaveBeenNthCalledWith(1, "inspector");
+    expect(studio.collapsePanel).toHaveBeenNthCalledWith(2, "diagnostics");
+    binding.dispose();
+  });
 });
