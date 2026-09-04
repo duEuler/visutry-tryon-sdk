@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const useFakeCamera = process.env.VISUTRY_E2E_FAKE_CAMERA === "1";
+const useCrossBrowser = process.env.VISUTRY_E2E_CROSS_BROWSER === "1";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -23,6 +24,12 @@ export default defineConfig({
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "desktop-1366", testMatch: /desktop-matrix\.spec\.ts/, use: { ...devices["Desktop Chrome"], viewport: { width: 1366, height: 768 } } },
+    { name: "desktop-1920", testMatch: /desktop-matrix\.spec\.ts/, use: { ...devices["Desktop Chrome"], viewport: { width: 1920, height: 1080 } } },
+    ...(useCrossBrowser ? [
+      { name: "firefox-desktop", testMatch: /desktop-matrix\.spec\.ts/, use: { ...devices["Desktop Firefox"] } },
+      { name: "webkit-desktop", testMatch: /desktop-matrix\.spec\.ts/, use: { ...devices["Desktop Safari"] } },
+    ] : []),
   ],
   webServer: {
     command: "pnpm dev",
