@@ -185,11 +185,12 @@
 }
 
 /* Viewport panels stay stacked vertically instead of creating a second scroll. */
-:where(.studio-panel) .viewport-grid {
+.studio-panel .viewport-grid {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  height: auto;
+  height: 100%;
+  overflow: hidden;
 }
 
 :where(.studio-panel) .viewport-grid .mini {
