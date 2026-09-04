@@ -45,6 +45,17 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     if (!item) return;
     item.style.display = visible ? "" : "none";
     resizeController.schedule();
+    if (visible) {
+      let attempts = 0;
+      const clearHiddenState = () => {
+        const panel = options.host.querySelector<HTMLElement>(`[data-panel-id="${CSS.escape(id)}"]`);
+        panel?.classList.remove("studio-panel--hidden");
+        const parent = panel?.closest<HTMLElement>(".lm_item");
+        if (parent) parent.style.display = "";
+        if (++attempts < 4) requestAnimationFrame(clearHiddenState);
+      };
+      requestAnimationFrame(clearHiddenState);
+    }
   };
   const setPanelCollapsed = (id: string, collapsed: boolean) => {
     if (collapsed) collapsedPanels.add(id); else collapsedPanels.delete(id);
