@@ -27,4 +27,10 @@ describe("createStaticRuntimeAdapter", () => {
     expect(listener).not.toHaveBeenCalled();
     expect(adapter.getSnapshot()).toMatchObject({ mode: "static" });
   });
+
+  it("merges nested preview updates without losing existing state", () => {
+    const adapter = createStaticRuntimeAdapter({ camera: { active: true }, evidence: [{ id: "one", timestamp: 1 }] });
+    adapter.setSnapshot?.({ tracking: { detected: true, confidence: 0.9 } });
+    expect(adapter.getSnapshot()).toMatchObject({ camera: { active: true }, tracking: { detected: true, confidence: 0.9 }, evidence: [{ id: "one", timestamp: 1 }] });
+  });
 });
