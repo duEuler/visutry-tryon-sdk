@@ -105,7 +105,9 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
   button.textContent = "Conectando…";
   try {
     const { createVisuTryWebSDK, createStudioRuntimeAdapter } = await import("@visutry/tryon-web");
-    runtimeSdk = createVisuTryWebSDK({ canvas, privacy: { processOnDeviceOnly: true, allowSnapshotExport: false } });
+    // Snapshot export is available only through the explicit evidence button;
+    // all camera and tracking processing remains on-device.
+    runtimeSdk = createVisuTryWebSDK({ canvas, privacy: { processOnDeviceOnly: true, allowSnapshotExport: true } });
     await studio.connectRuntime(createStudioRuntimeAdapter(runtimeSdk));
     setRuntimeControls(true);
     button.textContent = "Runtime conectado";
