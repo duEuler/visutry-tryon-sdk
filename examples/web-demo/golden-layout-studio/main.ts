@@ -3,7 +3,7 @@ import "./styles.css";
 import "./collapse.css";
 import "./layout-fix.css";
 
-const key = "visutry-golden-layout-state-v4";
+const key = "visutry-golden-layout-state-v5";
 type Panel = { eyebrow: string; title: string; body: string };
 const panels: Record<string, Panel> = {
   camera: { eyebrow: "01 / CAPTURA", title: "Câmera", body: `<div class="metric-grid"><div class="metric"><label>Fonte</label><strong>Integrated Webcam</strong></div><div class="metric"><label>Estado</label><strong class="status">● Ativa</strong></div><div class="metric"><label>Resolução</label><strong>640 × 480</strong></div><div class="metric"><label>FPS alvo</label><strong>30</strong></div></div>` },
@@ -52,14 +52,15 @@ function component(container: ComponentContainer, id: string) {
 }
 const defaultLayout: LayoutConfig = {
   root: {
-    type: "column",
+    type: "row",
     content: [
-      { type: "row", height: 82, content: [
         { type: "component", width: 20, componentType: "leftDock", title: "Captura e diagnóstico" },
-        { type: "row", width: 58, content: [{ type: "component", componentType: "live", title: "Live 3D" }, { type: "component", componentType: "viewports", title: "Viewports 3D", width: 28 }] },
+        { type: "column", width: 58, content: [
+          { type: "row", height: 82, content: [{ type: "component", componentType: "live", title: "Live 3D" }, { type: "component", componentType: "viewports", title: "Viewports 3D", width: 28 }] },
+          { type: "row", height: 18, content: [{ type: "component", componentType: "evidence", title: "Evidence timeline", width: 78 }, { type: "component", componentType: "selected", title: "Selected frame", width: 22 }] },
+        ] },
         { type: "component", width: 22, componentType: "rightDock", title: "Auditoria espacial" },
-      ] },
-      { type: "row", height: 18, content: [{ type: "component", componentType: "evidence", title: "Evidence timeline", width: 78 }, { type: "component", componentType: "selected", title: "Selected frame", width: 22 }] },
+      ]
     ],
   },
 };
