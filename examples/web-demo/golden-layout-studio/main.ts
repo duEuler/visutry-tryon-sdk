@@ -1,5 +1,6 @@
 import { type LayoutConfig, type ComponentContainer } from "golden-layout";
 import { createGoldenLayoutStudio, createLocalStoragePersistence, type StudioPanelDefinition } from "@visutry/studio";
+import type { VisuTrySDK } from "@visutry/tryon-core";
 import "./styles.css";
 import "./collapse.css";
 import "./layout-fix.css";
@@ -78,10 +79,19 @@ const panelDefinitions: StudioPanelDefinition[] = Object.keys(panels).map((id) =
 }));
 const studio = createGoldenLayoutStudio({ host, panels: panelDefinitions, initialLayout: defaultLayout, persistence });
 studio.mount();
+let runtimeSdk: VisuTrySDK | null = null;
 document.getElementById("save-layout")?.addEventListener("click", () => studio.saveLayout());
 document.getElementById("reset-layout")?.addEventListener("click", () => studio.restoreDefaultLayout());
 document.getElementById("expand-accordions")?.addEventListener("click", () => { studio.expandPanel("leftDock"); studio.expandPanel("rightDock"); });
 document.getElementById("collapse-accordions")?.addEventListener("click", () => { studio.collapsePanel("leftDock"); studio.collapsePanel("rightDock"); });
+const runtimeButton = document.getElementById("connect-runtime") as HTMLButtonElement | null;
+const cameraButton = document.getElementById("start-camera") as HTMLButtonElement | null;
+const tryOnButton = document.getElementById("start-tryon") as HTMLButtonElement | null;
+const stopButton = document.getElementById("stop-runtime") as HTMLButtonElement | null;
+const setRuntimeControls = (connected: boolean) => { [cameraButton, tryOnButton, stopButton].forEach((button) => { if (button) button.disabled = !connected; }); };
+cameraButton?.addEventListener("click", async () => { if (!runtimeSdk) return; cameraButton.disabled = true; try { await runtimeSdk.startCamera(); cameraButton.textContent = "Câmera ativa"; } catch { cameraButton.disabled = false; cameraButton.textContent = "Tentar câmera novamente"; } });
+tryOnButton?.addEventListener("click", async () => { if (!runtimeSdk) return; try { await runtimeSdk.startTryOn(); tryOnButton.textContent = "Try-on ativo"; } catch { tryOnButton.textContent = "Tentar try-on novamente"; } });
+stopButton?.addEventListener("click", () => { runtimeSdk?.stopTryOn(); runtimeSdk?.stopCamera(); if (cameraButton) { cameraButton.disabled = false; cameraButton.textContent = "Iniciar câmera"; } if (tryOnButton) tryOnButton.textContent = "Iniciar try-on"; });
 window.addEventListener("beforeunload", () => studio.destroy());
 document.getElementById("connect-runtime")?.addEventListener("click", async (event) => {
   const button = event.currentTarget as HTMLButtonElement;
@@ -91,8 +101,9 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
   button.textContent = "Conectando…";
   try {
     const { createVisuTryWebSDK, createStudioRuntimeAdapter } = await import("@visutry/tryon-web");
-    const sdk = createVisuTryWebSDK({ canvas, privacy: { processOnDeviceOnly: true, allowSnapshotExport: false } });
-    await studio.connectRuntime(createStudioRuntimeAdapter(sdk));
+    runtimeSdk = createVisuTryWebSDK({ canvas, privacy: { processOnDeviceOnly: true, allowSnapshotExport: false } });
+    await studio.connectRuntime(createStudioRuntimeAdapter(runtimeSdk));
+    setRuntimeControls(true);
     button.textContent = "Runtime conectado";
   } catch {
     button.disabled = false;
