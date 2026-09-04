@@ -2,7 +2,7 @@
 
 ## Persistência de painéis ocultos
 
-O Golden Layout pode omitir itens cujo contêiner foi removido ou ocultado antes de `saveLayout()`. Para preservar painéis entre sessões, mantenha-os no layout e controle a visibilidade no host; layouts antigos sem esses itens devem usar `restoreDefaultLayout()`.
+O host preserva o último layout completo antes de ocultar um painel. Assim, `saveLayout()` grava a árvore com todos os itens e o estado `hiddenPanels` separadamente; após reload, os painéis continuam disponíveis para `showPanel()`. Layouts antigos que realmente não contêm um painel ainda usam `restoreDefaultLayout()` como fallback.
 
 Framework-neutral Golden Layout host for the VisuTry audit workspace. It owns
 docking, panel registration, layout persistence, resize scheduling and the
