@@ -110,6 +110,7 @@ recolhidos. JSON inválido ou versões incompatíveis retornam ao layout padrão
 - [x] Confirmar que o consumidor React fornece `react`, `react-dom` e os tipos
       correspondentes; eles não são dependências obrigatórias do pacote Studio.
 - [x] Executar E2E em pelo menos 1366×768 e 1920×1080.
-- [ ] Executar a matriz Firefox/WebKit com `VISUTRY_E2E_CROSS_BROWSER=1`.
+- [x] Executar a matriz Firefox/WebKit com `VISUTRY_E2E_CROSS_BROWSER=1` (CI
+      `33910624470`, Chromium/Firefox/WebKit aprovados).
 - [ ] Fazer teste final com câmera física; a câmera simulada não substitui esse
-  teste de hardware.
+      teste de hardware.

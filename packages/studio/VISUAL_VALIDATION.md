@@ -6,17 +6,17 @@ referência 1132 × 912 px.
 
 ## Critérios verificados
 
-| Área | Critério | Resultado |
-| --- | --- | --- |
-| Proporções | Dock esquerdo entre 14% e 27% do host | aprovado |
-| Proporções | Dock direito entre 16% e 29% do host | aprovado |
-| Hierarquia | Live 3D e Viewports ocupam o centro | aprovado |
-| Bottom | Evidence timeline e Selected frame permanecem somente no centro | aprovado |
-| Alinhamento | Nenhuma coluna se sobrepõe após resize | aprovado |
-| Cores | Fundo `rgb(7, 13, 22)` e topbar `rgb(11, 19, 32)` | aprovado |
-| Superfície | Stage com borda `rgb(45, 73, 101)` e painel com gradiente | aprovado |
-| Scroll | Página sem overflow; accordions usam scroll próprio quando necessário | aprovado |
-| Viewports | Quatro vistas empilhadas sem scroll interno | aprovado |
+| Área        | Critério                                                              | Resultado |
+| ----------- | --------------------------------------------------------------------- | --------- |
+| Proporções  | Dock esquerdo entre 14% e 27% do host                                 | aprovado  |
+| Proporções  | Dock direito entre 16% e 29% do host                                  | aprovado  |
+| Hierarquia  | Live 3D e Viewports ocupam o centro                                   | aprovado  |
+| Bottom      | Evidence timeline e Selected frame permanecem somente no centro       | aprovado  |
+| Alinhamento | Nenhuma coluna se sobrepõe após resize                                | aprovado  |
+| Cores       | Fundo `rgb(7, 13, 22)` e topbar `rgb(11, 19, 32)`                     | aprovado  |
+| Superfície  | Stage com borda `rgb(45, 73, 101)` e painel com gradiente             | aprovado  |
+| Scroll      | Página sem overflow; accordions usam scroll próprio quando necessário | aprovado  |
+| Viewports   | Quatro vistas empilhadas sem scroll interno                           | aprovado  |
 
 ## Alinhamento GLB
 
@@ -43,6 +43,10 @@ scrolling remains available` e `scrolls accordion columns when their content
 exceeds the dock` verificam esses critérios no navegador. A suíte também cobre
 resize, agrupamento de abas, persistência, ocultação e remontagem.
 
+A matriz publicada no CI `33910624470` confirmou os mesmos critérios em
+Chromium, Firefox e WebKit, além das resoluções desktop 1366 × 768 e
+1920 × 1080.
+
 O baseline é desktop-only por decisão de escopo; responsividade mobile não faz
 parte desta etapa.
 
@@ -50,15 +54,15 @@ parte desta etapa.
 
 Validação executada em 04/09/2026 na rota local com viewport 1132 × 912 px:
 
-| Região | Largura observada | Altura | Overflow vertical |
-| --- | ---: | ---: | --- |
-| Host Golden Layout | 1132 px | 834 px | `visible` (página contida) |
-| Dock esquerdo | 225 px | 834 px | `auto` |
-| Live 3D | 415 px | 677 px | `hidden` |
-| Viewports 3D | 231 px | 677 px | `hidden` |
-| Evidence timeline | 504 px | 132 px | `hidden` |
-| Selected frame | 142 px | 132 px | `hidden` |
-| Dock direito | 246 px | 834 px | `auto` |
+| Região             | Largura observada | Altura | Overflow vertical          |
+| ------------------ | ----------------: | -----: | -------------------------- |
+| Host Golden Layout |           1132 px | 834 px | `visible` (página contida) |
+| Dock esquerdo      |            225 px | 834 px | `auto`                     |
+| Live 3D            |            415 px | 677 px | `hidden`                   |
+| Viewports 3D       |            231 px | 677 px | `hidden`                   |
+| Evidence timeline  |            504 px | 132 px | `hidden`                   |
+| Selected frame     |            142 px | 132 px | `hidden`                   |
+| Dock direito       |            246 px | 834 px | `auto`                     |
 
 As medições confirmam que o bottom nasce dentro do centro e que somente os
 docks com accordions recebem scroll próprio; a página e os painéis simples não
