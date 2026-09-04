@@ -43,4 +43,24 @@ describe("bindStudioToolbar", () => {
     expect(studio.collapsePanel).toHaveBeenNthCalledWith(2, "diagnostics");
     binding.dispose();
   });
+
+  it("binds visibility actions to the declared panel id", () => {
+    document.body.innerHTML = '<button data-studio-action="show-panel" data-studio-panel="camera"></button><button data-studio-action="hide-panel" data-studio-panel="diagnostics"></button>';
+    const studio = studioMock();
+    const binding = bindStudioToolbar(document, studio);
+    document.querySelector<HTMLButtonElement>('[data-studio-action="show-panel"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-studio-action="hide-panel"]')!.click();
+    expect(studio.showPanel).toHaveBeenCalledWith("camera");
+    expect(studio.hidePanel).toHaveBeenCalledWith("diagnostics");
+    binding.dispose();
+  });
+
+  it("binds every matching global action button", () => {
+    document.body.innerHTML = '<button data-studio-action="save"></button><button data-studio-action="save"></button>';
+    const studio = studioMock();
+    const binding = bindStudioToolbar(document, studio);
+    document.querySelectorAll<HTMLButtonElement>('[data-studio-action="save"]').forEach((button) => button.click());
+    expect(studio.saveLayout).toHaveBeenCalledTimes(2);
+    binding.dispose();
+  });
 });

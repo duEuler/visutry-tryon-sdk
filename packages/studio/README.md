@@ -124,6 +124,10 @@ toolbar.dispose();
 studio.destroy();
 ```
 
+Para menus de visibilidade por painel, use `show-panel` ou `hide-panel` junto
+com `data-studio-panel="panelId"`. O binding aceita vários botões com a mesma
+ação e remove todos os listeners em `dispose()`.
+
 For another layout, pass `accordionPanelIds` to avoid coupling the toolbar to
 the demo's `leftDock` and `rightDock` IDs.
 

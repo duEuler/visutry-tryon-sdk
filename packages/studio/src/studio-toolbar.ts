@@ -13,11 +13,11 @@ export function bindStudioToolbar(root: ParentNode, studio: StudioInstance, opti
   const panelIds = options.accordionPanelIds ?? ["leftDock", "rightDock"];
   const listeners: Array<() => void> = [];
   const on = (selector: string, handler: (button: HTMLButtonElement) => void) => {
-    const button = root.querySelector<HTMLButtonElement>(selector);
-    if (!button) return;
-    const listener = () => handler(button);
-    button.addEventListener("click", listener);
-    listeners.push(() => button.removeEventListener("click", listener));
+    root.querySelectorAll<HTMLButtonElement>(selector).forEach((button) => {
+      const listener = () => handler(button);
+      button.addEventListener("click", listener);
+      listeners.push(() => button.removeEventListener("click", listener));
+    });
   };
   on('[data-studio-action="save"]', () => studio.saveLayout());
   on('[data-studio-action="restore"]', () => studio.restoreDefaultLayout());
@@ -25,6 +25,14 @@ export function bindStudioToolbar(root: ParentNode, studio: StudioInstance, opti
   on('[data-studio-action="collapse"]', () => panelIds.forEach((id) => studio.collapsePanel(id)));
   on('[data-studio-action="show-side-panels"]', () => panelIds.forEach((id) => studio.showPanel(id)));
   on('[data-studio-action="hide-side-panels"]', () => panelIds.forEach((id) => studio.hidePanel(id)));
+  on('[data-studio-action="show-panel"][data-studio-panel]', (button) => {
+    const id = button.dataset.studioPanel;
+    if (id) studio.showPanel(id);
+  });
+  on('[data-studio-action="hide-panel"][data-studio-panel]', (button) => {
+    const id = button.dataset.studioPanel;
+    if (id) studio.hidePanel(id);
+  });
   on('[data-studio-action="lock"]', (button) => {
     const locked = !studio.isLayoutLocked();
     studio.setLayoutLocked(locked);
