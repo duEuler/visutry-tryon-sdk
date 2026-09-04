@@ -62,6 +62,8 @@ runtime resources are released.
 The host exposes `subscribeMode(listener)` for reactive status badges and
 `disconnectRuntime()` for an explicit return to offline/static mode. Both are
 safe to call from a React effect cleanup or from a framework-neutral toolbar.
+Use `subscribeSnapshot(listener)` when a host component needs the latest audit
+data without reaching into the internal store.
 
 ## Loading and performance boundary
 

@@ -93,6 +93,7 @@ export interface StudioInstance {
   destroy(): void;
   getMode(): StudioMode;
   subscribeMode(listener: (mode: StudioMode) => void): () => void;
+  subscribeSnapshot(listener: (snapshot: AuditSnapshot) => void): () => void;
   connectRuntime(runtime: StudioRuntimeAdapter): Promise<void>;
   disconnectRuntime(): void;
 }

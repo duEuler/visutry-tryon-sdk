@@ -122,6 +122,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     isLayoutLocked() { return layoutLocked; },
     getMode() { return mode; },
     subscribeMode(listener) { modeListeners.add(listener); listener(mode); return () => modeListeners.delete(listener); },
+    subscribeSnapshot(listener) { return store.subscribe(listener); },
     async connectRuntime(runtime) {
       runtimeUnsubscribe?.();
       // Mount can call connectRuntime with the adapter already supplied in
