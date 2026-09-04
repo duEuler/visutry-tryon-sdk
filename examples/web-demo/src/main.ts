@@ -94,7 +94,8 @@ const btnAnalyze = $("btn-analyze");
 const btnSnapshot = $("btn-snapshot");
 const btnSwitchCamera = $("btn-switch-camera");
 const btnDiagnostic = $("btn-diagnostic") as HTMLButtonElement;
-const heavyCaptureToggle = $("toggle-heavy-capture") as HTMLInputElement;
+const viewportCaptureToggle = $("toggle-viewport-capture") as HTMLInputElement;
+const snapshotCaptureToggle = $("toggle-snapshot-capture") as HTMLInputElement;
 const bottomPanel = $("bottom-panel");
 const bottomPanelToggle = $("btn-panel-toggle") as HTMLButtonElement;
 const shapeModal = $("shape-modal");
@@ -131,7 +132,8 @@ const derivedAnchorIds = new Set<string>();
 const errorSamples: Array<{ at: number; error: number; yaw: number; pitch: number }> = [];
 let lastError = 0;
 let snapshotTimer: number | null = null;
-let heavyCaptureEnabled = false;
+let viewportCaptureEnabled = false;
+let snapshotsEnabled = false;
 const recentSnapshots: Array<{ image: string; at: string; error: number }> = [];
 
 /** Derive a comparable lens layout from declared physical dimensions. */
@@ -252,7 +254,7 @@ function updateGeometryAudit(): void {
   auditViewport.textContent = `palco ${Math.round(rect.width)}×${Math.round(rect.height)} px · DPR ${dpr.toFixed(2)}\n` +
     `vídeo ${videoWidth || "—"}×${videoHeight || "—"} · canvas ${canvas.width}×${canvas.height}\n` +
     `diagnóstico ${diagnosticCanvas.width}×${diagnosticCanvas.height} · cover · espelhado\n` +
-    `captura 3D ${heavyCaptureEnabled ? "ativa" : "desativada"}`;
+    `captura 3D ${viewportCaptureEnabled ? "ativa" : "desativada"}`;
 
   if (lastFace) {
     const points = lastFace.landmarks.normalized;
@@ -272,7 +274,7 @@ function updateGeometryAudit(): void {
     auditVolume.textContent = "Aguardando face 3D…";
     auditLandmarks.textContent = "Aguardando malha…";
   }
-  if (heavyCaptureEnabled) {
+  if (viewportCaptureEnabled) {
     ensureDebugViewports();
     debugViewports.forEach((viewport) => viewport.update(lastFace, lastPose, ALL_GLASSES[selectedGlassesIndex]));
   }
@@ -317,7 +319,7 @@ function drawErrorChart(): void {
 }
 
 function captureDiagnosticSnapshot(): void {
-  if (!heavyCaptureEnabled) return;
+  if (!snapshotsEnabled) return;
   const video = document.getElementById("camera-video") as HTMLVideoElement | null;
   if (!video || !lastFace || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
   const thumb = document.createElement("canvas");
@@ -340,14 +342,24 @@ function captureDiagnosticSnapshot(): void {
   auditSnapshots.textContent = `${recentSnapshots.length} capturas · intervalo 1s · buffer máximo 8`;
 }
 
-function setHeavyCaptureEnabled(enabled: boolean): void {
-  heavyCaptureEnabled = enabled;
-  btnSnapshot.toggleAttribute("disabled", !enabled);
+function setViewportCaptureEnabled(enabled: boolean): void {
+  viewportCaptureEnabled = enabled;
   if (enabled) {
     ensureDebugViewports();
-    snapshotTimer = window.setInterval(captureDiagnosticSnapshot, 1000);
-    auditSnapshots.textContent = "Aguardando rastreamento…";
     updateGeometryAudit();
+    return;
+  }
+  debugViewports.forEach((viewport) => viewport.dispose());
+  debugViewports = [];
+  updateGeometryAudit();
+}
+
+function setSnapshotsEnabled(enabled: boolean): void {
+  snapshotsEnabled = enabled;
+  btnSnapshot.toggleAttribute("disabled", !enabled);
+  if (enabled) {
+    if (snapshotTimer === null) snapshotTimer = window.setInterval(captureDiagnosticSnapshot, 1000);
+    auditSnapshots.textContent = "Aguardando rastreamento…";
     return;
   }
   if (snapshotTimer !== null) {
@@ -357,9 +369,6 @@ function setHeavyCaptureEnabled(enabled: boolean): void {
   recentSnapshots.length = 0;
   snapshotStrip.replaceChildren();
   auditSnapshots.textContent = "Desativado para preservar desempenho";
-  debugViewports.forEach((viewport) => viewport.dispose());
-  debugViewports = [];
-  updateGeometryAudit();
 }
 
 /** Applies one guarded, session-only origin correction from the nose bridge. */
@@ -775,8 +784,8 @@ function showShapeResult(result: FaceShapeResult): void {
 // ---------------------------------------------------------------------------
 
 async function handleSnapshot(): Promise<void> {
-  if (!sdk || !heavyCaptureEnabled) {
-    showToast("Ative 'Captura 3D + imagens' para usar snapshots", "info");
+  if (!sdk || !snapshotsEnabled) {
+    showToast("Ative 'Snapshots recentes' para usar capturas", "info");
     return;
   }
   try {
@@ -997,8 +1006,11 @@ async function init(): Promise<void> {
 // Event Listeners
 // ---------------------------------------------------------------------------
 
-heavyCaptureToggle.addEventListener("change", () => {
-  setHeavyCaptureEnabled(heavyCaptureToggle.checked);
+viewportCaptureToggle.addEventListener("change", () => {
+  setViewportCaptureEnabled(viewportCaptureToggle.checked);
+});
+snapshotCaptureToggle.addEventListener("change", () => {
+  setSnapshotsEnabled(snapshotCaptureToggle.checked);
 });
 bottomPanelToggle.addEventListener("click", () => {
   const expanded = !bottomPanel.classList.contains("collapsed");
@@ -1006,7 +1018,8 @@ bottomPanelToggle.addEventListener("click", () => {
   bottomPanelToggle.setAttribute("aria-expanded", String(!expanded));
   bottomPanelToggle.textContent = expanded ? "Abrir painel" : "Minimizar painel";
 });
-setHeavyCaptureEnabled(false);
+setViewportCaptureEnabled(false);
+setSnapshotsEnabled(false);
 btnAnalyze.addEventListener("click", handleAnalyzeFaceShape);
 btnSnapshot.addEventListener("click", handleSnapshot);
 btnSwitchCamera.addEventListener("click", handleSwitchCamera);

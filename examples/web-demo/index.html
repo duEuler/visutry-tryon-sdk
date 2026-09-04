@@ -42,10 +42,6 @@
           <span id="tracking-text">Idle</span>
         </div>
         <button id="btn-diagnostic" class="diagnostic-toggle" type="button" aria-pressed="false">Diagnóstico</button>
-        <label class="telemetry-toggle" title="Ativa as vistas 3D e snapshots, que consomem mais recursos">
-          <input id="toggle-heavy-capture" type="checkbox" />
-          <span>Captura 3D + imagens</span>
-        </label>
       </div>
 
       <!-- Face Detection Hint -->
@@ -96,7 +92,13 @@
         <p id="audit-error">Aguardando amostras…</p>
       </div>
       <div class="audit-card audit-card--viewport">
-        <h2>Viewport 3D</h2>
+        <div class="audit-card-title-row">
+          <h2>Viewport 3D</h2>
+          <label class="card-toggle" title="Ativar as vistas 3D">
+            <input id="toggle-viewport-capture" type="checkbox" />
+            <span>Ativar</span>
+          </label>
+        </div>
         <div class="viewport-grid" aria-label="Vistas 3D simultâneas">
           <div class="viewport-cell"><span>Frente</span><canvas id="debug-viewport-front" aria-label="Vista frontal 3D"></canvas></div>
           <div class="viewport-cell"><span>Topo</span><canvas id="debug-viewport-top" aria-label="Vista superior 3D"></canvas></div>
@@ -106,7 +108,13 @@
         <p>eixos X/Y/Z · pontos ciano · GLB âmbar · anchors verdes</p>
       </div>
       <div class="audit-card audit-card--snapshots">
-        <h2>Snapshots recentes</h2>
+        <div class="audit-card-title-row">
+          <h2>Snapshots recentes</h2>
+          <label class="card-toggle" title="Ativar capturas automáticas de imagens">
+            <input id="toggle-snapshot-capture" type="checkbox" />
+            <span>Ativar</span>
+          </label>
+        </div>
         <div id="snapshot-strip" class="snapshot-strip" aria-live="polite"></div>
         <p id="audit-snapshots">Aguardando rastreamento…</p>
       </div>
