@@ -48,6 +48,9 @@ export function createStudioRuntimeAdapter(sdk: VisuTrySDK, options: StudioRunti
     }),
     error: (error) => publish({ mode: "degraded", error }),
   };
+  const detachHandlers = () => {
+    (Object.keys(handlers) as (keyof VisuTrySDKEvents)[]).forEach((eventName) => sdk.off(eventName, handlers[eventName]));
+  };
   return {
     getSnapshot: () => snapshot,
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
@@ -76,12 +79,17 @@ export function createStudioRuntimeAdapter(sdk: VisuTrySDK, options: StudioRunti
       if (initialized || disposed) return;
       initialized = true;
       (Object.keys(handlers) as (keyof VisuTrySDKEvents)[]).forEach((eventName) => sdk.on(eventName, handlers[eventName]));
-      try { await sdk.initialize(); } catch (error) { initialized = false; publish({ mode: "degraded", error }); throw error; }
+      try { await sdk.initialize(); } catch (error) {
+        initialized = false;
+        detachHandlers();
+        publish({ mode: "degraded", error });
+        throw error;
+      }
     },
     dispose() {
       if (disposed) return;
       disposed = true;
-      (Object.keys(handlers) as (keyof VisuTrySDKEvents)[]).forEach((eventName) => sdk.off(eventName, handlers[eventName]));
+      detachHandlers();
       listeners.clear();
       sdk.destroy();
     },

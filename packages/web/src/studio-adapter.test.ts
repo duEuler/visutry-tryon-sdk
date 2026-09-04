@@ -123,4 +123,15 @@ describe("createStudioRuntimeAdapter", () => {
     adapter.dispose?.();
     expect(sdk.destroy).toHaveBeenCalledOnce();
   });
+
+  it("detaches handlers after initialization failure so retry is clean", async () => {
+    const sdk = createSdkMock();
+    sdk.initialize.mockRejectedValueOnce(new Error("init failed")).mockResolvedValueOnce(undefined);
+    const adapter = createStudioRuntimeAdapter(sdk as never);
+    await expect(adapter.initialize?.()).rejects.toThrow("init failed");
+    expect(sdk.off).toHaveBeenCalledTimes(9);
+    await adapter.initialize?.();
+    expect(sdk.on).toHaveBeenCalledTimes(18);
+    adapter.dispose?.();
+  });
 });
