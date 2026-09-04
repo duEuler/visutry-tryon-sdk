@@ -17,7 +17,18 @@ const panels: Record<string, Panel> = {
   evidence: { eyebrow: "EVIDÊNCIAS", title: "Evidence timeline", body: `<div class="timeline"><div class="thumb">10:15:23</div><div class="thumb">10:15:24</div><div class="thumb best">BEST · 10:15:26</div><div class="thumb">10:15:27</div><div class="thumb">10:15:28</div></div>` },
   selected: { eyebrow: "FRAME SELECIONADO", title: "Selected frame", body: `<div class="gl-row"><span>Time</span><strong>10:15:26.120</strong></div><div class="gl-row"><span>RMS Error</span><strong class="status">0.679 mm</strong></div><div class="gl-row"><span>Confidence</span><strong>95%</strong></div><div class="gl-row"><span>Pose</span><strong>-32.7° / 5.1° / 0.0°</strong></div><div class="gl-row"><span>Notes</span><strong>Optimal alignment</strong></div>` },
 };
-function component(container: ComponentContainer, id: string) { const p = panels[id] ?? panels.camera; container.element.innerHTML = `<section class="gl-panel"><div class="eyebrow">${p.eyebrow}</div><h2>${p.title}</h2>${p.body}</section>`; }
+function component(container: ComponentContainer, id: string) {
+  const p = panels[id] ?? panels.camera;
+  container.element.innerHTML = `<section class="gl-panel"><div class="panel-heading"><div><div class="eyebrow">${p.eyebrow}</div><h2>${p.title}</h2></div><button class="panel-toggle" type="button" aria-expanded="true" title="Colapsar painel">−</button></div><div class="panel-body">${p.body}</div></section>`;
+  const panel = container.element.querySelector<HTMLElement>(".gl-panel");
+  const toggle = container.element.querySelector<HTMLButtonElement>(".panel-toggle");
+  toggle?.addEventListener("click", () => {
+    const collapsed = panel?.classList.toggle("is-collapsed") ?? false;
+    toggle.textContent = collapsed ? "+" : "−";
+    toggle.setAttribute("aria-expanded", String(!collapsed));
+    toggle.title = collapsed ? "Expandir painel" : "Colapsar painel";
+  });
+}
 const defaultLayout: LayoutConfig = {
   root: {
     type: "column",
