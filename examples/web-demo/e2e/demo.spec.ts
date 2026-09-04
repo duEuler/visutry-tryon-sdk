@@ -290,4 +290,9 @@ test.describe("Golden Layout Studio", () => {
     expect(dimensions.bodyOverflow).toBe("hidden");
     await expect(page.locator(".gl-panel--accordion .accordion").first()).toHaveCSS("overflow-y", "auto");
   });
+
+  test("defers heavy runtime bundles until runtime connection", async ({ page }) => {
+    const resources = await page.evaluate(() => performance.getEntriesByType("resource").map((entry) => entry.name));
+    expect(resources.some((name) => /three-vendor|mediapipe-vendor|VisuTryWebSDK/i.test(name))).toBe(false);
+  });
 });
