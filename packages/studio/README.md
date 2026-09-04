@@ -65,6 +65,27 @@ safe to call from a React effect cleanup or from a framework-neutral toolbar.
 Use `subscribeSnapshot(listener)` when a host component needs the latest audit
 data without reaching into the internal store.
 
+### Eventos e ciclo de runtime
+
+The framework-neutral API intentionally exposes subscriptions instead of a
+framework event bus:
+
+- `subscribeMode(listener)` emits `static`, `connected` or `degraded` whenever
+  the active runtime changes state.
+- `subscribeSnapshot(listener)` emits the complete `AuditSnapshot` whenever a
+  camera, tracking, pose, GLB, render or evidence value changes.
+- `connectRuntime(adapter)` initializes and subscribes one runtime adapter;
+  replacing an adapter disposes the previous one after the new adapter is
+  ready.
+- `disconnectRuntime()` disposes the active adapter and returns the Studio to
+  static mode.
+- Runtime and capture failures are published in `snapshot.error` and switch
+  the mode to `degraded`; the host remains mounted so the UI can recover.
+
+In React, keep the unsubscribe functions in the effect cleanup and never call
+`setState` from a disposed subscription. The Studio does not retain listeners
+after `destroy()`.
+
 ## Loading and performance boundary
 
 The Studio package contains only the docking host and panel contracts. The demo
