@@ -248,6 +248,7 @@ test.describe("Golden Layout Studio", () => {
   });
 
   test("exposes safe controls before runtime connection", async ({ page }) => {
+    await expect(page.locator("#studio-mode")).toHaveText("static");
     await expect(page.locator("#connect-runtime")).toBeEnabled();
     await expect(page.locator("#start-camera")).toBeDisabled();
     await expect(page.locator("#start-tryon")).toBeDisabled();

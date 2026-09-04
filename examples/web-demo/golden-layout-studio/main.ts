@@ -56,6 +56,9 @@ const panelDefinitions: StudioPanelDefinition[] = Object.keys(panels).map((id) =
 }));
 const studio = createGoldenLayoutStudio({ host, panels: panelDefinitions, initialLayout: defaultLayout, persistence });
 studio.mount();
+const modeLabel = document.getElementById("studio-mode");
+const syncModeLabel = () => { if (modeLabel) modeLabel.textContent = studio.getMode(); };
+syncModeLabel();
 let runtimeSdk: VisuTrySDK | null = null;
 let runtimeAdapter: StudioRuntimeAdapter | null = null;
 let resumeTryOnOnVisible = false;
@@ -77,7 +80,7 @@ cameraButton?.addEventListener("click", async () => { if (!runtimeSdk) return; c
 tryOnButton?.addEventListener("click", async () => { if (!runtimeSdk) return; try { await runtimeSdk.startTryOn(); resumeTryOnOnVisible = true; tryOnButton.textContent = "Try-on ativo"; } catch { tryOnButton.textContent = "Tentar try-on novamente"; } });
 glbButton?.addEventListener("click", async () => { if (!runtimeSdk) return; glbButton.disabled = true; glbButton.textContent = "Carregando…"; try { const { default: asset } = await import("@visutry/demo-assets/glasses/aviator-classic.json"); await runtimeSdk.loadGlasses(asset); glbButton.textContent = "GLB carregado"; } catch { glbButton.disabled = false; glbButton.textContent = "Tentar GLB novamente"; } });
 evidenceButton?.addEventListener("click", async () => { if (!runtimeAdapter) return; evidenceButton.disabled = true; try { await runtimeAdapter.captureEvidence?.(); evidenceButton.textContent = "Evidência capturada"; } catch { evidenceButton.disabled = false; evidenceButton.textContent = "Tentar evidência novamente"; } });
-stopButton?.addEventListener("click", () => { runtimeSdk?.stopTryOn(); runtimeSdk?.stopCamera(); resumeTryOnOnVisible = false; runtimeAdapter = null; setRuntimeControls(false); if (cameraButton) cameraButton.textContent = "Iniciar câmera"; if (tryOnButton) tryOnButton.textContent = "Iniciar try-on"; if (glbButton) glbButton.textContent = "Carregar GLB"; if (evidenceButton) evidenceButton.textContent = "Capturar evidência"; });
+stopButton?.addEventListener("click", () => { runtimeSdk?.stopTryOn(); runtimeSdk?.stopCamera(); resumeTryOnOnVisible = false; runtimeAdapter = null; setRuntimeControls(false); if (cameraButton) cameraButton.textContent = "Iniciar câmera"; if (tryOnButton) tryOnButton.textContent = "Iniciar try-on"; if (glbButton) glbButton.textContent = "Carregar GLB"; if (evidenceButton) evidenceButton.textContent = "Capturar evidência"; if (modeLabel) modeLabel.textContent = "static"; });
 document.addEventListener("visibilitychange", () => {
   if (!runtimeSdk) return;
   if (document.hidden) { runtimeSdk.stopTryOn(); return; }
@@ -98,6 +101,7 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
     runtimeAdapter = createStudioRuntimeAdapter(runtimeSdk);
     await studio.connectRuntime(runtimeAdapter);
     const mode = studio.getMode();
+    syncModeLabel();
     setRuntimeControls(mode === "connected");
     button.textContent = mode === "connected" ? "Runtime conectado" : "Runtime indisponível";
   } catch {
