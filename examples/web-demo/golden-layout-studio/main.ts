@@ -1,8 +1,9 @@
 import { GoldenLayout, type LayoutConfig, type ComponentContainer } from "golden-layout";
 import "./styles.css";
 import "./collapse.css";
+import "./layout-fix.css";
 
-const key = "visutry-golden-layout-state-v2";
+const key = "visutry-golden-layout-state-v4";
 type Panel = { eyebrow: string; title: string; body: string };
 const panels: Record<string, Panel> = {
   camera: { eyebrow: "01 / CAPTURA", title: "Câmera", body: `<div class="metric-grid"><div class="metric"><label>Fonte</label><strong>Integrated Webcam</strong></div><div class="metric"><label>Estado</label><strong class="status">● Ativa</strong></div><div class="metric"><label>Resolução</label><strong>640 × 480</strong></div><div class="metric"><label>FPS alvo</label><strong>30</strong></div></div>` },
@@ -18,9 +19,12 @@ const panels: Record<string, Panel> = {
   evidence: { eyebrow: "EVIDÊNCIAS", title: "Evidence timeline", body: `<div class="timeline"><div class="thumb">10:15:23</div><div class="thumb">10:15:24</div><div class="thumb best">BEST · 10:15:26</div><div class="thumb">10:15:27</div><div class="thumb">10:15:28</div></div>` },
   selected: { eyebrow: "FRAME SELECIONADO", title: "Selected frame", body: `<div class="gl-row"><span>Time</span><strong>10:15:26.120</strong></div><div class="gl-row"><span>RMS Error</span><strong class="status">0.679 mm</strong></div><div class="gl-row"><span>Confidence</span><strong>95%</strong></div><div class="gl-row"><span>Pose</span><strong>-32.7° / 5.1° / 0.0°</strong></div><div class="gl-row"><span>Notes</span><strong>Optimal alignment</strong></div>` },
 };
+function accordion(ids: string[]) { return `<div class="accordion">${ids.map((id) => { const p = panels[id]; return `<article class="accordion-item is-open"><button class="accordion-trigger" type="button" aria-expanded="true"><span>${p.title}</span><span>−</span></button><div class="accordion-content">${p.body}</div></article>`; }).join("")}</div>`; }
+panels.leftDock = { eyebrow: "AUDITORIA", title: "Captura e diagnóstico", body: accordion(["camera", "diagnostics", "quality", "error"]) };
+panels.rightDock = { eyebrow: "LEITURA ESPACIAL", title: "Auditoria do objetivo", body: accordion(["glb", "overlay", "pose", "metrics"]) };
 function component(container: ComponentContainer, id: string) {
   const p = panels[id] ?? panels.camera;
-  container.element.innerHTML = `<section class="gl-panel"><div class="panel-heading"><div><div class="eyebrow">${p.eyebrow}</div><h2>${p.title}</h2></div></div><div class="panel-body">${p.body}</div></section>`;
+  container.element.innerHTML = `<section class="gl-panel"><div class="panel-body">${p.body}</div></section>`;
   const item = container.element.closest<HTMLElement>(".lm_item");
   const controls = item?.querySelector<HTMLElement>(".lm_controls");
   if (controls && !controls.querySelector(".audit-collapse-control")) {
@@ -39,19 +43,21 @@ function component(container: ComponentContainer, id: string) {
       toggle.setAttribute("aria-label", toggle.title);
     });
   }
+  container.element.querySelectorAll<HTMLButtonElement>(".accordion-trigger").forEach((trigger) => trigger.addEventListener("click", () => {
+    const item = trigger.closest(".accordion-item");
+    const open = item?.classList.toggle("is-open") ?? false;
+    trigger.setAttribute("aria-expanded", String(open));
+    if (trigger.lastElementChild) trigger.lastElementChild.textContent = open ? "−" : "+";
+  }));
 }
 const defaultLayout: LayoutConfig = {
   root: {
     type: "column",
     content: [
       { type: "row", height: 82, content: [
-        { type: "column", width: 20, content: [{ type: "stack", content: [
-          { type: "component", componentType: "camera", title: "Câmera" }, { type: "component", componentType: "diagnostics", title: "Diagnóstico" }, { type: "component", componentType: "quality", title: "Tracking quality" }, { type: "component", componentType: "error", title: "Curva de erro" },
-        ] }] },
+        { type: "component", width: 20, componentType: "leftDock", title: "Captura e diagnóstico" },
         { type: "row", width: 58, content: [{ type: "component", componentType: "live", title: "Live 3D" }, { type: "component", componentType: "viewports", title: "Viewports 3D", width: 28 }] },
-        { type: "column", width: 22, content: [{ type: "stack", content: [
-          { type: "component", componentType: "glb", title: "GLB objective" }, { type: "component", componentType: "overlay", title: "Overlay & alignment" }, { type: "component", componentType: "pose", title: "Pose & landmarks" }, { type: "component", componentType: "metrics", title: "Render metrics" },
-        ] }] },
+        { type: "component", width: 22, componentType: "rightDock", title: "Auditoria espacial" },
       ] },
       { type: "row", height: 18, content: [{ type: "component", componentType: "evidence", title: "Evidence timeline", width: 78 }, { type: "component", componentType: "selected", title: "Selected frame", width: 22 }] },
     ],
@@ -60,5 +66,8 @@ const defaultLayout: LayoutConfig = {
 const host = document.getElementById("layout-host"); if (!host) throw new Error("layout host ausente");
 const layout = new GoldenLayout(host); Object.keys(panels).forEach((id) => layout.registerComponentFactoryFunction(id, (container) => component(container, id)));
 const saved = localStorage.getItem(key); try { layout.loadLayout(saved ? JSON.parse(saved) : defaultLayout); } catch { layout.loadLayout(defaultLayout); }
+const syncLayoutSize = () => layout.updateSize(host.clientWidth, host.clientHeight);
+requestAnimationFrame(syncLayoutSize);
+new ResizeObserver(syncLayoutSize).observe(host);
 document.getElementById("save-layout")?.addEventListener("click", () => { localStorage.setItem(key, JSON.stringify(layout.saveLayout())); });
 document.getElementById("reset-layout")?.addEventListener("click", () => { localStorage.removeItem(key); location.reload(); });
