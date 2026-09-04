@@ -317,6 +317,28 @@ test.describe("Golden Layout Studio", () => {
     expect(geometry.background).toBe("rgb(7, 13, 22)");
   });
 
+  test("preserves the visual desktop surface hierarchy", async ({ page }) => {
+    const visual = await page.evaluate(() => {
+      const topbar = document.querySelector<HTMLElement>(".topbar");
+      const panel = document.querySelector<HTMLElement>('[data-panel-id="live"]');
+      const stage = document.querySelector<HTMLElement>("#stage");
+      return {
+        topbarHeight: topbar?.getBoundingClientRect().height ?? 0,
+        topbarBackground: topbar ? getComputedStyle(topbar).backgroundColor : "",
+        panelBackground: panel ? getComputedStyle(panel).backgroundImage : "",
+        stageBorder: stage ? getComputedStyle(stage).borderTopColor : "",
+        bodyOverflow: getComputedStyle(document.body).overflow,
+        pageFitsViewport: document.documentElement.scrollHeight <= window.innerHeight,
+      };
+    });
+    expect(visual.topbarHeight).toBe(58);
+    expect(visual.topbarBackground).toBe("rgb(11, 19, 32)");
+    expect(visual.panelBackground).toContain("linear-gradient");
+    expect(visual.stageBorder).toBe("rgb(45, 73, 101)");
+    expect(visual.bodyOverflow).toBe("hidden");
+    expect(visual.pageFitsViewport).toBe(true);
+  });
+
   test("resizes a column splitter without creating overlap", async ({ page }) => {
     const splitter = page.locator("#layout-host .lm_splitter").first();
     await expect(splitter).toBeVisible();
