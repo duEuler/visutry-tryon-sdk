@@ -5,6 +5,7 @@ export { createLayoutResizeController } from "./layout-resize-controller.js";
 export { createStaticRuntimeAdapter } from "./static-runtime-adapter.js";
 export type * from "./types.js";
 export * from "./layout-contract.js";
+export * from "./default-layout.js";
 export * from "./panel-registry.js";
 export * from "./panels/panel-shell.js";
 export * from "./panels/accordion-panel.js";
