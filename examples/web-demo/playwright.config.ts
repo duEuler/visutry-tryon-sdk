@@ -17,7 +17,7 @@ export default defineConfig({
     permissions: ["camera"],
     ...(useFakeCamera ? {
       launchOptions: {
-        args: ["--use-fake-device-for-media-stream"],
+        args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"],
       },
     } : {}),
   },
