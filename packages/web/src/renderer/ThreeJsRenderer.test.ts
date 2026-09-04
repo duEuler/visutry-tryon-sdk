@@ -9,7 +9,7 @@ const mockGeometry = { dispose: vi.fn() };
 const mockMaterial = { dispose: vi.fn() };
 const mockMesh = { geometry: mockGeometry, material: mockMaterial, traverse: vi.fn() };
 const mockGltfScene = {
-  scale: { setScalar: vi.fn() },
+  scale: { setScalar: vi.fn(), set: vi.fn() },
   rotation: { set: vi.fn() },
   traverse: vi.fn((cb: (o: any) => void) => {
     cb(mockMesh);
@@ -21,7 +21,7 @@ const mockGroup = {
   visible: true,
   position: { set: vi.fn() },
   rotation: { set: vi.fn() },
-  scale: { setScalar: vi.fn() },
+  scale: { setScalar: vi.fn(), set: vi.fn() },
   traverse: vi.fn((cb: (o: any) => void) => cb(mockMesh)),
 };
 
@@ -211,6 +211,17 @@ describe("ThreeJsRenderer", () => {
     };
     renderer.applyPose(pose);
     expect(mockGroup.visible).toBe(false);
+  });
+
+  it("mirrors the glasses group on X when mirror rendering is enabled", async () => {
+    await renderer.initialize(canvas, { width: 640, height: 480, mirror: true });
+    await renderer.loadGlasses(makeManifest());
+    renderer.applyPose({
+      position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 },
+      scale: { x: 2, y: 2, z: 2 }, visible: true, confidence: 1,
+    });
+    expect(mockGroup.scale.set).toHaveBeenCalledWith(-2, 2, 2);
+    expect(mockGroup.scale.setScalar).not.toHaveBeenCalled();
   });
 
   it("setVisible toggles glasses visibility", async () => {

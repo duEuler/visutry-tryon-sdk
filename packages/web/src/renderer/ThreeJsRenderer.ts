@@ -43,6 +43,7 @@ export class ThreeJsRenderer implements IRenderer {
   private canvas: HTMLCanvasElement | null = null;
   private contextLost = false;
   private disposed = false;
+  private mirror = false;
   private loadRetries = 0;
   private readonly maxLoadRetries = 2;
 
@@ -63,6 +64,7 @@ export class ThreeJsRenderer implements IRenderer {
 
     this.width = opts.width;
     this.height = opts.height;
+    this.mirror = opts.mirror;
 
     this.renderer = new THREE.WebGLRenderer({
       canvas,
@@ -160,7 +162,8 @@ export class ThreeJsRenderer implements IRenderer {
     this.glassesGroup.position.set(pose.position.x, pose.position.y, pose.position.z);
     this.glassesGroup.rotation.set(pose.rotation.x, pose.rotation.y, pose.rotation.z);
     // The model was normalized to mm; pose.scale converts mm → render-world.
-    this.glassesGroup.scale.setScalar(pose.scale.x);
+    if (this.mirror) this.glassesGroup.scale.set(-pose.scale.x, pose.scale.y, pose.scale.z);
+    else this.glassesGroup.scale.setScalar(pose.scale.x);
     // Apply the local origin after the pose scale is known. This keeps the
     // declared bridge anchor at the face position without pushing meter-based
     // assets outside the orthographic camera.
@@ -255,6 +258,7 @@ export class ThreeJsRenderer implements IRenderer {
     this.scene = null;
     this.camera = null;
     this.currentAsset = null;
+    this.mirror = false;
     this.contextLost = false;
   }
 
