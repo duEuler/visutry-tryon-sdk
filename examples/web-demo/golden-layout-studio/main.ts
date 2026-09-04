@@ -9,7 +9,6 @@ import {
   type StudioRuntimeAdapter,
 } from "@visutry/studio";
 import type { NormalizedFaceResult, VisuTrySDK } from "@visutry/tryon-core";
-import { LandmarkOverlay } from "@visutry/tryon-web";
 import "./runtime-canvas.css";
 import "@visutry/studio/styles.css";
 import "@visutry/studio/golden-layout.css";
@@ -34,12 +33,7 @@ studio = createGoldenLayoutStudio({
 });
 studio.mount();
 const landmarkCanvas = document.querySelector<HTMLCanvasElement>(".studio-landmark-canvas");
-const landmarkOverlay = landmarkCanvas ? new LandmarkOverlay(landmarkCanvas, {
-  tesselationColor: "rgba(104, 183, 224, 0.48)",
-  contourColor: "rgba(66, 218, 238, 0.92)",
-  irisColor: "rgba(242, 177, 74, 0.9)",
-  highlightColor: "#39dca2",
-}) : null;
+let landmarkOverlay: { renderFromFace(face: NormalizedFaceResult, width: number, height: number): void; clear(): void } | null = null;
 let lastFace: NormalizedFaceResult | null = null;
 const toolbarBinding = bindStudioToolbar(document, studio);
 if (import.meta.env.DEV) {
@@ -263,7 +257,43 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
     runtimeAdapter = createStudioRuntimeAdapter(runtimeSdk, {
       getVideo: () => document.querySelector<HTMLVideoElement>("#camera-video"),
     });
+    const { LandmarkOverlay } = await import("@visutry/tryon-web");
+    landmarkOverlay = landmarkCanvas ? new LandmarkOverlay(landmarkCanvas, {
+      tesselationColor: "rgba(104, 183, 224, 0.48)",
+      contourColor: "rgba(66, 218, 238, 0.92)",
+      irisColor: "rgba(242, 177, 74, 0.9)",
+      highlightColor: "#39dca2",
+    }) : null;
     await studio.connectRuntime(runtimeAdapter);
+    // Fast path for the desktop Studio: connect all runtime capabilities in sequence.
+    await runtimeSdk.startCamera();
+    const video = document.querySelector<HTMLVideoElement>("#camera-video");
+    runtimeAdapter.setSnapshot?.({
+      camera: {
+        active: true,
+        source: "Integrated Webcam",
+        width: video?.videoWidth || 640,
+        height: video?.videoHeight || 480,
+        fps: 30,
+      },
+    });
+    if (cameraButton) {
+      cameraButton.disabled = true;
+      cameraButton.textContent = "Câmera ativa";
+    }
+    await runtimeSdk.startTryOn();
+    resumeTryOnOnVisible = true;
+    if (tryOnButton) {
+      tryOnButton.disabled = false;
+      tryOnButton.textContent = "Try-on ativo";
+    }
+    const { default: asset } = await import("@visutry/demo-assets/glasses/aviator-classic.json");
+    await runtimeSdk.loadGlasses(asset);
+    if (glbButton) {
+      glbButton.disabled = true;
+      glbButton.textContent = "GLB carregado";
+    }
+    setStatus("Câmera, try-on e GLB ativos");
     const mode = studio.getMode();
     syncModeLabel();
     setRuntimeControls(mode);

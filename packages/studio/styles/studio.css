@@ -14,7 +14,7 @@
 :where(.topbar .toolbar) {
   min-width: 0;
   flex: 1 1 auto;
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: hidden;
   scrollbar-width: thin;
 }
@@ -40,13 +40,46 @@
 :where(.topbar .toolbar-layout),
 :where(.topbar .toolbar-runtime) {
   min-width: 0;
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: hidden;
   scrollbar-width: thin;
 }
 
 :where(.topbar .toolbar-runtime) {
   padding-bottom: 2px;
+}
+
+:where(.topbar .toolbar-shell) {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  overflow: hidden;
+}
+
+:where(.topbar .toolbar) {
+  flex: 0 1 auto;
+  gap: 6px;
+}
+
+:where(.topbar .toolbar button) {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  font-size: 0;
+  line-height: 1;
+  display: inline-grid;
+  place-items: center;
+}
+
+:where(.topbar .toolbar button)::before {
+  content: attr(data-icon);
+  font-size: 15px;
+}
+
+:where(.topbar .toolbar button:disabled) {
+  opacity: .5;
+  cursor: not-allowed;
 }
 
 :where(.studio-panel) {

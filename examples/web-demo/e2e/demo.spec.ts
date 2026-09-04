@@ -244,7 +244,7 @@ test.describe("Golden Layout Studio", () => {
     await expect(viewports).toHaveCount(4);
     await expect(page.locator('[data-panel-id="viewports"] .viewport-grid')).toHaveCSS(
       "overflow-y",
-      "visible",
+      "hidden",
     );
   });
 
