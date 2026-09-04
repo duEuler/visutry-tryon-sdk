@@ -8,6 +8,7 @@ export interface StudioPanelRegistry {
   list(): StudioPanelDefinition[];
   create(id: PanelId, context: StudioPanelContext, container: ComponentContainer): void;
   update(id: PanelId, element: HTMLElement, snapshot: AuditSnapshot): void;
+  destroy(id: PanelId, element: HTMLElement): void;
 }
 
 const regions = new Set(["left", "center", "right", "bottom"]);
@@ -36,7 +37,12 @@ export function createPanelRegistry(definitions: StudioPanelDefinition[] = []): 
     unregister(id) { return entries.delete(id); },
     get(id) { return entries.get(id); },
     list() { return [...entries.values()]; },
-    create(id, context, container) { entries.get(id)?.create(context, container); },
+    create(id, context, container) {
+      const definition = entries.get(id);
+      if (!definition) throw new Error(`Unknown Studio panel: ${id}`);
+      definition.create(context, container);
+    },
     update(id, element, snapshot) { entries.get(id)?.update?.(element, snapshot); },
+    destroy(id, element) { entries.get(id)?.destroy?.(element); },
   };
 }

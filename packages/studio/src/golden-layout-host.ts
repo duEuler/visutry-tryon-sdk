@@ -53,7 +53,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       container.element.classList.toggle("studio-panel--hidden", hiddenPanels.has(panel.id));
       container.element.closest<HTMLElement>(".lm_item")?.classList.toggle("studio-panel-item--scrollable", panel.scrollable);
       const unsubscribe = store.subscribe((snapshot) => registry.update(panel.id, container.element, snapshot));
-      container.on("destroy", () => { unsubscribe(); panel.destroy?.(container.element); });
+      container.on("destroy", () => { unsubscribe(); registry.destroy(panel.id, container.element); });
     });
   });
 

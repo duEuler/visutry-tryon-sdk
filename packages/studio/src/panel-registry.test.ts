@@ -5,13 +5,21 @@ describe("StudioPanelRegistry", () => {
   it("registers, discovers and updates isolated definitions", () => {
     const create = vi.fn();
     const update = vi.fn();
-    const definition = { id: "camera", title: "Camera", region: "left" as const, scrollable: true, create, update };
+    const destroy = vi.fn();
+    const definition = { id: "camera", title: "Camera", region: "left" as const, scrollable: true, create, update, destroy };
     const registry = createPanelRegistry([definition]);
     expect(registry.list()).toHaveLength(1);
     expect(registry.get("camera")).toBe(definition);
     const element = document.createElement("div");
     registry.update("camera", element, { mode: "static" });
     expect(update).toHaveBeenCalledWith(element, { mode: "static" });
+    registry.destroy("camera", element);
+    expect(destroy).toHaveBeenCalledWith(element);
+  });
+
+  it("fails fast when a layout asks the registry to create an unknown panel", () => {
+    const registry = createPanelRegistry();
+    expect(() => registry.create("missing", { panelId: "missing", getSnapshot: () => ({}) }, {} as never)).toThrow(/Unknown Studio panel/);
   });
 
   it("rejects duplicate panel ids instead of overwriting definitions", () => {
