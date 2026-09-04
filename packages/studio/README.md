@@ -31,12 +31,13 @@ The implementation is intentionally split into small framework-neutral modules:
 - `panel-registry` validates panel IDs, regions and lifecycle hooks.
 - `golden-layout-host` owns docking, visibility, collapse, resize and runtime lifecycle.
 - `panels/*` contains reusable DOM factories for shells, accordions, viewports,
-  metrics and evidence timelines.
+  metrics, evidence timelines and the default audit panel registry.
 - `layout-persistence` isolates versioned storage and migration fallback.
 
-The demo supplies application-specific panel content in its own
-`panel-definitions.ts`; the package does not import camera, tracking or renderer
-implementations.
+`createDefaultPanelDefinitions()` supplies the baseline audit panel registry,
+including the desktop regions and explicit scroll policy. Consumers may provide
+their own definitions using the same contract. The package does not import
+camera, tracking or renderer implementations.
 
 ## Integration contract
 
