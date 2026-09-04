@@ -59,6 +59,13 @@ export interface LayoutPersistence {
   saveState?(state: PersistedStudioState): void;
 }
 
+export type LayoutStateMigration = (state: PersistedStudioState) => PersistedStudioState;
+
+export interface LayoutPersistenceOptions {
+  /** Migrations keyed by the version they accept, applied in ascending order. */
+  migrations?: Record<number, LayoutStateMigration>;
+}
+
 export interface PersistedStudioState {
   version: number;
   layout: LayoutConfig;

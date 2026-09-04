@@ -1,38 +1,46 @@
-import type { LayoutPersistence, PersistedStudioState } from "./types.js";
+import type { LayoutPersistence, LayoutPersistenceOptions, PersistedStudioState } from "./types.js";
 
 function isLayout(value: unknown): value is PersistedStudioState["layout"] {
   return typeof value === "object" && value !== null && "root" in value;
 }
 
-function readState(raw: string, version: number): PersistedStudioState | null {
+function readState(raw: string, version: number, options: LayoutPersistenceOptions): PersistedStudioState | null {
   try {
     const parsed = JSON.parse(raw) as Partial<PersistedStudioState>;
-    // Older Studio snapshots did not persist these arrays. Treat them as an
-    // empty migration rather than rejecting an otherwise valid layout.
-    const isCurrent = parsed.version === version;
-    const isPrevious = parsed.version === version - 1;
-    if ((!isCurrent && !isPrevious) || !isLayout(parsed.layout)) return null;
+    const parsedVersion = parsed.version;
+    if (typeof parsedVersion !== "number" || !Number.isInteger(parsedVersion) || parsedVersion > version || !isLayout(parsed.layout)) return null;
     const panelIds = (value: unknown): string[] => Array.isArray(value)
       ? [...new Set(value.filter((id): id is string => typeof id === "string" && id.trim().length > 0))]
       : [];
-    return {
+    let state: PersistedStudioState = {
       version,
       layout: parsed.layout,
       hiddenPanels: panelIds(parsed.hiddenPanels),
       collapsedPanels: panelIds(parsed.collapsedPanels),
     };
+    if (parsedVersion !== version) {
+      const sourceVersion = parsedVersion as number;
+      const migration = options.migrations?.[sourceVersion];
+      if (sourceVersion !== version - 1 && !migration) return null;
+      if (migration) {
+        const migrated = migration({ ...state, version: sourceVersion });
+        if (!migrated || !isLayout(migrated.layout)) return null;
+        state = { ...migrated, version };
+      }
+    }
+    return state;
   } catch {
     return null;
   }
 }
 
-export function createLocalStoragePersistence(key: string, version: number): LayoutPersistence {
+export function createLocalStoragePersistence(key: string, version: number, options: LayoutPersistenceOptions = {}): LayoutPersistence {
   return {
     load() {
       try {
         const raw = localStorage.getItem(key);
         if (!raw) return null;
-        return readState(raw, version)?.layout ?? null;
+        return readState(raw, version, options)?.layout ?? null;
       } catch { return null; }
     },
     save(layout) {
@@ -42,7 +50,7 @@ export function createLocalStoragePersistence(key: string, version: number): Lay
     loadState() {
       try {
         const raw = localStorage.getItem(key);
-        return raw ? readState(raw, version) : null;
+        return raw ? readState(raw, version, options) : null;
       } catch { return null; }
     },
     saveState(state) {

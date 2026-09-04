@@ -36,6 +36,16 @@ describe("createLocalStoragePersistence", () => {
     expect(persistence.loadState?.()).toBeNull();
   });
 
+  it("applies an explicit migration for older versions", () => {
+    const persistence = createLocalStoragePersistence("studio-migration", 4, {
+      migrations: {
+        1: (state) => ({ ...state, hiddenPanels: ["camera"], collapsedPanels: [] }),
+      },
+    });
+    localStorage.setItem("studio-migration", JSON.stringify({ version: 1, layout: { root: { type: "row", content: [] } } }));
+    expect(persistence.loadState?.()).toMatchObject({ version: 4, hiddenPanels: ["camera"] });
+  });
+
   it("sanitizes duplicate and empty panel ids during migration", () => {
     const persistence = createLocalStoragePersistence("studio-panel-ids", 2);
     localStorage.setItem("studio-panel-ids", JSON.stringify({
