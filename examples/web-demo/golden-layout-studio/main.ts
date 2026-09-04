@@ -3,6 +3,7 @@ import "./styles.css";
 import "./collapse.css";
 import "./layout-fix.css";
 import "./accordion-scroll.css";
+import "./viewport-layout.css";
 
 const key = "visutry-golden-layout-state-v5";
 type Panel = { eyebrow: string; title: string; body: string };
