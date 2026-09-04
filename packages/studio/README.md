@@ -167,6 +167,12 @@ can be resumed by the host when it becomes visible again. Integrations should
 keep one runtime, camera and renderer instance and call `dispose()` during
 unmount.
 
+The desktop demo performs the startup sequence after connection: camera, try-on,
+then GLB. The individual toolbar actions remain available for retries or for
+hosts that choose a staged startup. Any failure is published as `snapshot.error`
+and changes the Studio mode to `degraded`; the host remains mounted and can be
+reconnected after the failed runtime is stopped.
+
 ## Panel contract
 
 Each panel declares `id`, `title`, `region`, `scrollable`, `create`, and

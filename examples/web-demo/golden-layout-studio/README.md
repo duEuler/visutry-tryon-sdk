@@ -1,13 +1,15 @@
 # Golden Layout Studio
 
-Bancada visual isolada para validar docking, abas, redimensionamento e persistência de painéis sem iniciar câmera, MediaPipe ou Three.js. Acesse `/golden-layout-studio/index.html`.
+Bancada visual isolada para validar docking, abas, redimensionamento e persistência de painéis. Acesse `/golden-layout-studio/index.html`. A tela abre em modo estático e só carrega câmera, MediaPipe, Three.js e GLB quando `Conectar runtime` é ativado.
+
+Ao conectar, o Studio executa automaticamente câmera, try-on e carregamento do GLB em sequência. Cada etapa mantém seu controle manual para nova tentativa. Se uma etapa falhar, o estado muda para `degraded`, os loops são interrompidos e a interface continua montada para recuperação.
 
 ## Gates de validação
 
 Os testes padrão validam layout, scroll, stacks, persistência, lifecycle e
 geometria visual sem hardware. Para executar também o fluxo real de runtime,
 use `VISUTRY_E2E_CAMERA=1` antes do comando Playwright; os cenários opt-in
-conectam o SDK, iniciam a câmera, carregam o GLB e capturam uma evidência.
+conectam o SDK, validam o auto-start, carregam o GLB e capturam uma evidência.
 
 O baseline desktop garante que as laterais respeitam o contrato de proporção,
 que a timeline fica contida na região central e que a página não cria scroll
