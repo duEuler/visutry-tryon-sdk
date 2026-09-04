@@ -321,20 +321,34 @@ test.describe("Golden Layout Studio", () => {
       const box = (selector: string) => document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
       const left = box('[data-panel-id="leftDock"]');
       const live = box('[data-panel-id="live"]');
+      const viewports = box('[data-panel-id="viewports"]');
       const right = box('[data-panel-id="rightDock"]');
       const evidence = box('[data-panel-id="evidence"]');
+      const host = box("#layout-host");
       return {
-        left, live, right, evidence,
+        left, live, viewports, right, evidence, host,
         background: getComputedStyle(document.body).backgroundColor,
         hostHeight: document.getElementById("layout-host")?.getBoundingClientRect().height ?? 0,
       };
     });
-    expect(geometry.left && geometry.live && geometry.right && geometry.evidence).toBeTruthy();
+    expect(geometry.left && geometry.live && geometry.viewports && geometry.right && geometry.evidence).toBeTruthy();
     expect(geometry.left!.left).toBeLessThan(geometry.live!.left);
     expect(geometry.live!.right).toBeLessThan(geometry.right!.left);
     expect(geometry.evidence!.top).toBeGreaterThanOrEqual(geometry.live!.bottom - 2);
     expect(geometry.hostHeight).toBeGreaterThan(0);
     expect(geometry.background).toBe("rgb(7, 13, 22)");
+    expect(geometry.host!.width).toBeGreaterThan(0);
+    expect(geometry.left!.width / geometry.host!.width).toBeGreaterThan(0.14);
+    expect(geometry.left!.width / geometry.host!.width).toBeLessThan(0.27);
+    expect(geometry.right!.width / geometry.host!.width).toBeGreaterThan(0.16);
+    expect(geometry.right!.width / geometry.host!.width).toBeLessThan(0.29);
+    const centerWidth = geometry.live!.width + geometry.viewports!.width;
+    expect(centerWidth / geometry.host!.width).toBeGreaterThan(0.48);
+    expect(centerWidth / geometry.host!.width).toBeLessThan(0.70);
+    const centerLeft = Math.min(geometry.live!.left, geometry.viewports!.left);
+    const centerRight = Math.max(geometry.live!.right, geometry.viewports!.right);
+    expect(geometry.evidence!.left).toBeGreaterThanOrEqual(centerLeft - 2);
+    expect(geometry.evidence!.right).toBeLessThanOrEqual(centerRight + 2);
   });
 
   test("preserves the visual desktop surface hierarchy", async ({ page }) => {
