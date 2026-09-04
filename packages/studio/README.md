@@ -4,6 +4,18 @@
 
 O host preserva o último layout completo antes de ocultar um painel. Assim, `saveLayout()` grava a árvore com todos os itens e o estado `hiddenPanels` separadamente; após reload, os painéis continuam disponíveis para `showPanel()`. Layouts antigos que realmente não contêm um painel ainda usam `restoreDefaultLayout()` como fallback.
 
+Quando o formato do estado evoluir, migrações podem ser registradas por versão
+de origem. Versões futuras continuam sendo rejeitadas até que o consumidor
+atualize explicitamente o Studio:
+
+```ts
+const persistence = createLocalStoragePersistence("studio-layout", 4, {
+  migrations: {
+    3: (state) => ({ ...state, collapsedPanels: [] }),
+  },
+});
+```
+
 Framework-neutral Golden Layout host for the VisuTry audit workspace. It owns
 docking, panel registration, layout persistence, resize scheduling and the
 audit snapshot store. Runtime integrations (camera, MediaPipe, Three.js and
