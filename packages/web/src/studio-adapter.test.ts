@@ -48,6 +48,26 @@ describe("createStudioRuntimeAdapter", () => {
     expect(frame).toMatchObject({ confidence: 0.95, rmsError: 0.679 });
   });
 
+  it("composes a ready video frame underneath the SDK overlay", async () => {
+    const sdk = createSdkMock();
+    const video = document.createElement("video");
+    Object.defineProperty(video, "readyState", { configurable: true, value: 4 });
+    Object.defineProperty(video, "videoWidth", { configurable: true, value: 640 });
+    Object.defineProperty(video, "videoHeight", { configurable: true, value: 480 });
+    const drawImage = vi.fn();
+    const toDataURL = vi.fn(() => "data:image/png;base64,composite");
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({ drawImage } as never);
+    vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockImplementation(toDataURL);
+    Object.defineProperty(Image.prototype, "decode", { configurable: true, value: vi.fn(async () => undefined) });
+
+    const adapter = createStudioRuntimeAdapter(sdk as never, { getVideo: () => video });
+    const frame = await adapter.captureEvidence?.();
+
+    expect(drawImage).toHaveBeenCalledTimes(2);
+    expect(toDataURL).toHaveBeenCalledWith("image/png");
+    expect(frame?.dataUrl).toBe("data:image/png;base64,composite");
+  });
+
   it("publishes degraded mode when evidence capture fails", async () => {
     const sdk = createSdkMock();
     sdk.snapshot.mockRejectedValueOnce(new Error("snapshot denied"));
