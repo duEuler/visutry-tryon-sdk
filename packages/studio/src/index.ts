@@ -3,6 +3,7 @@ export { createLocalStoragePersistence } from "./layout-persistence.js";
 export { createGoldenLayoutStudio } from "./golden-layout-host.js";
 export { createLayoutResizeController } from "./layout-resize-controller.js";
 export { createStaticRuntimeAdapter } from "./static-runtime-adapter.js";
+export * from "./layout/golden-layout-dom.js";
 export type * from "./types.js";
 export * from "./layout-contract.js";
 export * from "./default-layout.js";

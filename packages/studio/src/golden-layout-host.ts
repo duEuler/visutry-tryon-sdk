@@ -3,6 +3,7 @@ import { AuditStore } from "./audit-store.js";
 import { createPanelRegistry } from "./panel-registry.js";
 import { createLayoutResizeController } from "./layout-resize-controller.js";
 import { normalizeStudioLayout } from "./layout-contract.js";
+import { itemContent, panelElement, panelItem } from "./layout/golden-layout-dom.js";
 import type { StudioInstance, StudioMode, StudioOptions, StudioRuntimeAdapter } from "./types.js";
 
 export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance {
@@ -51,7 +52,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       container.element.classList.toggle("studio-panel--scrollable", panel.scrollable);
       container.element.querySelector<HTMLElement>(`[data-panel-id="${CSS.escape(panel.id)}"]`)?.classList.toggle("studio-panel--scrollable", panel.scrollable);
       container.element.classList.toggle("studio-panel--hidden", hiddenPanels.has(panel.id));
-      container.element.closest<HTMLElement>(".lm_item")?.classList.toggle("studio-panel-item--scrollable", panel.scrollable);
+      panelItem(container.element)?.classList.toggle("studio-panel-item--scrollable", panel.scrollable);
       const unsubscribe = store.subscribe((snapshot) => registry.update(panel.id, container.element, snapshot));
       container.on("destroy", () => { unsubscribe(); registry.destroy(panel.id, container.element); });
     });
@@ -65,23 +66,23 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   let panelStateObserver: MutationObserver | null = null;
   let panelStateRetryFrame: number | null = null;
   const visibilityFrames = new Set<number>();
-  const findItem = (id: string): HTMLElement | null => options.host.querySelector<HTMLElement>(`[data-panel-id="${CSS.escape(id)}"]`)?.closest<HTMLElement>(".lm_item") ?? null;
+  const findItem = (id: string): HTMLElement | null => panelItem(panelElement(options.host, id));
   const setPanelVisibility = (id: string, visible: boolean) => {
     const wasVisible = !hiddenPanels.has(id);
     if (visible) hiddenPanels.delete(id); else hiddenPanels.add(id);
     if (wasVisible !== visible) panelVisibilityListeners.forEach((listener) => listener(id, visible));
     const item = findItem(id);
-    const panelElement = options.host.querySelector<HTMLElement>(`[data-panel-id="${CSS.escape(id)}"]`);
-    panelElement?.classList.toggle("studio-panel--hidden", !visible);
+    const element = panelElement(options.host, id);
+    element?.classList.toggle("studio-panel--hidden", !visible);
     if (!item) return;
     item.style.display = visible ? "" : "none";
     resizeController.schedule();
     if (visible) {
       let attempts = 0;
       const clearHiddenState = () => {
-        const panel = options.host.querySelector<HTMLElement>(`[data-panel-id="${CSS.escape(id)}"]`);
+        const panel = panelElement(options.host, id);
         panel?.classList.remove("studio-panel--hidden");
-        const parent = panel?.closest<HTMLElement>(".lm_item");
+        const parent = panelItem(panel);
         if (parent) parent.style.display = "";
         if (++attempts < 4) {
           const frame = requestAnimationFrame(() => { visibilityFrames.delete(frame); clearHiddenState(); });
@@ -96,7 +97,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     if (collapsed) collapsedPanels.add(id); else collapsedPanels.delete(id);
     const item = findItem(id);
     if (!item) return;
-    const content = item.querySelector<HTMLElement>(".lm_content");
+    const content = itemContent(item);
     item.classList.toggle("studio-panel-collapsed", collapsed);
     if (content) content.style.display = collapsed ? "none" : "";
     if (collapsed) item.style.height = "28px"; else item.style.height = "";

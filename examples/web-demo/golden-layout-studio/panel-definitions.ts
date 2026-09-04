@@ -1,5 +1,5 @@
 import type { ComponentContainer } from "golden-layout";
-import { createAccordionPanel, createPanelShell, renderEvidenceTimeline, type AuditSnapshot, type StudioInstance, type StudioPanelContext, type StudioPanelDefinition } from "@visutry/studio";
+import { createAccordionPanel, createPanelShell, itemControls, panelItem, renderEvidenceTimeline, type AuditSnapshot, type StudioInstance, type StudioPanelContext, type StudioPanelDefinition } from "@visutry/studio";
 import { panels, accordionSections } from "./panel-catalog";
 
 const panelCleanups = new WeakMap<HTMLElement, () => void>();
@@ -12,8 +12,8 @@ function createPanel(studio: Pick<StudioInstance, "collapsePanel" | "expandPanel
   } else {
     createPanelShell(context, container, { panelId: id, body: panel.body });
   }
-  const item = container.element.closest<HTMLElement>(".lm_item");
-  const controls = item?.querySelector<HTMLElement>(".lm_controls");
+  const item = panelItem(container.element);
+  const controls = itemControls(item);
   if (!controls || controls.querySelector(".audit-collapse-control")) return;
   const toggle = document.createElement("button");
   const controller = new AbortController();
