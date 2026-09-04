@@ -23,6 +23,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     layout.registerComponentFactoryFunction(panel.id, (container) => {
       registry.create(panel.id, { panelId: panel.id, getSnapshot: () => store.getSnapshot() }, container);
       container.element.classList.toggle("studio-panel--scrollable", panel.scrollable);
+      container.element.querySelector<HTMLElement>(`[data-panel-id="${CSS.escape(panel.id)}"]`)?.classList.toggle("studio-panel--scrollable", panel.scrollable);
       container.element.classList.toggle("studio-panel--hidden", hiddenPanels.has(panel.id));
       container.element.closest<HTMLElement>(".lm_item")?.classList.toggle("studio-panel-item--scrollable", panel.scrollable);
       const unsubscribe = store.subscribe((snapshot) => registry.update(panel.id, container.element, snapshot));
