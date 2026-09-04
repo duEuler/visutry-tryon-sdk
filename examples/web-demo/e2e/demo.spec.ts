@@ -275,6 +275,7 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator("#studio-mode")).toHaveText("static");
     await expect(page.locator('[data-panel-id="rightDock"]')).not.toContainText("Classic Aviator");
     await expect(page.locator('[data-panel-id="rightDock"]')).toContainText("—");
+    await expect(page.locator('[data-panel-id="live"]')).not.toContainText("rosto ciano");
     await expect(page.locator('[data-panel-id="evidence"] .timeline-empty')).toHaveText("Nenhuma evidência disponível");
     await expect(page.locator('[data-panel-id="evidence"] .thumb')).toHaveCount(0);
   });
