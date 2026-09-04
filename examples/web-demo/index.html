@@ -83,11 +83,48 @@
     </aside>
     <aside id="camera-audit" class="camera-audit" aria-live="polite">
       <div class="audit-card">
-        <h2>Configuração da câmera</h2>
+        <div class="audit-card-title-row">
+          <h2>Configuração da câmera</h2>
+          <label class="card-toggle" title="Iniciar ou parar a câmera">
+            <input id="toggle-camera" type="checkbox" checked />
+            <span>Ativa</span>
+          </label>
+        </div>
         <p id="audit-camera">Aguardando câmera…</p>
       </div>
+      <div class="audit-card audit-card--controls">
+        <div class="audit-card-title-row">
+          <h2>Diagnóstico</h2>
+          <label class="card-toggle" title="Ativar os controles de diagnóstico">
+            <input id="toggle-diagnostic" type="checkbox" />
+            <span>Ativar</span>
+          </label>
+        </div>
+        <div class="diagnostic-options" aria-label="Recursos de diagnóstico">
+          <label><input id="toggle-feature-overlay" type="checkbox" /><span>Landmarks e overlay</span></label>
+          <label><input id="toggle-feature-readout" type="checkbox" /><span>Readout sobre o vídeo</span></label>
+          <label><input id="toggle-feature-error" type="checkbox" checked /><span>Curva de erro</span></label>
+          <label><input id="toggle-feature-metrics" type="checkbox" checked /><span>Dados de pose e volume</span></label>
+          <label><input id="toggle-feature-viewports" type="checkbox" /><span>Viewports 3D</span></label>
+          <label><input id="toggle-feature-snapshots" type="checkbox" /><span>Snapshots</span></label>
+        </div>
+        <p id="audit-diagnostic">Desativado para preservar desempenho</p>
+      </div>
+      <div class="audit-card audit-card--objective">
+        <div class="audit-card-title-row">
+          <h2>Objetivo GLB</h2>
+          <label class="card-toggle" title="Exibir ou ocultar o modelo sobre a câmera">
+            <input id="toggle-glb-visible" type="checkbox" checked />
+            <span>Exibir</span>
+          </label>
+        </div>
+        <p id="audit-objective">Aguardando modelo…</p>
+      </div>
       <div class="audit-card audit-card--chart">
-        <h2>Curva de erro</h2>
+        <div class="audit-card-title-row">
+          <h2>Curva de erro</h2>
+          <span class="card-status" id="error-chart-status">Ativa</span>
+        </div>
         <canvas id="error-chart" width="260" height="120" aria-label="Curva temporal do erro de alinhamento"></canvas>
         <p id="audit-error">Aguardando amostras…</p>
       </div>
@@ -100,17 +137,17 @@
           </label>
         </div>
         <div class="viewport-grid" aria-label="Vistas 3D simultâneas">
-          <div class="viewport-cell"><span>Frente</span><canvas id="debug-viewport-front" aria-label="Vista frontal 3D"></canvas></div>
-          <div class="viewport-cell"><span>Topo</span><canvas id="debug-viewport-top" aria-label="Vista superior 3D"></canvas></div>
-          <div class="viewport-cell"><span>Esquerda</span><canvas id="debug-viewport-left" aria-label="Vista esquerda 3D"></canvas></div>
-          <div class="viewport-cell"><span>Direita</span><canvas id="debug-viewport-right" aria-label="Vista direita 3D"></canvas></div>
+          <div class="viewport-cell"><span>Frente</span><select class="viewport-source" data-view="front" aria-label="Fonte da vista frontal"><option value="live">3D ao vivo</option><option value="freeze">Frame congelado</option><option value="snapshot">Snapshot</option></select><small class="viewport-meta" data-view-meta="front">ao vivo · agora</small><canvas id="debug-viewport-front" aria-label="Vista frontal 3D"></canvas><img class="viewport-image hidden" data-view-image="front" alt="Snapshot da vista frontal" /></div>
+          <div class="viewport-cell"><span>Topo</span><select class="viewport-source" data-view="top" aria-label="Fonte da vista superior"><option value="live">3D ao vivo</option><option value="freeze">Frame congelado</option><option value="snapshot">Snapshot</option></select><small class="viewport-meta" data-view-meta="top">ao vivo · agora</small><canvas id="debug-viewport-top" aria-label="Vista superior 3D"></canvas><img class="viewport-image hidden" data-view-image="top" alt="Snapshot da vista superior" /></div>
+          <div class="viewport-cell"><span>Esquerda</span><select class="viewport-source" data-view="left" aria-label="Fonte da vista esquerda"><option value="live">3D ao vivo</option><option value="freeze">Frame congelado</option><option value="snapshot">Snapshot</option></select><small class="viewport-meta" data-view-meta="left">ao vivo · agora</small><canvas id="debug-viewport-left" aria-label="Vista esquerda 3D"></canvas><img class="viewport-image hidden" data-view-image="left" alt="Snapshot da vista esquerda" /></div>
+          <div class="viewport-cell"><span>Direita</span><select class="viewport-source" data-view="right" aria-label="Fonte da vista direita"><option value="live">3D ao vivo</option><option value="freeze">Frame congelado</option><option value="snapshot">Snapshot</option></select><small class="viewport-meta" data-view-meta="right">ao vivo · agora</small><canvas id="debug-viewport-right" aria-label="Vista direita 3D"></canvas><img class="viewport-image hidden" data-view-image="right" alt="Snapshot da vista direita" /></div>
         </div>
         <p>eixos X/Y/Z · pontos ciano · GLB âmbar · anchors verdes</p>
       </div>
       <div class="audit-card audit-card--snapshots">
         <div class="audit-card-title-row">
           <h2>Snapshots recentes</h2>
-          <label class="card-toggle" title="Ativar capturas automáticas de imagens">
+          <label class="card-toggle" title="Ativar o histórico manual de imagens">
             <input id="toggle-snapshot-capture" type="checkbox" />
             <span>Ativar</span>
           </label>

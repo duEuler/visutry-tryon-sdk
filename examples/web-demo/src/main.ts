@@ -94,6 +94,17 @@ const btnAnalyze = $("btn-analyze");
 const btnSnapshot = $("btn-snapshot");
 const btnSwitchCamera = $("btn-switch-camera");
 const btnDiagnostic = $("btn-diagnostic") as HTMLButtonElement;
+const cameraToggle = $("toggle-camera") as HTMLInputElement;
+const diagnosticToggle = $("toggle-diagnostic") as HTMLInputElement;
+const glbVisibleToggle = $("toggle-glb-visible") as HTMLInputElement;
+const featureOverlayToggle = $("toggle-feature-overlay") as HTMLInputElement;
+const featureReadoutToggle = $("toggle-feature-readout") as HTMLInputElement;
+const featureErrorToggle = $("toggle-feature-error") as HTMLInputElement;
+const featureMetricsToggle = $("toggle-feature-metrics") as HTMLInputElement;
+const featureViewportsToggle = $("toggle-feature-viewports") as HTMLInputElement;
+const featureSnapshotsToggle = $("toggle-feature-snapshots") as HTMLInputElement;
+const auditDiagnostic = $("audit-diagnostic");
+const auditObjective = $("audit-objective");
 const viewportCaptureToggle = $("toggle-viewport-capture") as HTMLInputElement;
 const snapshotCaptureToggle = $("toggle-snapshot-capture") as HTMLInputElement;
 const bottomPanel = $("bottom-panel");
@@ -119,6 +130,19 @@ let selectedGlassesIndex = 0;
 let isAnalyzing = false;
 let currentFacingMode: "user" | "environment" = "user";
 let diagnosticEnabled = false;
+let cameraEnabled = true;
+let glbVisible = true;
+let diagnosticFeatures = {
+  overlay: false,
+  readout: false,
+  error: true,
+  metrics: true,
+  viewports: false,
+  snapshots: false,
+};
+const viewportSources: Record<DebugViewportView, "live" | "freeze" | "snapshot"> = {
+  front: "live", top: "live", left: "live", right: "live",
+};
 const landmarkOverlay = new LandmarkOverlay(diagnosticCanvas);
 let lastFace: NormalizedFaceResult | null = null;
 let lastPose: { position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number }; scale: { x: number } } | null = null;
@@ -134,7 +158,7 @@ let lastError = 0;
 let snapshotTimer: number | null = null;
 let viewportCaptureEnabled = false;
 let snapshotsEnabled = false;
-const recentSnapshots: Array<{ image: string; at: string; error: number }> = [];
+const recentSnapshots: Array<{ image: string; at: string; error: number; glasses: string; pose: string; camera: string; diagnostic: string }> = [];
 
 /** Derive a comparable lens layout from declared physical dimensions. */
 function ensureDerivedAnchors(asset: GlassesAssetManifest): void {
@@ -214,10 +238,34 @@ function updateAlignmentReadout(face: NormalizedFaceResult, pose: NonNullable<ty
     ? `\nmatriz canônica: t=(${(matrix[12] ?? 0).toFixed(3)}, ${(matrix[13] ?? 0).toFixed(3)}, ${(matrix[14] ?? 0).toFixed(3)}) cm`
     : "\nmatriz canônica: indisponível";
   const scaleInfo = `\nescala: aplicada ${pose.scale.x.toFixed(3)} [${minScale.toFixed(2)}–${maxScale.toFixed(2)}] ${clampLabel} · olhos ${eyeDistancePx.toFixed(1)}px · GLB ${asset.dimensions.frameWidthMm}mm`;
-  diagnosticReadout.textContent = `${diagnosticBaseReadout}${metric}${scaleInfo}\nalinhamento: ${status} · erro ${error.toFixed(3)}u`;
+  if (diagnosticFeatures.readout) diagnosticReadout.textContent = `${diagnosticBaseReadout}${metric}${scaleInfo}\nalinhamento: ${status} · erro ${error.toFixed(3)}u`;
   auditFace.textContent = `olhos ${eyeDistancePx.toFixed(1)} px · pose yaw ${((pose.rotation.y * 180) / Math.PI).toFixed(1)}° · confiança ${(face.pose.confidence * 100).toFixed(0)}%`;
   auditGlb.textContent = `${asset.name} · ${asset.dimensions.frameWidthMm} mm · escala ${pose.scale.x.toFixed(3)} (${clampLabel}) · âncoras ${derivedAnchorIds.has(asset.id) ? "derivadas" : "autoriais"}`;
   auditStrategy.textContent = `canônica: ${matrix && matrix.length >= 16 ? "disponível" : "indisponível"} · posição: eyesCenter · rotação: matriz`;
+  updateObjectiveAudit(asset, pose);
+}
+
+function updateObjectiveAudit(asset = ALL_GLASSES[selectedGlassesIndex], pose = lastPose): void {
+  const anchors = asset.anchors;
+  auditObjective.textContent = `${asset.name} · ${asset.modelUrl ? "GLB carregado" : "GLB indisponível"}\n` +
+    `dimensões ${asset.dimensions.frameWidthMm}×${asset.dimensions.lensWidthMm ?? "—"}×${asset.dimensions.lensHeightMm ?? "—"} mm · ` +
+    `escala ${pose?.scale.x.toFixed(3) ?? "—"}\n` +
+    `âncoras ${anchors?.leftLensCenter && anchors?.rightLensCenter ? "lentes disponíveis" : "derivadas/ausentes"} · ` +
+    `origem ${anchors?.origin ? `${anchors.origin.x.toFixed(3)}, ${anchors.origin.y.toFixed(3)}, ${anchors.origin.z.toFixed(3)}` : "—"}\n` +
+    `visibilidade ${glbVisible ? "ativa" : "oculta"} · pose ${pose ? `${(pose.rotation.y * 180 / Math.PI).toFixed(1)}° yaw` : "aguardando"}`;
+}
+
+function syncDiagnosticControls(): void {
+  stage.classList.toggle("diagnostic-active", diagnosticEnabled && diagnosticFeatures.overlay);
+  stage.classList.toggle("diagnostic-readout-active", diagnosticEnabled && diagnosticFeatures.readout);
+  document.querySelector(".audit-card--chart")?.classList.toggle("feature-disabled", !diagnosticFeatures.error);
+  document.querySelectorAll(".audit-card--geometry").forEach((card) => card.classList.toggle("feature-disabled", !diagnosticFeatures.metrics));
+  auditDiagnostic.textContent = diagnosticEnabled
+    ? `overlay ${diagnosticFeatures.overlay ? "ativo" : "inativo"} · readout ${diagnosticFeatures.readout ? "ativo" : "inativo"} · ` +
+      `viewports ${diagnosticFeatures.viewports ? "ativos" : "inativos"} · snapshots ${diagnosticFeatures.snapshots ? "ativos" : "inativos"}`
+    : "Desativado para preservar desempenho";
+  errorChart.closest(".audit-card")?.classList.toggle("feature-disabled", !diagnosticFeatures.error);
+  errorChart.closest(".audit-card")?.setAttribute("aria-hidden", String(!diagnosticFeatures.error));
 }
 
 function updateCameraAudit(): void {
@@ -226,7 +274,7 @@ function updateCameraAudit(): void {
   const width = video?.videoWidth ?? 0;
   const height = video?.videoHeight ?? 0;
   const aspect = width && height ? (width / height).toFixed(3) : "—";
-  auditCamera.textContent = `captura ${width || "—"}×${height || "—"} · aspecto ${aspect}\n` +
+  auditCamera.textContent = `${cameraEnabled ? "câmera ativa" : "câmera parada"} · captura ${width || "—"}×${height || "—"} · aspecto ${aspect}\n` +
     `facingMode ${currentFacingMode} · palco ${Math.round(rect.width)}×${Math.round(rect.height)}\n` +
     `object-fit cover · vídeo espelhado · canvas espelhado\n` +
     `taxa alvo 30 FPS · rastreamento ${lastFace ? "ativo" : "aguardando"}`;
@@ -256,7 +304,7 @@ function updateGeometryAudit(): void {
     `diagnóstico ${diagnosticCanvas.width}×${diagnosticCanvas.height} · cover · espelhado\n` +
     `captura 3D ${viewportCaptureEnabled ? "ativa" : "desativada"}`;
 
-  if (lastFace) {
+  if (lastFace && diagnosticFeatures.metrics) {
     const points = lastFace.landmarks.normalized;
     const xs = points.map((point) => point.x);
     const ys = points.map((point) => point.y);
@@ -270,13 +318,45 @@ function updateGeometryAudit(): void {
     auditLandmarks.textContent = `${points.length} pontos normalizados · ${lastFace.landmarks.raw.length} brutos\n` +
       `tesselation ${connections?.tesselation.length ?? 0} · contornos ${connections?.contours.length ?? 0} · íris ${connections?.irises.length ?? 0}\n` +
       `semânticos: olhos, ponte, nariz, nosepads`;
-  } else {
+  } else if (diagnosticFeatures.metrics) {
     auditVolume.textContent = "Aguardando face 3D…";
     auditLandmarks.textContent = "Aguardando malha…";
+  } else {
+    auditVolume.textContent = "Desativado";
+    auditLandmarks.textContent = "Desativado";
   }
-  if (viewportCaptureEnabled) {
+  if (viewportCaptureEnabled && diagnosticFeatures.viewports) {
     ensureDebugViewports();
-    debugViewports.forEach((viewport) => viewport.update(lastFace, lastPose, ALL_GLASSES[selectedGlassesIndex]));
+    debugViewports.forEach((viewport, index) => {
+      const view = debugViewportViews[index];
+      if (viewportSources[view] === "live") viewport.update(lastFace, lastPose, ALL_GLASSES[selectedGlassesIndex]);
+    });
+  }
+}
+
+function updateViewportSource(view: DebugViewportView, source: "live" | "freeze" | "snapshot"): void {
+  const canvas = $("debug-viewport-" + view) as HTMLCanvasElement;
+  const image = document.querySelector<HTMLImageElement>(`[data-view-image="${view}"]`);
+  if (!image) return;
+  const meta = document.querySelector<HTMLElement>(`[data-view-meta="${view}"]`);
+  if (source === "live") {
+    canvas.style.visibility = "visible";
+    image.classList.add("hidden");
+    if (meta) meta.textContent = "3D ao vivo · agora";
+    return;
+  }
+  const dataUrl = source === "freeze"
+    ? canvas.toDataURL("image/png")
+    : recentSnapshots[0]?.image;
+  if (dataUrl) {
+    image.src = dataUrl;
+    image.classList.remove("hidden");
+    canvas.style.visibility = "hidden";
+    if (meta) meta.textContent = source === "freeze" ? "frame congelado · agora" : `snapshot · ${recentSnapshots[0]?.at ?? "—"}`;
+  } else {
+    image.classList.add("hidden");
+    canvas.style.visibility = "visible";
+    showToast("Nenhum snapshot disponível para esta vista", "info");
   }
 }
 
@@ -285,11 +365,11 @@ function recordErrorSample(face: NormalizedFaceResult, pose: NonNullable<typeof 
   const now = Date.now();
   errorSamples.push({ at: now, error, yaw: pose.rotation.y, pitch: pose.rotation.x });
   while (errorSamples.length > 60) errorSamples.shift();
-  drawErrorChart();
-  auditError.textContent = `atual ${error.toFixed(3)}u · média ${(
+  if (diagnosticFeatures.error) drawErrorChart();
+  auditError.textContent = diagnosticFeatures.error ? `atual ${error.toFixed(3)}u · média ${(
     errorSamples.reduce((sum, sample) => sum + sample.error, 0) / errorSamples.length
   ).toFixed(3)}u · ${errorSamples.length} amostras\n` +
-    `yaw ${((face.pose.yaw * 180) / Math.PI).toFixed(1)}° · pitch ${((face.pose.pitch * 180) / Math.PI).toFixed(1)}°`;
+    `yaw ${((face.pose.yaw * 180) / Math.PI).toFixed(1)}° · pitch ${((face.pose.pitch * 180) / Math.PI).toFixed(1)}°` : "Desativado";
 }
 
 function drawErrorChart(): void {
@@ -330,15 +410,27 @@ function captureDiagnosticSnapshot(): void {
   ctx.translate(thumb.width, 0); ctx.scale(-1, 1);
   ctx.drawImage(video, 0, 0, thumb.width, thumb.height);
   ctx.restore();
-  recentSnapshots.unshift({ image: thumb.toDataURL("image/jpeg", 0.65), at: new Date().toLocaleTimeString(), error: lastError });
+  recentSnapshots.unshift({
+    image: thumb.toDataURL("image/jpeg", 0.65),
+    at: new Date().toLocaleTimeString(),
+    error: lastError,
+    glasses: ALL_GLASSES[selectedGlassesIndex].name,
+    pose: lastPose ? `${(lastPose.rotation.y * 180 / Math.PI).toFixed(1)}° yaw` : "sem pose",
+    camera: cameraEnabled ? "ativa" : "parada",
+    diagnostic: diagnosticEnabled ? "ativo" : "inativo",
+  });
   recentSnapshots.splice(8);
   snapshotStrip.replaceChildren(...recentSnapshots.map((snapshot) => {
     const figure = document.createElement("figure");
     figure.className = "snapshot-item";
     const image = document.createElement("img"); image.src = snapshot.image; image.alt = `captura ${snapshot.at}`;
-    const caption = document.createElement("figcaption"); caption.textContent = `${snapshot.at}\n${snapshot.error.toFixed(3)}u`;
+    const caption = document.createElement("figcaption"); caption.textContent = `${snapshot.at}\n${snapshot.glasses} · ${snapshot.error.toFixed(3)}u`;
+    figure.title = `${snapshot.pose} · câmera ${snapshot.camera} · diagnóstico ${snapshot.diagnostic}`;
     figure.append(image, caption); return figure;
   }));
+  debugViewportViews.forEach((view) => {
+    if (viewportSources[view] === "snapshot") updateViewportSource(view, "snapshot");
+  });
   auditSnapshots.textContent = `${recentSnapshots.length} capturas · intervalo 1s · buffer máximo 8`;
 }
 
@@ -358,7 +450,6 @@ function setSnapshotsEnabled(enabled: boolean): void {
   snapshotsEnabled = enabled;
   btnSnapshot.toggleAttribute("disabled", !enabled);
   if (enabled) {
-    if (snapshotTimer === null) snapshotTimer = window.setInterval(captureDiagnosticSnapshot, 1000);
     auditSnapshots.textContent = "Aguardando rastreamento…";
     return;
   }
@@ -369,6 +460,36 @@ function setSnapshotsEnabled(enabled: boolean): void {
   recentSnapshots.length = 0;
   snapshotStrip.replaceChildren();
   auditSnapshots.textContent = "Desativado para preservar desempenho";
+}
+
+async function setCameraEnabled(enabled: boolean): Promise<void> {
+  cameraEnabled = enabled;
+  stage.classList.toggle("camera-disabled", !enabled);
+  if (!enabled) {
+    sdk?.stopCamera();
+    updateCameraAudit();
+    showToast("Câmera parada; diagnósticos preservados", "info");
+    return;
+  }
+  if (!sdk) return;
+  try {
+    await sdk.startCamera();
+    await sdk.startTryOn();
+    updateCameraAudit();
+    showToast("Câmera ativada", "success");
+  } catch (err) {
+    cameraToggle.checked = false;
+    cameraEnabled = false;
+    stage.classList.add("camera-disabled");
+    const message = err instanceof Error ? err.message : "Não foi possível iniciar a câmera";
+    showToast(message, "error");
+  }
+}
+
+function setGlbVisible(visible: boolean): void {
+  glbVisible = visible;
+  stage.classList.toggle("glb-hidden", !visible);
+  updateObjectiveAudit();
 }
 
 /** Applies one guarded, session-only origin correction from the nose bridge. */
@@ -610,6 +731,7 @@ async function switchGlasses(index: number): Promise<void> {
   glassesName.textContent = glasses.name;
   glassesPrice.textContent = `¥${glasses.metadata?.price ?? "—"}`;
   glassesInfo.classList.remove("hidden");
+  updateObjectiveAudit(glasses);
 
   try {
     await sdk.switchGlasses(glasses);
@@ -790,12 +912,13 @@ async function handleSnapshot(): Promise<void> {
   }
   try {
     const result = await sdk.snapshot({ format: "image/png" });
+    captureDiagnosticSnapshot();
     // Download the snapshot
     const link = document.createElement("a");
     link.download = `visutry-snapshot-${Date.now()}.png`;
     link.href = result.dataUrl;
     link.click();
-    showToast("Snapshot saved!", "success");
+    showToast("Snapshot salvo no histórico", "success");
   } catch (err) {
     const message = err instanceof Error ? err.message : "Snapshot failed";
     showToast(message, "error");
@@ -912,8 +1035,9 @@ async function init(): Promise<void> {
 
     btnDiagnostic.addEventListener("click", () => {
       diagnosticEnabled = !diagnosticEnabled;
+      diagnosticToggle.checked = diagnosticEnabled;
       btnDiagnostic.setAttribute("aria-pressed", String(diagnosticEnabled));
-      stage.classList.toggle("diagnostic-active", diagnosticEnabled);
+      syncDiagnosticControls();
       updateOverlayAudit();
       if (!diagnosticEnabled) {
         landmarkOverlay.clear();
@@ -927,7 +1051,7 @@ async function init(): Promise<void> {
       lastFace = face;
       updateCameraAudit();
       updateOverlayAudit();
-      if (diagnosticEnabled && face) {
+      if (diagnosticEnabled && diagnosticFeatures.overlay && face) {
         const video = document.getElementById("camera-video") as HTMLVideoElement | null;
         landmarkOverlay.renderFromFace(face, video?.videoWidth || 640, video?.videoHeight || 480);
         drawCalibrationGuides(face);
@@ -951,7 +1075,7 @@ async function init(): Promise<void> {
       auditStrategy.textContent = "rastreamento perdido · aguardando landmarks";
       updateCameraAudit();
       updateOverlayAudit();
-      if (diagnosticEnabled) {
+      if (diagnosticEnabled && diagnosticFeatures.overlay) {
         landmarkOverlay.clear();
         diagnosticReadout.textContent = "Rosto não detectado";
         diagnosticBaseReadout = "Rosto não detectado";
@@ -979,6 +1103,7 @@ async function init(): Promise<void> {
     glassesName.textContent = ALL_GLASSES[0].name;
     glassesPrice.textContent = `¥${ALL_GLASSES[0].metadata?.price ?? "—"}`;
     glassesInfo.classList.remove("hidden");
+    updateObjectiveAudit(ALL_GLASSES[0]);
 
     // Render glasses selector
     renderGlassesList();
@@ -1007,10 +1132,61 @@ async function init(): Promise<void> {
 // ---------------------------------------------------------------------------
 
 viewportCaptureToggle.addEventListener("change", () => {
-  setViewportCaptureEnabled(viewportCaptureToggle.checked);
+  featureViewportsToggle.checked = viewportCaptureToggle.checked;
+  diagnosticFeatures.viewports = viewportCaptureToggle.checked;
+  setViewportCaptureEnabled(diagnosticEnabled && viewportCaptureToggle.checked);
+  syncDiagnosticControls();
 });
 snapshotCaptureToggle.addEventListener("change", () => {
-  setSnapshotsEnabled(snapshotCaptureToggle.checked);
+  featureSnapshotsToggle.checked = snapshotCaptureToggle.checked;
+  diagnosticFeatures.snapshots = snapshotCaptureToggle.checked;
+  setSnapshotsEnabled(diagnosticEnabled && snapshotCaptureToggle.checked);
+  syncDiagnosticControls();
+});
+cameraToggle.addEventListener("change", () => { void setCameraEnabled(cameraToggle.checked); });
+diagnosticToggle.addEventListener("change", () => {
+  diagnosticEnabled = diagnosticToggle.checked;
+  btnDiagnostic.setAttribute("aria-pressed", String(diagnosticEnabled));
+  syncDiagnosticControls();
+  setViewportCaptureEnabled(diagnosticEnabled && diagnosticFeatures.viewports);
+  setSnapshotsEnabled(diagnosticEnabled && diagnosticFeatures.snapshots);
+  if (!diagnosticEnabled) {
+    landmarkOverlay.clear();
+    diagnosticReadout.textContent = "";
+    diagnosticBaseReadout = "";
+  }
+});
+glbVisibleToggle.addEventListener("change", () => setGlbVisible(glbVisibleToggle.checked));
+const featureBindings: Array<[HTMLInputElement, keyof typeof diagnosticFeatures]> = [
+  [featureOverlayToggle, "overlay"], [featureReadoutToggle, "readout"], [featureErrorToggle, "error"],
+  [featureMetricsToggle, "metrics"], [featureViewportsToggle, "viewports"], [featureSnapshotsToggle, "snapshots"],
+];
+featureBindings.forEach(([toggle, feature]) => toggle.addEventListener("change", () => {
+  diagnosticFeatures[feature] = toggle.checked;
+  if (feature === "viewports") {
+    viewportCaptureToggle.checked = toggle.checked;
+    setViewportCaptureEnabled(diagnosticEnabled && toggle.checked);
+  }
+  if (feature === "snapshots") {
+    snapshotCaptureToggle.checked = toggle.checked;
+    setSnapshotsEnabled(diagnosticEnabled && toggle.checked);
+  }
+  if (feature === "overlay" && !toggle.checked) landmarkOverlay.clear();
+  if (feature === "readout" && !toggle.checked) {
+    diagnosticReadout.textContent = "";
+    diagnosticBaseReadout = "";
+  }
+  syncDiagnosticControls();
+}));
+document.querySelectorAll<HTMLSelectElement>(".viewport-source").forEach((select) => {
+  select.addEventListener("change", () => {
+    const view = select.dataset.view as DebugViewportView;
+    if (view) {
+      viewportSources[view] = select.value as "live" | "freeze" | "snapshot";
+      updateViewportSource(view, viewportSources[view]);
+    }
+    select.closest(".viewport-cell")?.classList.toggle("viewport-source-live", select.value === "live");
+  });
 });
 bottomPanelToggle.addEventListener("click", () => {
   const expanded = !bottomPanel.classList.contains("collapsed");
@@ -1020,6 +1196,8 @@ bottomPanelToggle.addEventListener("click", () => {
 });
 setViewportCaptureEnabled(false);
 setSnapshotsEnabled(false);
+syncDiagnosticControls();
+setGlbVisible(true);
 btnAnalyze.addEventListener("click", handleAnalyzeFaceShape);
 btnSnapshot.addEventListener("click", handleSnapshot);
 btnSwitchCamera.addEventListener("click", handleSwitchCamera);
