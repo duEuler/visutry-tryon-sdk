@@ -36,6 +36,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Build Studio dependency
+        run: pnpm --filter @visutry/studio build
+
       - name: Test with coverage
         run: pnpm test:coverage
 
@@ -74,6 +77,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build Studio dependency
+        run: pnpm --filter @visutry/studio build
 
       - name: Install Playwright browsers
         run: pnpm --filter visutry-web-demo exec playwright install --with-deps chromium firefox webkit
