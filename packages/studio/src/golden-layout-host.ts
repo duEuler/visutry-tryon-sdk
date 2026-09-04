@@ -91,6 +91,8 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       try { await runtime.initialize?.(); } catch { mode = "degraded"; }
     },
     destroy() {
+      if (!mounted) return;
+      mounted = false;
       observer.disconnect();
       options.host.classList.remove("studio-layout-locked");
       resizeController.dispose();
@@ -99,7 +101,6 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       runtimeUnsubscribe = null;
       activeRuntime?.dispose?.();
       layout.destroy();
-      mounted = false;
     },
   };
   return instance;
