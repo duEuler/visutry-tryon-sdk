@@ -88,5 +88,6 @@ export interface StudioInstance {
   isLayoutLocked(): boolean;
   destroy(): void;
   getMode(): StudioMode;
+  subscribeMode(listener: (mode: StudioMode) => void): () => void;
   connectRuntime(runtime: StudioRuntimeAdapter): Promise<void>;
 }

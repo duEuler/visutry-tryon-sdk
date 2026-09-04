@@ -60,7 +60,7 @@ const modeLabel = document.getElementById("studio-mode");
 const statusLabel = document.getElementById("studio-status");
 const setStatus = (message: string) => { if (statusLabel) statusLabel.textContent = message; };
 const syncModeLabel = () => { if (modeLabel) modeLabel.textContent = studio.getMode(); };
-syncModeLabel();
+const unsubscribeMode = studio.subscribeMode((mode) => { if (modeLabel) modeLabel.textContent = mode; });
 let runtimeSdk: VisuTrySDK | null = null;
 let runtimeAdapter: StudioRuntimeAdapter | null = null;
 let resumeTryOnOnVisible = false;
@@ -88,7 +88,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) { runtimeSdk.stopTryOn(); return; }
   if (resumeTryOnOnVisible) void runtimeSdk.startTryOn().catch(() => { if (tryOnButton) tryOnButton.textContent = "Tentar try-on novamente"; });
 });
-window.addEventListener("beforeunload", () => studio.destroy());
+window.addEventListener("beforeunload", () => { unsubscribeMode(); studio.destroy(); });
 document.getElementById("connect-runtime")?.addEventListener("click", async (event) => {
   const button = event.currentTarget as HTMLButtonElement;
   const canvas = document.querySelector<HTMLCanvasElement>(".studio-live-canvas");

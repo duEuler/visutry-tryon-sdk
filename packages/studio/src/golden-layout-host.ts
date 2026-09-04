@@ -12,6 +12,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   let mode: StudioMode = options.runtime ? "connected" : "static";
   let runtimeUnsubscribe: (() => void) | null = null;
   let activeRuntime: StudioRuntimeAdapter | undefined = options.runtime;
+  const modeListeners = new Set<(next: StudioMode) => void>();
   const hiddenPanels = new Set<string>();
   const collapsedPanels = new Set<string>();
   let layoutLocked = false;
@@ -76,6 +77,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     setLayoutLocked(locked) { layoutLocked = locked; options.host.classList.toggle("studio-layout-locked", locked); },
     isLayoutLocked() { return layoutLocked; },
     getMode() { return mode; },
+    subscribeMode(listener) { modeListeners.add(listener); listener(mode); return () => modeListeners.delete(listener); },
     async connectRuntime(runtime) {
       runtimeUnsubscribe?.();
       // Mount can call connectRuntime with the adapter already supplied in
@@ -83,12 +85,13 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       if (activeRuntime && activeRuntime !== runtime) activeRuntime.dispose?.();
       activeRuntime = runtime;
       mode = "connected";
+      modeListeners.forEach((listener) => listener(mode));
       store.setSnapshot(runtime.getSnapshot());
       runtimeUnsubscribe = runtime.subscribe((snapshot) => {
-        if (snapshot.mode) mode = snapshot.mode;
+        if (snapshot.mode && snapshot.mode !== mode) { mode = snapshot.mode; modeListeners.forEach((listener) => listener(mode)); }
         store.setSnapshot(snapshot);
       });
-      try { await runtime.initialize?.(); } catch { mode = "degraded"; }
+      try { await runtime.initialize?.(); } catch { mode = "degraded"; modeListeners.forEach((listener) => listener(mode)); }
     },
     destroy() {
       if (!mounted) return;
@@ -100,6 +103,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       runtimeUnsubscribe?.();
       runtimeUnsubscribe = null;
       activeRuntime?.dispose?.();
+      modeListeners.clear();
       layout.destroy();
     },
   };
