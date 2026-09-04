@@ -28,6 +28,7 @@ export type { LandmarkOverlayOptions, LandmarkOverlayRenderInput } from "./overl
 // SDK facade
 export { createVisuTryWebSDK, createVisuTryImageAnalyzer } from "./VisuTryWebSDK.js";
 export type { VisuTryWebSDKFactoryOptions, ImageAnalyzer, ImageAnalysisResult } from "./VisuTryWebSDK.js";
+export { createStudioRuntimeAdapter } from "./studio-adapter.js";
 
 // Re-export core types and utilities for convenience
 export {

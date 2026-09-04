@@ -103,6 +103,9 @@ importers:
 
   packages/web:
     dependencies:
+      '@visutry/studio':
+        specifier: workspace:*
+        version: link:../studio
       '@visutry/tryon-core':
         specifier: workspace:*
         version: link:../core
