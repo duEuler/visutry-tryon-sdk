@@ -5,6 +5,7 @@ import { renderMetricGrid } from "./metric-grid.js";
 import { createPanelShell } from "./panel-shell.js";
 import { renderViewportGrid } from "./viewport-panel.js";
 import type { AuditSnapshot, StudioInstance, StudioPanelContext, StudioPanelDefinition } from "../types.js";
+import { itemControls, panelItem } from "../layout/golden-layout-dom.js";
 
 type Panel = { eyebrow: string; title: string; body: string };
 const panelCleanups = new WeakMap<HTMLElement, () => void>();
@@ -30,9 +31,9 @@ function createPanel(studio: Pick<StudioInstance, "collapsePanel" | "expandPanel
   const accordion = id === "leftDock" || id === "rightDock";
   if (accordion) createAccordionPanel(context, container, accordionSections(id === "leftDock" ? ["camera", "diagnostics", "quality", "error"] : ["glb", "overlay", "pose", "metrics"]));
   else createPanelShell(context, container, { panelId: id, body: panels[id].body });
-  const item = container.element.closest<HTMLElement>(".lm_item");
+  const item = panelItem(container.element);
   if (!item) return;
-  const controls = item?.querySelector<HTMLElement>(".lm_controls");
+  const controls = itemControls(item);
   if (!controls || controls.querySelector(".audit-collapse-control")) return;
   const toggle = document.createElement("button");
   const controller = new AbortController();
