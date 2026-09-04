@@ -419,6 +419,7 @@ test.describe("Golden Layout Studio", () => {
     await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("visutry-golden-layout-state-v7") ?? "{}").collapsedPanels ?? [])).toHaveLength(2);
     await page.reload();
     await expect(page.locator('[data-panel-id="evidence"]')).toBeVisible();
+    await expect(page.locator(".studio-panel-collapsed")).toHaveCount(2);
     await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("visutry-golden-layout-state-v7") ?? "{}").collapsedPanels ?? [])).toHaveLength(2);
   });
 
