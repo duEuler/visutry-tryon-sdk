@@ -23,4 +23,16 @@ describe("createLocalStoragePersistence", () => {
     localStorage.setItem("studio-malformed", JSON.stringify({ version: 1, layout: { nope: true }, hiddenPanels: ["camera", 4] }));
     expect(persistence.loadState?.()).toBeNull();
   });
+
+  it("migrates the immediately previous persistence version", () => {
+    const persistence = createLocalStoragePersistence("studio-previous", 7);
+    localStorage.setItem("studio-previous", JSON.stringify({ version: 6, layout: { root: { type: "row", content: [] } } }));
+    expect(persistence.loadState?.()).toMatchObject({ version: 7, hiddenPanels: [], collapsedPanels: [] });
+  });
+
+  it("rejects unknown future versions", () => {
+    const persistence = createLocalStoragePersistence("studio-future", 7);
+    localStorage.setItem("studio-future", JSON.stringify({ version: 8, layout: { root: { type: "row", content: [] } } }));
+    expect(persistence.loadState?.()).toBeNull();
+  });
 });

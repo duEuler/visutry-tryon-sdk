@@ -9,7 +9,9 @@ function readState(raw: string, version: number): PersistedStudioState | null {
     const parsed = JSON.parse(raw) as Partial<PersistedStudioState>;
     // Older Studio snapshots did not persist these arrays. Treat them as an
     // empty migration rather than rejecting an otherwise valid layout.
-    if (parsed.version !== version || !isLayout(parsed.layout)) return null;
+    const isCurrent = parsed.version === version;
+    const isPrevious = parsed.version === version - 1;
+    if ((!isCurrent && !isPrevious) || !isLayout(parsed.layout)) return null;
     return {
       version,
       layout: parsed.layout,
