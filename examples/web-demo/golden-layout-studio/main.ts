@@ -66,7 +66,13 @@ const defaultLayout: LayoutConfig = {
 const host = document.getElementById("layout-host"); if (!host) throw new Error("layout host ausente");
 const layout = new GoldenLayout(host); Object.keys(panels).forEach((id) => layout.registerComponentFactoryFunction(id, (container) => component(container, id)));
 const saved = localStorage.getItem(key); try { layout.loadLayout(saved ? JSON.parse(saved) : defaultLayout); } catch { layout.loadLayout(defaultLayout); }
-const syncLayoutSize = () => layout.updateSize(host.clientWidth, host.clientHeight);
+const syncLayoutSize = () => {
+  layout.updateSize(host.clientWidth, host.clientHeight);
+  host.querySelectorAll<HTMLElement>(".lm_item:has(.accordion)>.lm_content").forEach((content) => {
+    content.style.overflowY = "auto";
+    content.style.overflowX = "hidden";
+  });
+};
 requestAnimationFrame(syncLayoutSize);
 new ResizeObserver(syncLayoutSize).observe(host);
 document.getElementById("save-layout")?.addEventListener("click", () => { localStorage.setItem(key, JSON.stringify(layout.saveLayout())); });
