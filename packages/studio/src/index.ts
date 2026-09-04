@@ -24,3 +24,4 @@ export * from "./adapters/renderer-adapter.js";
 export * from "./adapters/glb-adapter.js";
 export * from "./adapters/evidence-adapter.js";
 export * from "./react-adapter.js";
+export * from "./face-reconstruction-session.js";

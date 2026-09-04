@@ -9,6 +9,19 @@ export interface FacePose { yaw?: number; pitch?: number; roll?: number; positio
 export interface GlassesAssetManifest { id?: string; name?: string; modelUrl?: string; }
 export interface RenderMetrics { drawCalls?: number; triangles?: number; frameTimeMs?: number; dpr?: number; width?: number; height?: number; }
 export interface EvidenceFrame { id: string; timestamp: number; dataUrl?: string; rmsError?: number; confidence?: number; }
+export type FaceRegion = "front" | "top" | "left" | "right" | "chin" | "neck" | "shoulders";
+export type ReconstructedPointSource = "observed" | "estimated";
+export interface ReconstructedPoint { index: number; x: number; y: number; z: number; source: ReconstructedPointSource; confidence: number; frameId?: string; }
+export interface FaceReconstruction {
+  landmarks: ReconstructedPoint[];
+  observedRegions: FaceRegion[];
+  estimatedRegions: FaceRegion[];
+  coverage: number;
+  confidence: number;
+  capturedFrames: number;
+  completed: boolean;
+  frozenAt?: number;
+}
 export interface AuditSnapshot {
   mode?: StudioMode;
   camera?: CameraState;
@@ -22,6 +35,7 @@ export interface AuditSnapshot {
   face?: unknown;
   performance?: unknown;
   error?: unknown;
+  reconstruction?: FaceReconstruction | null;
   [key: string]: unknown;
 }
 export type StudioMode = "static" | "connected" | "degraded";
