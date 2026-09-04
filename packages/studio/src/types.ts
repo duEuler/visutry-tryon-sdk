@@ -32,6 +32,15 @@ export interface LayoutPersistence {
   load(): LayoutConfig | null;
   save(layout: LayoutConfig): void;
   clear(): void;
+  loadState?(): PersistedStudioState | null;
+  saveState?(state: PersistedStudioState): void;
+}
+
+export interface PersistedStudioState {
+  version: number;
+  layout: LayoutConfig;
+  hiddenPanels: PanelId[];
+  collapsedPanels: PanelId[];
 }
 
 export interface ToolbarOptions { enabled?: boolean }
