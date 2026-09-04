@@ -2,6 +2,7 @@ export { AuditStore } from "./audit-store.js";
 export { createLocalStoragePersistence } from "./layout-persistence.js";
 export { createGoldenLayoutStudio } from "./golden-layout-host.js";
 export { createLayoutResizeController } from "./layout-resize-controller.js";
+export { createStaticRuntimeAdapter } from "./static-runtime-adapter.js";
 export type * from "./types.js";
 export * from "./layout-contract.js";
 export * from "./panel-registry.js";
