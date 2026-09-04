@@ -271,6 +271,27 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator("#capture-evidence")).toBeDisabled();
   });
 
+  test("keeps layout persistence controls visible beside the scrollable toolbar", async ({ page }) => {
+    await expect(page.locator("#save-layout")).toBeVisible();
+    await expect(page.locator("#reset-layout")).toBeVisible();
+    const controls = await page.evaluate(() => {
+      const shell = document.querySelector<HTMLElement>(".toolbar-shell");
+      const fixed = document.querySelector<HTMLElement>(".toolbar-actions");
+      const save = document.getElementById("save-layout");
+      const reset = document.getElementById("reset-layout");
+      return {
+        shellOverflow: shell ? getComputedStyle(shell).overflowX : "",
+        fixedOverflow: fixed ? getComputedStyle(fixed).overflowX : "",
+        saveRight: save?.getBoundingClientRect().right ?? 0,
+        resetRight: reset?.getBoundingClientRect().right ?? 0,
+        viewportRight: window.innerWidth,
+      };
+    });
+    expect(controls.fixedOverflow).not.toBe("auto");
+    expect(controls.saveRight).toBeLessThanOrEqual(controls.viewportRight);
+    expect(controls.resetRight).toBeLessThanOrEqual(controls.viewportRight);
+  });
+
   test("connects runtime and starts camera when hardware E2E is enabled", async ({ page }) => {
     test.skip(!HAS_CAMERA, "Set VISUTRY_E2E_CAMERA=1 to run camera-dependent Studio coverage.");
     const hasUsableCamera = await page.evaluate(async () => {

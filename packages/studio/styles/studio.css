@@ -19,6 +19,23 @@
   scrollbar-width: thin;
 }
 
+:where(.topbar .toolbar-shell) {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  gap: 8px;
+}
+
+:where(.topbar .toolbar-shell > .toolbar:first-child) {
+  flex: 1 1 auto;
+}
+
+:where(.topbar .toolbar-actions) {
+  flex: 0 0 auto;
+  overflow: visible;
+  background: #0b1320;
+}
+
 :where(.studio-panel) {
   min-width: 0;
   min-height: 0;
