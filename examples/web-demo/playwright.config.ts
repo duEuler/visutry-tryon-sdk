@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const useFakeCamera = process.env.VISUTRY_E2E_FAKE_CAMERA === "1";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -13,6 +15,11 @@ export default defineConfig({
     trace: "on-first-retry",
     // Grant camera permission for all tests
     permissions: ["camera"],
+    ...(useFakeCamera ? {
+      launchOptions: {
+        args: ["--use-fake-device-for-media-stream"],
+      },
+    } : {}),
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
