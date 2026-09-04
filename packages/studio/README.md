@@ -59,6 +59,16 @@ The host exposes `subscribeMode(listener)` for reactive status badges and
 `disconnectRuntime()` for an explicit return to offline/static mode. Both are
 safe to call from a React effect cleanup or from a framework-neutral toolbar.
 
+## Loading and performance boundary
+
+The Studio package contains only the docking host and panel contracts. The demo
+imports the Web SDK dynamically when `Conectar runtime` is activated; the
+MediaPipe, Three.js and GLB chunks therefore stay out of the initial Studio
+request. Camera and try-on loops are stopped when the document is hidden and
+can be resumed by the host when it becomes visible again. Integrations should
+keep one runtime, camera and renderer instance and call `dispose()` during
+unmount.
+
 ## Panel contract
 
 Each panel declares `id`, `title`, `region`, `scrollable`, `create`, and
