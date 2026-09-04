@@ -317,6 +317,30 @@ test.describe("Golden Layout Studio", () => {
     expect(geometry.background).toBe("rgb(7, 13, 22)");
   });
 
+  test("resizes a column splitter without creating overlap", async ({ page }) => {
+    const splitter = page.locator("#layout-host .lm_splitter").first();
+    await expect(splitter).toBeVisible();
+    const before = await page.evaluate(() => {
+      const box = (selector: string) => document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
+      return { left: box('[data-panel-id="leftDock"]'), live: box('[data-panel-id="live"]') };
+    });
+    const rect = await splitter.boundingBox();
+    expect(rect).toBeTruthy();
+    await page.mouse.move(rect!.x + rect!.width / 2, rect!.y + rect!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(rect!.x + rect!.width / 2 + 24, rect!.y + rect!.height / 2);
+    await page.mouse.up();
+    await page.waitForTimeout(80);
+    const after = await page.evaluate(() => {
+      const box = (selector: string) => document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
+      return { left: box('[data-panel-id="leftDock"]'), live: box('[data-panel-id="live"]') };
+    });
+    expect(after.left && after.live).toBeTruthy();
+    expect(after.left!.right).toBeLessThanOrEqual(after.live!.left + 1);
+    expect(after.live!.width).toBeGreaterThan(0);
+    expect(before.live?.width).toBeGreaterThan(0);
+  });
+
   test("applies the public Studio panel style contract", async ({ page }) => {
     await expect(page.locator('[data-panel-id="live"]')).toHaveClass(/studio-panel/);
     await expect(page.locator('[data-panel-id="leftDock"]')).toHaveClass(/studio-panel/);
