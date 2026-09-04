@@ -31,6 +31,15 @@ describe("createStudioRuntimeAdapter", () => {
     expect(adapter.getSnapshot()).toMatchObject({ selectedFrameId: "evidence-1234", evidence: [frame] });
   });
 
+  it("copies available diagnostics into the captured evidence frame", async () => {
+    const sdk = createSdkMock();
+    const adapter = createStudioRuntimeAdapter(sdk as never);
+    await adapter.initialize?.();
+    sdk.handlers.get("faceDetected")?.({ quality: { confidence: 0.95 }, rmsError: 0.679 });
+    const frame = await adapter.captureEvidence?.();
+    expect(frame).toMatchObject({ confidence: 0.95, rmsError: 0.679 });
+  });
+
   it("unsubscribes SDK events and destroys the SDK", async () => {
     const sdk = createSdkMock();
     const adapter = createStudioRuntimeAdapter(sdk as never);

@@ -17,7 +17,7 @@ async function composeEvidence(dataUrl: string, video: HTMLVideoElement | null):
   context.drawImage(video, 0, 0, canvas.width, canvas.height);
   const overlay = new Image();
   overlay.src = dataUrl;
-  await overlay.decode();
+  try { await overlay.decode(); } catch { return dataUrl; }
   context.drawImage(overlay, 0, 0, canvas.width, canvas.height);
   return canvas.toDataURL("image/png");
 }
@@ -49,7 +49,15 @@ export function createStudioRuntimeAdapter(sdk: VisuTrySDK, options: StudioRunti
     async captureEvidence(): Promise<EvidenceFrame> {
       const result = await sdk.snapshot({ format: "image/png", mirror: true });
       const dataUrl = await composeEvidence(result.dataUrl, options.getVideo?.() ?? null);
-      const frame: EvidenceFrame = { id: `evidence-${result.timestamp}`, timestamp: result.timestamp, dataUrl };
+      const tracking = snapshot.tracking as { confidence?: number } | undefined;
+      const diagnostics = snapshot.face as { rmsError?: number } | undefined;
+      const frame: EvidenceFrame = {
+        id: `evidence-${result.timestamp}`,
+        timestamp: result.timestamp,
+        dataUrl,
+        confidence: tracking?.confidence,
+        rmsError: diagnostics?.rmsError,
+      };
       const evidence = [...((snapshot.evidence as EvidenceFrame[] | undefined) ?? []), frame];
       publish({ evidence, selectedFrameId: frame.id });
       return frame;
