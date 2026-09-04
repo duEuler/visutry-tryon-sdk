@@ -53,12 +53,19 @@
   display: flex;
   flex-direction: row;
   gap: 6px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
 }
 
 :where(.topbar .toolbar) {
   flex: 0 1 auto;
   gap: 6px;
+}
+
+:where(.topbar .toolbar-runtime) {
+  order: -1;
+  flex: 0 0 auto;
 }
 
 :where(.topbar .toolbar button) {

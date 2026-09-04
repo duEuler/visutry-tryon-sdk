@@ -422,6 +422,19 @@ test.describe("Golden Layout Studio", () => {
     expect(controls.resetRight).toBeLessThanOrEqual(controls.viewportRight);
   });
 
+  test("keeps the runtime connection control reachable in the compact header", async ({
+    page,
+  }) => {
+    const bounds = await page.locator("#connect-runtime").boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.width).toBeGreaterThan(0);
+    expect(bounds!.height).toBeGreaterThan(0);
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(
+      (await page.evaluate(() => window.innerWidth)) + 1,
+    );
+  });
+
   test("connects runtime and starts camera when hardware E2E is enabled", async ({ page }) => {
     test.skip(!HAS_CAMERA, "Set VISUTRY_E2E_CAMERA=1 to run camera-dependent Studio coverage.");
     const hasUsableCamera = await page.evaluate(async () => {
