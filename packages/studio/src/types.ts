@@ -94,6 +94,7 @@ export interface StudioInstance {
   getMode(): StudioMode;
   subscribeMode(listener: (mode: StudioMode) => void): () => void;
   subscribeSnapshot(listener: (snapshot: AuditSnapshot) => void): () => void;
+  subscribePanelVisibility(listener: (id: PanelId, visible: boolean) => void): () => void;
   connectRuntime(runtime: StudioRuntimeAdapter): Promise<void>;
   disconnectRuntime(): void;
 }

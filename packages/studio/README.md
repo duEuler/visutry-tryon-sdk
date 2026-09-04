@@ -75,6 +75,9 @@ The host exposes `subscribeMode(listener)` for reactive status badges and
 safe to call from a React effect cleanup or from a framework-neutral toolbar.
 Use `subscribeSnapshot(listener)` when a host component needs the latest audit
 data without reaching into the internal store.
+Use `subscribePanelVisibility(listener)` when a renderer or expensive runtime
+should pause while a specific panel is hidden; the subscription is removed by
+returning its disposer.
 
 ### Eventos e ciclo de runtime
 

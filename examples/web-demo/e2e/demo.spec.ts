@@ -297,6 +297,20 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator('[data-panel-id="rightDock"]')).toBeVisible();
   });
 
+  test("emits public panel visibility events", async ({ page }) => {
+    const events = await page.evaluate(() => {
+      const studio = (window as Window & { __visutryStudio?: { subscribePanelVisibility(listener: (id: string, visible: boolean) => void): () => void; hidePanel(id: string): void; showPanel(id: string): void } }).__visutryStudio;
+      if (!studio) return [];
+      const received: Array<[string, boolean]> = [];
+      const unsubscribe = studio.subscribePanelVisibility((id, visible) => received.push([id, visible]));
+      studio.hidePanel("leftDock");
+      studio.showPanel("leftDock");
+      unsubscribe();
+      return received;
+    });
+    expect(events).toEqual([["leftDock", false], ["leftDock", true]]);
+  });
+
   test("falls back to the default layout when persisted state is invalid", async ({ page }) => {
     await page.evaluate(() => localStorage.setItem("visutry-golden-layout-state-v7", "{invalid"));
     await page.reload();

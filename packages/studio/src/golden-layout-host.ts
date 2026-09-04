@@ -15,6 +15,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   let runtimeUnsubscribe: (() => void) | null = null;
   let activeRuntime: StudioRuntimeAdapter | undefined = options.runtime;
   const modeListeners = new Set<(next: StudioMode) => void>();
+  const panelVisibilityListeners = new Set<(id: string, visible: boolean) => void>();
   const hiddenPanels = new Set<string>();
   const collapsedPanels = new Set<string>();
   let lastCompleteLayout: LayoutConfig = options.initialLayout;
@@ -53,7 +54,9 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   const visibilityFrames = new Set<number>();
   const findItem = (id: string): HTMLElement | null => options.host.querySelector<HTMLElement>(`[data-panel-id="${CSS.escape(id)}"]`)?.closest<HTMLElement>(".lm_item") ?? null;
   const setPanelVisibility = (id: string, visible: boolean) => {
+    const wasVisible = !hiddenPanels.has(id);
     if (visible) hiddenPanels.delete(id); else hiddenPanels.add(id);
+    if (wasVisible !== visible) panelVisibilityListeners.forEach((listener) => listener(id, visible));
     const item = findItem(id);
     const panelElement = options.host.querySelector<HTMLElement>(`[data-panel-id="${CSS.escape(id)}"]`);
     panelElement?.classList.toggle("studio-panel--hidden", !visible);
@@ -149,6 +152,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     getMode() { return mode; },
     subscribeMode(listener) { modeListeners.add(listener); listener(mode); return () => modeListeners.delete(listener); },
     subscribeSnapshot(listener) { return store.subscribe(listener); },
+    subscribePanelVisibility(listener) { panelVisibilityListeners.add(listener); return () => panelVisibilityListeners.delete(listener); },
     async connectRuntime(runtime) {
       runtimeUnsubscribe?.();
       // Mount can call connectRuntime with the adapter already supplied in
@@ -195,6 +199,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       runtimeUnsubscribe = null;
       activeRuntime?.dispose?.();
       modeListeners.clear();
+      panelVisibilityListeners.clear();
       layout.destroy();
       layoutDestroyed = true;
     },
