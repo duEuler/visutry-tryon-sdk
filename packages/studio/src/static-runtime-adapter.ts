@@ -2,7 +2,7 @@ import type { AuditSnapshot, StudioRuntimeAdapter } from "./types.js";
 
 /** Runtime no-op for previews, tests and degraded/offline Studio sessions. */
 export function createStaticRuntimeAdapter(initial: AuditSnapshot = {}): StudioRuntimeAdapter {
-  let snapshot: AuditSnapshot = { mode: "static", ...initial };
+  let snapshot: AuditSnapshot = { ...initial, mode: "static" };
   const listeners = new Set<(next: AuditSnapshot) => void>();
   let disposed = false;
   return {

@@ -11,6 +11,13 @@ describe("createStaticRuntimeAdapter", () => {
     expect(snapshots).toHaveLength(1);
   });
 
+  it("keeps static mode even when the supplied snapshot has another mode", () => {
+    const adapter = createStaticRuntimeAdapter({ mode: "connected" });
+    expect(adapter.getSnapshot().mode).toBe("static");
+    adapter.setSnapshot?.({ mode: "degraded" });
+    expect(adapter.getSnapshot().mode).toBe("static");
+  });
+
   it("does not accept subscriptions or updates after dispose", () => {
     const adapter = createStaticRuntimeAdapter();
     adapter.dispose?.();
