@@ -52,4 +52,14 @@ describe("normalizeStudioLayout", () => {
       ],
     });
   });
+
+  it("clamps an invalid stack active item to the last available tab", () => {
+    const layout = normalizeStudioLayout({ root: {
+      type: "stack", activeItem: 99, content: [
+        { type: "component", componentType: "live" },
+        { type: "component", componentType: "viewports" },
+      ],
+    } } as any);
+    expect((layout.root as any).activeItem).toBe(1);
+  });
 });
