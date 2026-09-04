@@ -77,7 +77,7 @@ const auditLandmarks = $("audit-landmarks");
 const errorChart = $("error-chart") as HTMLCanvasElement;
 const auditError = $("audit-error");
 const debugViewportViews: DebugViewportView[] = ["front", "top", "left", "right"];
-const debugViewports = debugViewportViews.map((view) => new DebugViewport($("debug-viewport-" + view) as HTMLCanvasElement, view));
+let debugViewports: DebugViewport[] = [];
 const snapshotStrip = $("snapshot-strip");
 const auditSnapshots = $("audit-snapshots");
 const statFps = $("stat-fps");
@@ -94,6 +94,9 @@ const btnAnalyze = $("btn-analyze");
 const btnSnapshot = $("btn-snapshot");
 const btnSwitchCamera = $("btn-switch-camera");
 const btnDiagnostic = $("btn-diagnostic") as HTMLButtonElement;
+const heavyCaptureToggle = $("toggle-heavy-capture") as HTMLInputElement;
+const bottomPanel = $("bottom-panel");
+const bottomPanelToggle = $("btn-panel-toggle") as HTMLButtonElement;
 const shapeModal = $("shape-modal");
 const shapeIcon = $("shape-icon");
 const shapeName = $("shape-name");
@@ -128,6 +131,7 @@ const derivedAnchorIds = new Set<string>();
 const errorSamples: Array<{ at: number; error: number; yaw: number; pitch: number }> = [];
 let lastError = 0;
 let snapshotTimer: number | null = null;
+let heavyCaptureEnabled = false;
 const recentSnapshots: Array<{ image: string; at: string; error: number }> = [];
 
 /** Derive a comparable lens layout from declared physical dimensions. */
@@ -149,6 +153,11 @@ function ensureDerivedAnchors(asset: GlassesAssetManifest): void {
 function resetSessionCalibration(): void {
   calibrationFrames = 0;
   calibrationApplied = false;
+}
+
+function ensureDebugViewports(): void {
+  if (debugViewports.length) return;
+  debugViewports = debugViewportViews.map((view) => new DebugViewport($("debug-viewport-" + view) as HTMLCanvasElement, view));
 }
 
 function rotateOffset(v: { x: number; y: number; z: number }, r: { x: number; y: number; z: number }) {
@@ -242,7 +251,8 @@ function updateGeometryAudit(): void {
   const dpr = window.devicePixelRatio || 1;
   auditViewport.textContent = `palco ${Math.round(rect.width)}×${Math.round(rect.height)} px · DPR ${dpr.toFixed(2)}\n` +
     `vídeo ${videoWidth || "—"}×${videoHeight || "—"} · canvas ${canvas.width}×${canvas.height}\n` +
-    `diagnóstico ${diagnosticCanvas.width}×${diagnosticCanvas.height} · cover · espelhado`;
+    `diagnóstico ${diagnosticCanvas.width}×${diagnosticCanvas.height} · cover · espelhado\n` +
+    `captura 3D ${heavyCaptureEnabled ? "ativa" : "desativada"}`;
 
   if (lastFace) {
     const points = lastFace.landmarks.normalized;
@@ -262,7 +272,10 @@ function updateGeometryAudit(): void {
     auditVolume.textContent = "Aguardando face 3D…";
     auditLandmarks.textContent = "Aguardando malha…";
   }
-  debugViewports.forEach((viewport) => viewport.update(lastFace, lastPose, ALL_GLASSES[selectedGlassesIndex]));
+  if (heavyCaptureEnabled) {
+    ensureDebugViewports();
+    debugViewports.forEach((viewport) => viewport.update(lastFace, lastPose, ALL_GLASSES[selectedGlassesIndex]));
+  }
 }
 
 function recordErrorSample(face: NormalizedFaceResult, pose: NonNullable<typeof lastPose>, error: number): void {
@@ -304,6 +317,7 @@ function drawErrorChart(): void {
 }
 
 function captureDiagnosticSnapshot(): void {
+  if (!heavyCaptureEnabled) return;
   const video = document.getElementById("camera-video") as HTMLVideoElement | null;
   if (!video || !lastFace || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
   const thumb = document.createElement("canvas");
@@ -324,6 +338,28 @@ function captureDiagnosticSnapshot(): void {
     figure.append(image, caption); return figure;
   }));
   auditSnapshots.textContent = `${recentSnapshots.length} capturas · intervalo 1s · buffer máximo 8`;
+}
+
+function setHeavyCaptureEnabled(enabled: boolean): void {
+  heavyCaptureEnabled = enabled;
+  btnSnapshot.toggleAttribute("disabled", !enabled);
+  if (enabled) {
+    ensureDebugViewports();
+    snapshotTimer = window.setInterval(captureDiagnosticSnapshot, 1000);
+    auditSnapshots.textContent = "Aguardando rastreamento…";
+    updateGeometryAudit();
+    return;
+  }
+  if (snapshotTimer !== null) {
+    window.clearInterval(snapshotTimer);
+    snapshotTimer = null;
+  }
+  recentSnapshots.length = 0;
+  snapshotStrip.replaceChildren();
+  auditSnapshots.textContent = "Desativado para preservar desempenho";
+  debugViewports.forEach((viewport) => viewport.dispose());
+  debugViewports = [];
+  updateGeometryAudit();
 }
 
 /** Applies one guarded, session-only origin correction from the nose bridge. */
@@ -739,7 +775,10 @@ function showShapeResult(result: FaceShapeResult): void {
 // ---------------------------------------------------------------------------
 
 async function handleSnapshot(): Promise<void> {
-  if (!sdk) return;
+  if (!sdk || !heavyCaptureEnabled) {
+    showToast("Ative 'Captura 3D + imagens' para usar snapshots", "info");
+    return;
+  }
   try {
     const result = await sdk.snapshot({ format: "image/png" });
     // Download the snapshot
@@ -924,7 +963,6 @@ async function init(): Promise<void> {
     // Start camera and try-on
     await sdk.startCamera();
     await sdk.startTryOn();
-    snapshotTimer = window.setInterval(captureDiagnosticSnapshot, 1000);
 
     // Load default glasses
     ensureDerivedAnchors(ALL_GLASSES[0]);
@@ -959,6 +997,16 @@ async function init(): Promise<void> {
 // Event Listeners
 // ---------------------------------------------------------------------------
 
+heavyCaptureToggle.addEventListener("change", () => {
+  setHeavyCaptureEnabled(heavyCaptureToggle.checked);
+});
+bottomPanelToggle.addEventListener("click", () => {
+  const expanded = !bottomPanel.classList.contains("collapsed");
+  bottomPanel.classList.toggle("collapsed", expanded);
+  bottomPanelToggle.setAttribute("aria-expanded", String(!expanded));
+  bottomPanelToggle.textContent = expanded ? "Abrir painel" : "Minimizar painel";
+});
+setHeavyCaptureEnabled(false);
 btnAnalyze.addEventListener("click", handleAnalyzeFaceShape);
 btnSnapshot.addEventListener("click", handleSnapshot);
 btnSwitchCamera.addEventListener("click", handleSwitchCamera);

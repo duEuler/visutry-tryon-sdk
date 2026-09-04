@@ -297,6 +297,23 @@ html, body {
   color: #35d07f;
 }
 
+.telemetry-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 999px;
+  background: rgba(15,15,25,.82);
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.telemetry-toggle input {
+  accent-color: var(--color-success);
+}
+
 .stat-pill {
   display: flex;
   align-items: center;
@@ -373,6 +390,53 @@ html, body {
   padding-bottom: max(12px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--color-border);
   z-index: 10;
+}
+
+.bottom-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+}
+
+.bottom-panel-title {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.panel-toggle {
+  border: 1px solid rgba(74,158,255,.35);
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: rgba(10,15,28,.9);
+  color: #b9d7ff;
+  font: 11px ui-monospace, SFMono-Regular, Consolas, monospace;
+  cursor: pointer;
+}
+
+.panel-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.bottom-panel-content {
+  padding-top: 10px;
+}
+
+.bottom-panel.collapsed {
+  padding-top: 5px;
+  padding-bottom: max(5px, env(safe-area-inset-bottom));
+}
+
+.bottom-panel.collapsed .bottom-panel-content {
+  display: none;
+}
+
+.action-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
 }
 
 /* ==================== Glasses Selector ==================== */
@@ -791,7 +855,7 @@ html, body {
   }
 
   .bottom-panel {
-    grid-column: 2;
+    grid-column: 1 / -1;
     grid-row: 2;
     width: 100%;
     max-width: none;
