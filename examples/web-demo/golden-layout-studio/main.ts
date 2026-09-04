@@ -1,6 +1,5 @@
-import { type ComponentContainer } from "golden-layout";
-import { bindStudioToolbar, createAccordionPanel, createDefaultStudioLayout, createGoldenLayoutStudio, createLocalStoragePersistence, createPanelShell, renderEvidenceTimeline, type AuditSnapshot, type StudioPanelDefinition, type StudioRuntimeAdapter } from "@visutry/studio";
-import { panels, accordionSections } from "./panel-catalog";
+import { bindStudioToolbar, createDefaultStudioLayout, createGoldenLayoutStudio, createLocalStoragePersistence, type StudioInstance, type StudioRuntimeAdapter } from "@visutry/studio";
+import { createPanelDefinitions } from "./panel-definitions";
 import type { VisuTrySDK } from "@visutry/tryon-core";
 import "./runtime-canvas.css";
 import "@visutry/studio/styles.css";
@@ -8,52 +7,11 @@ import "@visutry/studio/golden-layout.css";
 import "@visutry/studio/theme.css";
 
 const persistence = createLocalStoragePersistence("visutry-golden-layout-state-v7", 7);
-function component(container: ComponentContainer, id: string) {
-  const p = panels[id] ?? panels.camera;
-  const isAccordionPanel = id === "leftDock" || id === "rightDock";
-  const context = { panelId: id, getSnapshot: () => ({}) };
-  if (isAccordionPanel) {
-    createAccordionPanel(context, container, accordionSections(id === "leftDock" ? ["camera", "diagnostics", "quality", "error"] : ["glb", "overlay", "pose", "metrics"]));
-  } else {
-    createPanelShell(context, container, { panelId: id, body: p.body });
-  }
-  const item = container.element.closest<HTMLElement>(".lm_item");
-  const controls = item?.querySelector<HTMLElement>(".lm_controls");
-  if (controls && !controls.querySelector(".audit-collapse-control")) {
-    const toggle = document.createElement("button");
-    toggle.className = "audit-collapse-control";
-    toggle.type = "button";
-    toggle.textContent = "▼";
-    toggle.title = "Minimizar janela";
-    toggle.setAttribute("aria-label", "Minimizar janela");
-    controls.prepend(toggle);
-    toggle.addEventListener("click", (event) => {
-      event.stopPropagation();
-      const collapsed = !item.classList.contains("studio-panel-collapsed");
-      if (collapsed) studio.collapsePanel(id); else studio.expandPanel(id);
-      toggle.textContent = collapsed ? "▲" : "▼";
-      toggle.title = collapsed ? "Expandir janela" : "Minimizar janela";
-      toggle.setAttribute("aria-label", toggle.title);
-    });
-  }
-}
 const defaultLayout = createDefaultStudioLayout();
 const host = document.getElementById("layout-host"); if (!host) throw new Error("layout host ausente");
-const panelDefinitions: StudioPanelDefinition[] = Object.keys(panels).map((id) => ({
-  id,
-  title: panels[id].title,
-  region: id === "leftDock" ? "left" : id === "rightDock" ? "right" : id === "evidence" || id === "selected" ? "bottom" : "center",
-  scrollable: id === "leftDock" || id === "rightDock",
-  create: (_context, container) => component(container, id),
-  update: id === "evidence" ? (element, snapshot: AuditSnapshot) => {
-    const items = (snapshot.evidence ?? []) as { id: string; timestamp: number }[];
-    if (items.length) element.querySelector(".timeline")!.innerHTML = renderEvidenceTimeline(items.map((item) => ({ label: new Date(item.timestamp).toLocaleTimeString(), best: item.id === snapshot.selectedFrameId })));
-  } : id === "selected" ? (element, snapshot: AuditSnapshot) => {
-    const selected = ((snapshot.evidence ?? []) as { id: string; timestamp: number }[]).find((item) => item.id === snapshot.selectedFrameId);
-    if (selected) element.querySelector(".panel-body")!.innerHTML = `<div class="gl-row"><span>Time</span><strong>${new Date(selected.timestamp).toLocaleTimeString()}</strong></div><div class="gl-row"><span>Frame</span><strong>${selected.id}</strong></div>`;
-  } : undefined,
-}));
-const studio = createGoldenLayoutStudio({ host, panels: panelDefinitions, initialLayout: defaultLayout, persistence });
+let studio!: StudioInstance;
+const panelDefinitions = createPanelDefinitions({ collapsePanel: (id) => studio.collapsePanel(id), expandPanel: (id) => studio.expandPanel(id) });
+studio = createGoldenLayoutStudio({ host, panels: panelDefinitions, initialLayout: defaultLayout, persistence });
 studio.mount();
 const toolbarBinding = bindStudioToolbar(document, studio);
 if (import.meta.env.DEV) {
