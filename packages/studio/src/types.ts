@@ -25,6 +25,8 @@ export type StudioMode = "static" | "connected" | "degraded";
 export interface StudioRuntimeAdapter {
   getSnapshot(): AuditSnapshot;
   subscribe(listener: (snapshot: AuditSnapshot) => void): () => void;
+  /** Optional publisher used by deterministic/static adapters and test hosts. */
+  setSnapshot?(snapshot: AuditSnapshot): void;
   captureEvidence?(): Promise<EvidenceFrame>;
   initialize?(): Promise<void>;
   dispose?(): void;

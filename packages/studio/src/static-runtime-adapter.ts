@@ -13,5 +13,5 @@ export function createStaticRuntimeAdapter(initial: AuditSnapshot = {}): StudioR
       snapshot = { ...snapshot, ...next, mode: "static" };
       listeners.forEach((listener) => listener(snapshot));
     },
-  } as StudioRuntimeAdapter & { setSnapshot(next: AuditSnapshot): void };
+  };
 }
