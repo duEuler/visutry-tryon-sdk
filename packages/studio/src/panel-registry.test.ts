@@ -13,4 +13,10 @@ describe("StudioPanelRegistry", () => {
     registry.update("camera", element, { mode: "static" });
     expect(update).toHaveBeenCalledWith(element, { mode: "static" });
   });
+
+  it("rejects duplicate panel ids instead of overwriting definitions", () => {
+    const definition = { id: "camera", title: "Camera", region: "left" as const, scrollable: true, create: vi.fn() };
+    const registry = createPanelRegistry([definition]);
+    expect(() => registry.register(definition)).toThrow(/Duplicate Studio panel id/);
+  });
 });

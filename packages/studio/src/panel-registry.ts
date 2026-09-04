@@ -11,9 +11,15 @@ export interface StudioPanelRegistry {
 
 export function createPanelRegistry(definitions: StudioPanelDefinition[] = []): StudioPanelRegistry {
   const entries = new Map<PanelId, StudioPanelDefinition>();
-  definitions.forEach((definition) => entries.set(definition.id, definition));
+  definitions.forEach((definition) => {
+    if (entries.has(definition.id)) throw new Error(`Duplicate Studio panel id: ${definition.id}`);
+    entries.set(definition.id, definition);
+  });
   return {
-    register(definition) { entries.set(definition.id, definition); },
+    register(definition) {
+      if (entries.has(definition.id)) throw new Error(`Duplicate Studio panel id: ${definition.id}`);
+      entries.set(definition.id, definition);
+    },
     get(id) { return entries.get(id); },
     list() { return [...entries.values()]; },
     create(id, context, container) { entries.get(id)?.create(context, container); },
