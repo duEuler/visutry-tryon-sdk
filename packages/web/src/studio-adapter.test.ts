@@ -48,6 +48,14 @@ describe("createStudioRuntimeAdapter", () => {
     expect(frame).toMatchObject({ confidence: 0.95, rmsError: 0.679 });
   });
 
+  it("publishes degraded mode when evidence capture fails", async () => {
+    const sdk = createSdkMock();
+    sdk.snapshot.mockRejectedValueOnce(new Error("snapshot denied"));
+    const adapter = createStudioRuntimeAdapter(sdk as never);
+    await expect(adapter.captureEvidence?.()).rejects.toThrow("snapshot denied");
+    expect(adapter.getSnapshot()).toMatchObject({ mode: "degraded", error: expect.any(Error) });
+  });
+
   it("unsubscribes SDK events and destroys the SDK", async () => {
     const sdk = createSdkMock();
     const adapter = createStudioRuntimeAdapter(sdk as never);

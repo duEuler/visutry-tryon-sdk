@@ -51,20 +51,25 @@ export function createStudioRuntimeAdapter(sdk: VisuTrySDK, options: StudioRunti
     getSnapshot: () => snapshot,
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     async captureEvidence(): Promise<EvidenceFrame> {
-      const result = await sdk.snapshot({ format: "image/png", mirror: true });
-      const dataUrl = await composeEvidence(result.dataUrl, options.getVideo?.() ?? null);
-      const tracking = snapshot.tracking as { confidence?: number } | undefined;
-      const diagnostics = snapshot.face as { rmsError?: number } | undefined;
-      const frame: EvidenceFrame = {
-        id: `evidence-${result.timestamp}`,
-        timestamp: result.timestamp,
-        dataUrl,
-        confidence: tracking?.confidence,
-        rmsError: diagnostics?.rmsError,
-      };
-      const evidence = [...((snapshot.evidence as EvidenceFrame[] | undefined) ?? []), frame];
-      publish({ evidence, selectedFrameId: frame.id });
-      return frame;
+      try {
+        const result = await sdk.snapshot({ format: "image/png", mirror: true });
+        const dataUrl = await composeEvidence(result.dataUrl, options.getVideo?.() ?? null);
+        const tracking = snapshot.tracking as { confidence?: number } | undefined;
+        const diagnostics = snapshot.face as { rmsError?: number } | undefined;
+        const frame: EvidenceFrame = {
+          id: `evidence-${result.timestamp}`,
+          timestamp: result.timestamp,
+          dataUrl,
+          confidence: tracking?.confidence,
+          rmsError: diagnostics?.rmsError,
+        };
+        const evidence = [...((snapshot.evidence as EvidenceFrame[] | undefined) ?? []), frame];
+        publish({ evidence, selectedFrameId: frame.id });
+        return frame;
+      } catch (error) {
+        publish({ mode: "degraded", error });
+        throw error;
+      }
     },
     async initialize() {
       if (initialized || disposed) return;
