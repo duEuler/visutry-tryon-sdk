@@ -273,6 +273,17 @@ test.describe("Golden Layout Studio", () => {
 
   test("connects runtime and starts camera when hardware E2E is enabled", async ({ page }) => {
     test.skip(!HAS_CAMERA, "Set VISUTRY_E2E_CAMERA=1 to run camera-dependent Studio coverage.");
+    const hasUsableCamera = await page.evaluate(async () => {
+      if (!navigator.mediaDevices?.getUserMedia) return false;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream.getTracks().forEach((track) => track.stop());
+        return true;
+      } catch {
+        return false;
+      }
+    });
+    test.skip(!hasUsableCamera, "No usable camera stream is exposed by the current browser environment.");
     await page.locator("#connect-runtime").click();
     await expect(page.locator("#connect-runtime")).toHaveText(/Runtime conectado/, { timeout: 30000 });
     await expect(page.locator("#start-camera")).toBeEnabled();
