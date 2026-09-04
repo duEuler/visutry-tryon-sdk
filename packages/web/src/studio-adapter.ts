@@ -40,7 +40,11 @@ export function createStudioRuntimeAdapter(sdk: VisuTrySDK, options: StudioRunti
     glassesLoaded: (asset) => publish({ glb: asset }),
     glassesLoadFailed: (error) => publish({ mode: "degraded", error }),
     faceShapeAnalyzed: (result) => publish({ faceShape: result }),
-    performanceUpdated: (stats) => publish({ performance: stats }),
+    performanceUpdated: (stats) => publish({
+      performance: stats,
+      render: { frameTimeMs: stats.renderLatencyMs },
+      tracking: { latencyMs: stats.detectLatencyMs },
+    }),
     error: (error) => publish({ mode: "degraded", error }),
   };
   return {

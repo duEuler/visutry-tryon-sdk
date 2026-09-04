@@ -23,6 +23,14 @@ describe("createStudioRuntimeAdapter", () => {
     expect(adapter.getSnapshot()).toMatchObject({ tracking: { detected: true, confidence: 0.91 }, pose: { yaw: 2 } });
   });
 
+  it("normalizes performance metrics for Studio panels", async () => {
+    const sdk = createSdkMock();
+    const adapter = createStudioRuntimeAdapter(sdk as never);
+    await adapter.initialize?.();
+    sdk.handlers.get("performanceUpdated")?.({ fps: 30, detectLatencyMs: 12, renderLatencyMs: 4 });
+    expect(adapter.getSnapshot()).toMatchObject({ tracking: { latencyMs: 12 }, render: { frameTimeMs: 4 } });
+  });
+
   it("records captured evidence and selects the new frame", async () => {
     const sdk = createSdkMock();
     const adapter = createStudioRuntimeAdapter(sdk as never);
