@@ -13,5 +13,12 @@ test.describe("Golden Layout Studio desktop matrix", () => {
     expect(geometry.pageScroll).toBe(false);
     expect(geometry.columns).toBe(2);
     expect(geometry.host?.height).toBeGreaterThan(300);
+    await expect(page.locator('[data-panel-id="live"]')).toBeVisible();
+    await expect(page.locator('[data-panel-id="viewports"]')).toBeVisible();
+    await expect(page.locator('[data-panel-id="evidence"]')).toBeVisible();
+    await expect(page.locator("#studio-mode")).toHaveText("static");
+    for (const id of ["start-camera", "start-tryon", "load-glb", "capture-evidence", "stop-runtime"]) {
+      await expect(page.locator(`#${id}`)).toBeDisabled();
+    }
   });
 });
