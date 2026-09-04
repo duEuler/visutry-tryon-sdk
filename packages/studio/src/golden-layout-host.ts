@@ -19,6 +19,17 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   const collapsedPanels = new Set<string>();
   let lastCompleteLayout: LayoutConfig = options.initialLayout;
   let layoutLocked = false;
+  const setMode = (next: StudioMode) => {
+    if (mode === next) return;
+    const previous = mode;
+    mode = next;
+    options.host.dataset.studioMode = next;
+    options.host.classList.remove(`studio-mode--${previous}`);
+    options.host.classList.add(`studio-mode--${next}`);
+    modeListeners.forEach((listener) => listener(next));
+  };
+  options.host.dataset.studioMode = mode;
+  options.host.classList.add(`studio-mode--${mode}`);
 
   registry.list().forEach((panel) => {
     layout.registerComponentFactoryFunction(panel.id, (container) => {
@@ -144,21 +155,20 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       // options. Never dispose that same instance before initialize().
       if (activeRuntime && activeRuntime !== runtime) activeRuntime.dispose?.();
       activeRuntime = runtime;
-      mode = "connected";
-      modeListeners.forEach((listener) => listener(mode));
+      setMode("connected");
       store.setSnapshot(runtime.getSnapshot());
       runtimeUnsubscribe = runtime.subscribe((snapshot) => {
-        if (snapshot.mode && snapshot.mode !== mode) { mode = snapshot.mode; modeListeners.forEach((listener) => listener(mode)); }
+        if (snapshot.mode) setMode(snapshot.mode);
         store.setSnapshot(snapshot);
       });
-      try { await runtime.initialize?.(); } catch { mode = "degraded"; modeListeners.forEach((listener) => listener(mode)); }
+      try { await runtime.initialize?.(); } catch { setMode("degraded"); }
     },
     disconnectRuntime() {
       runtimeUnsubscribe?.();
       runtimeUnsubscribe = null;
       activeRuntime?.dispose?.();
       activeRuntime = undefined;
-      mode = "static";
+      setMode("static");
       store.setSnapshot({ mode: "static" });
       modeListeners.forEach((listener) => listener(mode));
     },
@@ -175,6 +185,8 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       visibilityFrames.forEach((frame) => cancelAnimationFrame(frame));
       visibilityFrames.clear();
       options.host.classList.remove("studio-layout-locked");
+      options.host.classList.remove(`studio-mode--${mode}`);
+      delete options.host.dataset.studioMode;
       resizeController.dispose();
       layout.off("stateChanged", handleLayoutStateChanged);
       reapplyPanelState = null;

@@ -387,6 +387,8 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator('[data-panel-id="live"]')).toHaveClass(/studio-panel/);
     await expect(page.locator('[data-panel-id="leftDock"]')).toHaveClass(/studio-panel/);
     await expect(page.locator('[data-panel-id="leftDock"]')).toHaveClass(/studio-panel--scrollable/);
+    await expect(page.locator("#layout-host")).toHaveAttribute("data-studio-mode", "static");
+    await expect(page.locator("#layout-host")).toHaveClass(/studio-mode--static/);
   });
 
   test("defers heavy runtime bundles until runtime connection", async ({ page }) => {
