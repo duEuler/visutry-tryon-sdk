@@ -234,8 +234,8 @@ export class MediaPipeFaceTracker implements IFaceTracker {
     this.disposed = true;
     this.eyeHistory.length = 0;
     try {
-      this.landmarker?.close();
-      this.imageLandmarker?.close();
+      if (typeof this.landmarker?.close === "function") this.landmarker.close();
+      if (typeof this.imageLandmarker?.close === "function") this.imageLandmarker.close();
     } catch (err) {
       console.warn("[VisuTrySDK]", "MediaPipeFaceTracker: error closing landmarker:", err);
     }
