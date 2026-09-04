@@ -18,6 +18,23 @@ referência 1132 × 912 px.
 | Scroll | Página sem overflow; accordions usam scroll próprio quando necessário | aprovado |
 | Viewports | Quatro vistas empilhadas sem scroll interno | aprovado |
 
+## Alinhamento GLB
+
+O Studio não recalcula pose nem altera o modelo: esses invariantes pertencem
+ao SDK e chegam pelo adapter. A validação integrada usa:
+
+- `ManifestValidator` para origem, âncoras e dimensões válidas do manifesto;
+- `GlassesPoseSolver` para escala limitada e posição no referencial canônico;
+- `createStudioRuntimeAdapter` para preservar espelhamento da captura e
+  encaminhar o manifesto carregado ao snapshot;
+- o evento `glassesLoadFailed` para mudar o modo para `degraded` sem desmontar
+  o layout.
+
+Assim, a comparação visual do GLB deve confirmar o mesmo referencial da câmera
+(espelhamento horizontal), origem próxima à ponte nasal e escala compatível
+com a distância interpupilar; qualquer falha permanece observável no snapshot
+e não é silenciosamente corrigida pelo Studio.
+
 ## Evidência automatizada
 
 Os testes E2E `preserves the desktop visual geometry baseline`, `preserves the
