@@ -579,5 +579,6 @@ test.describe("Legacy audit route compatibility", () => {
     await page.goto("/audit-studio.html");
     await expect(page.locator("#app")).toBeVisible();
     await expect(page.locator("#stage")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Abrir Golden Layout Studio" })).toHaveAttribute("href", "/golden-layout-studio/index.html");
   });
 });
