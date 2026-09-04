@@ -98,7 +98,7 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
     // Snapshot export is available only through the explicit evidence button;
     // all camera and tracking processing remains on-device.
     runtimeSdk = createVisuTryWebSDK({ canvas, privacy: { processOnDeviceOnly: true, allowSnapshotExport: true } });
-    runtimeAdapter = createStudioRuntimeAdapter(runtimeSdk);
+    runtimeAdapter = createStudioRuntimeAdapter(runtimeSdk, { getVideo: () => document.querySelector<HTMLVideoElement>("#camera-video") });
     await studio.connectRuntime(runtimeAdapter);
     const mode = studio.getMode();
     syncModeLabel();
