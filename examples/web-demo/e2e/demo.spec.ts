@@ -265,4 +265,12 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator('[data-panel-id="leftDock"]')).toBeVisible();
     await expect(page.locator('[data-panel-id="rightDock"]')).toBeVisible();
   });
+
+  test("falls back to the default layout when persisted state is invalid", async ({ page }) => {
+    await page.evaluate(() => localStorage.setItem("visutry-golden-layout-state-v7", "{invalid"));
+    await page.reload();
+    await expect(page.locator('[data-panel-id="leftDock"]')).toBeVisible();
+    await expect(page.locator('[data-panel-id="rightDock"]')).toBeVisible();
+    await expect(page.locator('[data-panel-id="evidence"]')).toBeVisible();
+  });
 });
