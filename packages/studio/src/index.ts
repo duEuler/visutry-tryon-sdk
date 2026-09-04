@@ -14,3 +14,4 @@ export * from "./panels/evidence-timeline.js";
 export * from "./panels/metric-grid.js";
 export * from "./studio-toolbar.js";
 export * from "./adapters.js";
+export * from "./react-adapter.js";

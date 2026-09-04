@@ -54,6 +54,26 @@ scroll policy, resize scheduling and persistence. Runtime adapters implement
 `StudioRuntimeAdapter` and may publish snapshots or capture evidence without
 requiring React-specific code.
 
+For repeated React integrations, `createReactStudioBinding` provides the same
+boundary without adding React as a package dependency:
+
+```tsx
+const binding = createReactStudioBinding({
+  panels,
+  initialLayout: createDefaultStudioLayout(),
+  persistence: createLocalStoragePersistence("studio-layout", 1),
+});
+
+useEffect(() => {
+  if (!hostRef.current) return;
+  binding.mount(hostRef.current);
+  return () => binding.unmount();
+}, [binding]);
+```
+
+`mount` is safe to call again (the previous instance is destroyed first), and
+`unmount` is idempotent for React strict-mode cleanup.
+
 For incremental integrations, the package also exports `StudioAdapters` with
 independent `CameraAdapter`, `TrackingAdapter`, `RendererAdapter`, `GlbAdapter`
 and `EvidenceAdapter` contracts. Each adapter may be supplied independently;
