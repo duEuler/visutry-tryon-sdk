@@ -10,6 +10,22 @@ audit snapshot store. Runtime integrations (camera, MediaPipe, Three.js and
 GLB) are supplied by adapters and are intentionally not dependencies of this
 package.
 
+## Module boundaries
+
+The implementation is intentionally split into small framework-neutral modules:
+
+- `default-layout` contains only the desktop baseline arrangement.
+- `layout-contract` normalizes persisted Golden Layout trees.
+- `panel-registry` validates panel IDs, regions and lifecycle hooks.
+- `golden-layout-host` owns docking, visibility, collapse, resize and runtime lifecycle.
+- `panels/*` contains reusable DOM factories for shells, accordions, viewports,
+  metrics and evidence timelines.
+- `layout-persistence` isolates versioned storage and migration fallback.
+
+The demo supplies application-specific panel content in its own
+`panel-definitions.ts`; the package does not import camera, tracking or renderer
+implementations.
+
 ## Integration contract
 
 The package is framework-neutral. A React host keeps the same lifecycle and
