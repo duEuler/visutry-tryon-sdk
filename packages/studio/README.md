@@ -46,7 +46,8 @@ the optional `runtime` field is the composed facade used by
 lifecycle so a React host can release resources in one cleanup.
 When adapters are supplied independently, `createCompositeStudioRuntime()`
 provides the same runtime facade used by `connectRuntime()`, including reverse
-order disposal and evidence registration.
+order disposal, rollback on partial initialization, degraded state and evidence
+registration.
 
 ### Static/offline mode
 

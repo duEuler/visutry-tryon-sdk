@@ -47,6 +47,7 @@ export interface StudioAdapters {
 export function createCompositeStudioRuntime(adapters: StudioAdapters, initial: AuditSnapshot = {}): StudioRuntimeAdapter {
   let snapshot: AuditSnapshot = { mode: "connected", ...initial };
   let disposed = false;
+  let initialized = false;
   const listeners = new Set<(next: AuditSnapshot) => void>();
   const publish = (next: AuditSnapshot) => {
     if (disposed) return;
@@ -58,8 +59,19 @@ export function createCompositeStudioRuntime(adapters: StudioAdapters, initial: 
     getSnapshot: () => snapshot,
     subscribe(listener) { if (disposed) return () => undefined; listeners.add(listener); return () => listeners.delete(listener); },
     async initialize() {
-      if (disposed) return;
-      for (const adapter of lifecycle) await adapter.initialize?.();
+      if (disposed || initialized) return;
+      const started: StudioLifecycleAdapter[] = [];
+      try {
+        for (const adapter of lifecycle) {
+          await adapter.initialize?.();
+          started.push(adapter);
+        }
+        initialized = true;
+      } catch (error) {
+        publish({ mode: "degraded", error });
+        [...started].reverse().forEach((adapter) => adapter.dispose?.());
+        throw error;
+      }
       const tracking = adapters.tracking?.getSnapshot?.();
       if (tracking) publish(tracking);
     },

@@ -32,4 +32,15 @@ describe("Studio adapter contracts", () => {
     runtime.dispose?.();
     await expect(runtime.captureEvidence?.()).rejects.toThrow("Evidence adapter unavailable");
   });
+
+  it("enters degraded mode and rolls back started adapters on initialization failure", async () => {
+    const calls: string[] = [];
+    const runtime = createCompositeStudioRuntime({
+      camera: { initialize: async () => { calls.push("camera+"); }, dispose: () => { calls.push("camera-"); } },
+      renderer: { initialize: async () => { calls.push("renderer+"); throw new Error("renderer unavailable"); }, dispose: () => calls.push("renderer-") },
+    });
+    await expect(runtime.initialize?.()).rejects.toThrow("renderer unavailable");
+    expect(runtime.getSnapshot()).toMatchObject({ mode: "degraded", error: expect.any(Error) });
+    expect(calls).toEqual(["camera+", "renderer+", "camera-"]);
+  });
 });
