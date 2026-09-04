@@ -284,6 +284,9 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator("#start-tryon")).toBeDisabled();
     await expect(page.locator("#load-glb")).toBeDisabled();
     await expect(page.locator("#capture-evidence")).toBeDisabled();
+    for (const id of ["start-camera", "start-tryon", "load-glb", "capture-evidence", "stop-runtime"]) {
+      await expect(page.locator(`#${id}`)).toHaveCSS("opacity", "0.5");
+    }
   });
 
   test("does not show simulated metrics or evidence while static", async ({ page }) => {
