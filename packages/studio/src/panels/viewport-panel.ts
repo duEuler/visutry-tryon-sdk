@@ -53,8 +53,16 @@ function drawViewport(canvas: HTMLCanvasElement, snapshot: ViewportSnapshot): vo
   const view = canvas.dataset.viewport ?? "FRONT";
   const pose = snapshot.pose ?? {};
   const projected = points.map((point) => project(point, view, pose.yaw ?? 0, pose.pitch ?? 0, pose.roll ?? 0));
+  const bounds = projected.reduce((value, point) => ({
+    minX: Math.min(value.minX, point.x), maxX: Math.max(value.maxX, point.x),
+    minY: Math.min(value.minY, point.y), maxY: Math.max(value.maxY, point.y),
+  }), { minX: 1, maxX: 0, minY: 1, maxY: 0 });
+  const boundsCenterX = (bounds.minX + bounds.maxX) / 2;
+  const boundsCenterY = (bounds.minY + bounds.maxY) / 2;
+  const scale = Math.min(0.82 / Math.max(bounds.maxX - bounds.minX, 0.05), 0.82 / Math.max(bounds.maxY - bounds.minY, 0.05));
+  const fitted = projected.map((point) => ({ x: 0.5 + (point.x - boundsCenterX) * scale, y: 0.5 + (point.y - boundsCenterY) * scale }));
   context.fillStyle = "rgba(52, 198, 240, .85)";
-  projected.forEach((point, index) => {
+  fitted.forEach((point, index) => {
     if (index % 2) return;
     context.beginPath();
     context.arc(point.x * width, point.y * height, 1.15, 0, Math.PI * 2);
@@ -62,32 +70,32 @@ function drawViewport(canvas: HTMLCanvasElement, snapshot: ViewportSnapshot): vo
   });
   context.strokeStyle = "rgba(52, 198, 240, .32)";
   context.lineWidth = 0.7;
-  for (let index = 1; index < projected.length; index += 2) {
-    const previous = projected[index - 1];
-    const point = projected[index];
+  for (let index = 1; index < fitted.length; index += 2) {
+    const previous = fitted[index - 1];
+    const point = fitted[index];
     context.beginPath();
     context.moveTo(previous.x * width, previous.y * height);
     context.lineTo(point.x * width, point.y * height);
     context.stroke();
   }
-  const eyeLeft = projected[Math.min(33, projected.length - 1)];
-  const eyeRight = projected[Math.min(263, projected.length - 1)];
+  const eyeLeft = fitted[Math.min(33, fitted.length - 1)];
+  const eyeRight = fitted[Math.min(263, fitted.length - 1)];
   if (!eyeLeft || !eyeRight) return;
   const eyeDistance = Math.max(8, Math.abs(eyeRight.x - eyeLeft.x) * width);
   const eyeY = ((eyeLeft.y + eyeRight.y) / 2) * height;
-  const centerX = ((eyeLeft.x + eyeRight.x) / 2) * width;
+  const glassesCenterX = ((eyeLeft.x + eyeRight.x) / 2) * width;
   const lensWidth = eyeDistance * 0.8;
   const lensHeight = Math.max(8, lensWidth * 0.58);
   context.strokeStyle = "#f1b54a";
   context.lineWidth = 1.5;
-  [centerX - eyeDistance / 2, centerX + eyeDistance / 2].forEach((lensX) => {
+  [glassesCenterX - eyeDistance / 2, glassesCenterX + eyeDistance / 2].forEach((lensX) => {
     context.beginPath();
     context.ellipse(lensX, eyeY, lensWidth / 2, lensHeight / 2, 0, 0, Math.PI * 2);
     context.stroke();
   });
   context.beginPath();
-  context.moveTo(centerX - eyeDistance / 2 + lensWidth / 2, eyeY);
-  context.lineTo(centerX + eyeDistance / 2 - lensWidth / 2, eyeY);
+  context.moveTo(glassesCenterX - eyeDistance / 2 + lensWidth / 2, eyeY);
+  context.lineTo(glassesCenterX + eyeDistance / 2 - lensWidth / 2, eyeY);
   context.stroke();
 }
 
