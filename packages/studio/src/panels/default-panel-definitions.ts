@@ -1,9 +1,15 @@
-import { renderMetricGrid, renderViewportGrid } from "@visutry/studio";
+import type { ComponentContainer } from "golden-layout";
+import { createAccordionPanel, type AccordionSection } from "./accordion-panel.js";
+import { renderEvidenceTimeline } from "./evidence-timeline.js";
+import { renderMetricGrid } from "./metric-grid.js";
+import { createPanelShell } from "./panel-shell.js";
+import { renderViewportGrid } from "./viewport-panel.js";
+import type { AuditSnapshot, StudioInstance, StudioPanelContext, StudioPanelDefinition } from "../types.js";
 
-export type Panel = { eyebrow: string; title: string; body: string };
-export type AccordionSection = { id: string; title: string; body: string };
+type Panel = { eyebrow: string; title: string; body: string };
+const panelCleanups = new WeakMap<HTMLElement, () => void>();
 
-export const panels: Record<string, Panel> = {
+const panels: Record<string, Panel> = {
   camera: { eyebrow: "01 / CAPTURA", title: "Câmera", body: renderMetricGrid([{ label: "Fonte", value: "Integrated Webcam" }, { label: "Estado", value: "● Ativa", status: true }, { label: "Resolução", value: "640 × 480" }, { label: "FPS alvo", value: "30" }]) },
   diagnostics: { eyebrow: "02 / OBSERVAÇÃO", title: "Diagnóstico", body: `<div class="gl-row"><span>Landmarks e overlay</span><strong class="status">ATIVO</strong></div><div class="gl-row"><span>Readout sobre o vídeo</span><strong>ATIVO</strong></div><div class="gl-row"><span>Curva de erro</span><strong>ATIVO</strong></div><div class="gl-row"><span>Snapshots manuais</span><strong>DESATIVADO</strong></div>` },
   quality: { eyebrow: "03 / QUALIDADE", title: "Tracking quality", body: renderMetricGrid([{ label: "Confiança", value: "95%" }, { label: "Rosto", value: "Detectado", status: true }, { label: "Estabilidade", value: "0.98" }, { label: "Latência", value: "19.9 ms" }]) },
@@ -18,11 +24,49 @@ export const panels: Record<string, Panel> = {
   selected: { eyebrow: "FRAME SELECIONADO", title: "Selected frame", body: `<div class="gl-row"><span>Time</span><strong>10:15:26.120</strong></div><div class="gl-row"><span>RMS Error</span><strong class="status">0.679 mm</strong></div><div class="gl-row"><span>Confidence</span><strong>95%</strong></div><div class="gl-row"><span>Pose</span><strong>-32.7° / 5.1° / 0.0°</strong></div><div class="gl-row"><span>Notes</span><strong>Optimal alignment</strong></div>` },
 };
 
-export function accordionBody(ids: string[]): string { return `<div class="accordion">${ids.map((id) => { const p = panels[id]; const contentId = `accordion-content-${id}`; return `<article class="accordion-item is-open"><button class="accordion-trigger" type="button" aria-expanded="true" aria-controls="${contentId}"><span>${p.title}</span><span aria-hidden="true">−</span></button><div id="${contentId}" class="accordion-content" role="region" aria-label="${p.title}">${p.body}</div></article>`; }).join("")}</div>`; }
+const accordionSections = (ids: string[]): AccordionSection[] => ids.map((id) => ({ id, title: panels[id].title, body: panels[id].body }));
 
-export function accordionSections(ids: string[]): AccordionSection[] {
-  return ids.map((id) => ({ id, title: panels[id].title, body: panels[id].body }));
+function createPanel(studio: Pick<StudioInstance, "collapsePanel" | "expandPanel">, context: StudioPanelContext, container: ComponentContainer, id: string): void {
+  const accordion = id === "leftDock" || id === "rightDock";
+  if (accordion) createAccordionPanel(context, container, accordionSections(id === "leftDock" ? ["camera", "diagnostics", "quality", "error"] : ["glb", "overlay", "pose", "metrics"]));
+  else createPanelShell(context, container, { panelId: id, body: panels[id].body });
+  const item = container.element.closest<HTMLElement>(".lm_item");
+  if (!item) return;
+  const controls = item?.querySelector<HTMLElement>(".lm_controls");
+  if (!controls || controls.querySelector(".audit-collapse-control")) return;
+  const toggle = document.createElement("button");
+  const controller = new AbortController();
+  toggle.className = "audit-collapse-control";
+  toggle.type = "button";
+  toggle.textContent = "▼";
+  toggle.title = "Minimizar janela";
+  toggle.setAttribute("aria-label", "Minimizar janela");
+  controls.prepend(toggle);
+  toggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const collapsed = !item.classList.contains("studio-panel-collapsed");
+    if (collapsed) studio.collapsePanel(id); else studio.expandPanel(id);
+    toggle.textContent = collapsed ? "▲" : "▼";
+    toggle.title = collapsed ? "Expandir janela" : "Minimizar janela";
+    toggle.setAttribute("aria-label", toggle.title);
+  }, { signal: controller.signal });
+  panelCleanups.set(container.element, () => controller.abort());
 }
 
-panels.leftDock = { eyebrow: "AUDITORIA", title: "Captura e diagnóstico", body: accordionBody(["camera", "diagnostics", "quality", "error"]) };
-panels.rightDock = { eyebrow: "LEITURA ESPACIAL", title: "Auditoria do objetivo", body: accordionBody(["glb", "overlay", "pose", "metrics"]) };
+export function createDefaultPanelDefinitions(studio: Pick<StudioInstance, "collapsePanel" | "expandPanel">): StudioPanelDefinition[] {
+  return Object.keys({ leftDock: 1, rightDock: 1, live: 1, viewports: 1, evidence: 1, selected: 1 }).map((id) => ({
+    id,
+    title: id === "leftDock" ? "Captura e diagnóstico" : id === "rightDock" ? "Auditoria espacial" : panels[id].title,
+    region: id === "leftDock" ? "left" : id === "rightDock" ? "right" : id === "evidence" || id === "selected" ? "bottom" : "center",
+    scrollable: id === "leftDock" || id === "rightDock",
+    create: (context, container) => createPanel(studio, context, container, id),
+    destroy: (element) => { panelCleanups.get(element)?.(); panelCleanups.delete(element); },
+    update: id === "evidence" ? (element, snapshot: AuditSnapshot) => {
+      const items = (snapshot.evidence ?? []) as { id: string; timestamp: number }[];
+      if (items.length) element.querySelector(".timeline")!.innerHTML = renderEvidenceTimeline(items.map((item) => ({ label: new Date(item.timestamp).toLocaleTimeString(), best: item.id === snapshot.selectedFrameId })));
+    } : id === "selected" ? (element, snapshot: AuditSnapshot) => {
+      const selected = ((snapshot.evidence ?? []) as { id: string; timestamp: number }[]).find((item) => item.id === snapshot.selectedFrameId);
+      if (selected) element.querySelector(".panel-body")!.innerHTML = `<div class="gl-row"><span>Time</span><strong>${new Date(selected.timestamp).toLocaleTimeString()}</strong></div><div class="gl-row"><span>Frame</span><strong>${selected.id}</strong></div>`;
+    } : undefined,
+  }));
+}

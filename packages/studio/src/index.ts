@@ -13,6 +13,7 @@ export * from "./panels/accordion-panel.js";
 export * from "./panels/viewport-panel.js";
 export * from "./panels/evidence-timeline.js";
 export * from "./panels/metric-grid.js";
+export * from "./panels/default-panel-definitions.js";
 export * from "./studio-toolbar.js";
 export * from "./adapters.js";
 export * from "./adapters/studio-runtime-adapter.js";

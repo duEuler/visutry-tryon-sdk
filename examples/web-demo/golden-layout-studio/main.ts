@@ -1,5 +1,4 @@
-import { bindStudioToolbar, createDefaultStudioLayout, createGoldenLayoutStudio, createLocalStoragePersistence, type StudioInstance, type StudioRuntimeAdapter } from "@visutry/studio";
-import { createPanelDefinitions } from "./panel-definitions";
+import { bindStudioToolbar, createDefaultPanelDefinitions, createDefaultStudioLayout, createGoldenLayoutStudio, createLocalStoragePersistence, type StudioInstance, type StudioRuntimeAdapter } from "@visutry/studio";
 import type { VisuTrySDK } from "@visutry/tryon-core";
 import "./runtime-canvas.css";
 import "@visutry/studio/styles.css";
@@ -10,7 +9,7 @@ const persistence = createLocalStoragePersistence("visutry-golden-layout-state-v
 const defaultLayout = createDefaultStudioLayout();
 const host = document.getElementById("layout-host"); if (!host) throw new Error("layout host ausente");
 let studio!: StudioInstance;
-const panelDefinitions = createPanelDefinitions({ collapsePanel: (id) => studio.collapsePanel(id), expandPanel: (id) => studio.expandPanel(id) });
+const panelDefinitions = createDefaultPanelDefinitions({ collapsePanel: (id) => studio.collapsePanel(id), expandPanel: (id) => studio.expandPanel(id) });
 studio = createGoldenLayoutStudio({ host, panels: panelDefinitions, initialLayout: defaultLayout, persistence });
 studio.mount();
 const toolbarBinding = bindStudioToolbar(document, studio);
