@@ -4,6 +4,14 @@ export type PanelId = string;
 export type StudioRegion = "left" | "center" | "right" | "bottom";
 
 export interface AuditSnapshot { [key: string]: unknown }
+export type StudioMode = "static" | "connected" | "degraded";
+
+export interface StudioRuntimeAdapter {
+  getSnapshot(): AuditSnapshot;
+  subscribe(listener: (snapshot: AuditSnapshot) => void): () => void;
+  initialize?(): Promise<void>;
+  dispose?(): void;
+}
 
 export interface StudioPanelContext {
   panelId: PanelId;
@@ -35,6 +43,7 @@ export interface StudioOptions {
   persistence?: LayoutPersistence;
   snapshot?: AuditSnapshot;
   toolbar?: ToolbarOptions;
+  runtime?: StudioRuntimeAdapter;
 }
 
 export interface StudioInstance {
@@ -48,4 +57,5 @@ export interface StudioInstance {
   collapsePanel(id: PanelId): void;
   expandPanel(id: PanelId): void;
   destroy(): void;
+  getMode(): StudioMode;
 }

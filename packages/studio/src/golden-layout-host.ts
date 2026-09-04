@@ -1,12 +1,14 @@
 import { GoldenLayout, type LayoutConfig } from "golden-layout";
 import { AuditStore } from "./audit-store.js";
-import type { StudioInstance, StudioOptions } from "./types.js";
+import type { StudioInstance, StudioMode, StudioOptions } from "./types.js";
 
 export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance {
   const store = new AuditStore(options.snapshot);
   const layout = new GoldenLayout(options.host);
   let resizeFrame: number | null = null;
   let mounted = false;
+  let mode: StudioMode = options.runtime ? "connected" : "static";
+  let runtimeUnsubscribe: (() => void) | null = null;
 
   options.panels.forEach((panel) => {
     layout.registerComponentFactoryFunction(panel.id, (container) => {
@@ -46,6 +48,12 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     mount() {
       if (mounted) return;
       mounted = true;
+      if (options.runtime) {
+        store.setSnapshot(options.runtime.getSnapshot());
+        runtimeUnsubscribe = options.runtime.subscribe((snapshot) => store.setSnapshot(snapshot));
+        const initialization = options.runtime.initialize?.();
+        if (initialization) void initialization.catch(() => { mode = "degraded"; });
+      }
       layout.loadLayout((options.persistence?.load() ?? options.initialLayout) as unknown as LayoutConfig);
       observer.observe(options.host);
       syncSize();
@@ -58,10 +66,14 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     hidePanel(id) { setPanelVisibility(id, false); },
     collapsePanel(id) { setPanelCollapsed(id, true); },
     expandPanel(id) { setPanelCollapsed(id, false); },
+    getMode() { return mode; },
     destroy() {
       observer.disconnect();
       if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
       store.destroy();
+      runtimeUnsubscribe?.();
+      runtimeUnsubscribe = null;
+      options.runtime?.dispose?.();
       layout.destroy();
       mounted = false;
     },
