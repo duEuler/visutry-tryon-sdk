@@ -93,14 +93,13 @@
       </div>
       <div class="audit-card audit-card--viewport">
         <h2>Viewport 3D</h2>
-        <div class="viewport-controls" role="group" aria-label="Vista do viewport 3D">
-          <button type="button" data-debug-view="front">Frente</button>
-          <button type="button" data-debug-view="top">Topo</button>
-          <button type="button" data-debug-view="left">Esq.</button>
-          <button type="button" data-debug-view="right">Dir.</button>
+        <div class="viewport-grid" aria-label="Vistas 3D simultâneas">
+          <div class="viewport-cell"><span>Frente</span><canvas id="debug-viewport-front" aria-label="Vista frontal 3D"></canvas></div>
+          <div class="viewport-cell"><span>Topo</span><canvas id="debug-viewport-top" aria-label="Vista superior 3D"></canvas></div>
+          <div class="viewport-cell"><span>Esquerda</span><canvas id="debug-viewport-left" aria-label="Vista esquerda 3D"></canvas></div>
+          <div class="viewport-cell"><span>Direita</span><canvas id="debug-viewport-right" aria-label="Vista direita 3D"></canvas></div>
         </div>
-        <canvas id="debug-viewport" aria-label="Visualização 3D de inspeção"></canvas>
-        <p id="audit-viewport-view">vista frontal · eixos X/Y/Z</p>
+        <p>eixos X/Y/Z · pontos ciano · GLB âmbar · anchors verdes</p>
       </div>
       <div class="audit-card audit-card--snapshots">
         <h2>Snapshots recentes</h2>

@@ -11,6 +11,7 @@ import { buildCanonicalFaceFrame, CoordinateSystem } from "@visutry/tryon-core";
 import type { VisuTrySDK, GlassesAssetManifest, FaceShapeResult, PerformanceStats, GlassesItem, NormalizedFaceResult } from "@visutry/tryon-core";
 import { Recommender } from "@visutry/recommender";
 import { DebugViewport } from "./DebugViewport";
+import type { DebugViewportView } from "./DebugViewport";
 
 // Import demo glasses manifests
 import aviatorClassic from "../../../packages/demo-assets/glasses/aviator-classic.json";
@@ -75,8 +76,8 @@ const auditVolume = $("audit-volume");
 const auditLandmarks = $("audit-landmarks");
 const errorChart = $("error-chart") as HTMLCanvasElement;
 const auditError = $("audit-error");
-const debugViewportCanvas = $("debug-viewport") as HTMLCanvasElement;
-const debugViewportView = $("audit-viewport-view");
+const debugViewportViews: DebugViewportView[] = ["front", "top", "left", "right"];
+const debugViewports = debugViewportViews.map((view) => new DebugViewport($("debug-viewport-" + view) as HTMLCanvasElement, view));
 const snapshotStrip = $("snapshot-strip");
 const auditSnapshots = $("audit-snapshots");
 const statFps = $("stat-fps");
@@ -115,7 +116,6 @@ let isAnalyzing = false;
 let currentFacingMode: "user" | "environment" = "user";
 let diagnosticEnabled = false;
 const landmarkOverlay = new LandmarkOverlay(diagnosticCanvas);
-const debugViewport = new DebugViewport(debugViewportCanvas);
 let lastFace: NormalizedFaceResult | null = null;
 let lastPose: { position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number }; scale: { x: number } } | null = null;
 let diagnosticBaseReadout = "";
@@ -262,7 +262,7 @@ function updateGeometryAudit(): void {
     auditVolume.textContent = "Aguardando face 3D…";
     auditLandmarks.textContent = "Aguardando malha…";
   }
-  debugViewport.update(lastFace, lastPose, ALL_GLASSES[selectedGlassesIndex]);
+  debugViewports.forEach((viewport) => viewport.update(lastFace, lastPose, ALL_GLASSES[selectedGlassesIndex]));
 }
 
 function recordErrorSample(face: NormalizedFaceResult, pose: NonNullable<typeof lastPose>, error: number): void {
@@ -962,13 +962,6 @@ async function init(): Promise<void> {
 btnAnalyze.addEventListener("click", handleAnalyzeFaceShape);
 btnSnapshot.addEventListener("click", handleSnapshot);
 btnSwitchCamera.addEventListener("click", handleSwitchCamera);
-document.querySelectorAll<HTMLButtonElement>("[data-debug-view]").forEach((button) => {
-  button.addEventListener("click", () => {
-    const view = button.dataset.debugView as "front" | "top" | "left" | "right";
-    debugViewport.setView(view);
-    debugViewportView.textContent = `vista ${view === "front" ? "frontal" : view === "top" ? "superior" : view === "left" ? "esquerda" : "direita"} · eixos X/Y/Z`;
-  });
-});
 modalClose.addEventListener("click", closeModal);
 document.querySelector(".modal-backdrop")?.addEventListener("click", closeModal);
 document.addEventListener("keydown", (e) => {
@@ -976,7 +969,7 @@ document.addEventListener("keydown", (e) => {
 });
 window.addEventListener("beforeunload", () => {
   if (snapshotTimer !== null) window.clearInterval(snapshotTimer);
-  debugViewport.dispose();
+  debugViewports.forEach((viewport) => viewport.dispose());
 });
 
 // Prevent body scroll on mobile

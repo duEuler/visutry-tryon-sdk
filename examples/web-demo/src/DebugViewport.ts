@@ -13,7 +13,7 @@ export class DebugViewport {
   private view: DebugViewportView = "front";
   private resizeObserver?: ResizeObserver;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {
+  constructor(private readonly canvas: HTMLCanvasElement, view: DebugViewportView = "front") {
     this.renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.camera = new THREE.OrthographicCamera(-1.6, 1.6, 1.4, -1.4, 0.1, 20);
@@ -22,7 +22,7 @@ export class DebugViewport {
     this.resizeObserver = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(() => this.resize());
     this.resizeObserver?.observe(canvas);
     this.resize();
-    this.setView("front");
+    this.setView(view);
   }
 
   setView(view: DebugViewportView): void {
