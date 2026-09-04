@@ -12,11 +12,14 @@ function readState(raw: string, version: number): PersistedStudioState | null {
     const isCurrent = parsed.version === version;
     const isPrevious = parsed.version === version - 1;
     if ((!isCurrent && !isPrevious) || !isLayout(parsed.layout)) return null;
+    const panelIds = (value: unknown): string[] => Array.isArray(value)
+      ? [...new Set(value.filter((id): id is string => typeof id === "string" && id.trim().length > 0))]
+      : [];
     return {
       version,
       layout: parsed.layout,
-      hiddenPanels: Array.isArray(parsed.hiddenPanels) ? parsed.hiddenPanels.filter((id): id is string => typeof id === "string") : [],
-      collapsedPanels: Array.isArray(parsed.collapsedPanels) ? parsed.collapsedPanels.filter((id): id is string => typeof id === "string") : [],
+      hiddenPanels: panelIds(parsed.hiddenPanels),
+      collapsedPanels: panelIds(parsed.collapsedPanels),
     };
   } catch {
     return null;
@@ -32,12 +35,20 @@ export function createLocalStoragePersistence(key: string, version: number): Lay
         return readState(raw, version)?.layout ?? null;
       } catch { return null; }
     },
-    save(layout) { localStorage.setItem(key, JSON.stringify({ version, layout, hiddenPanels: [], collapsedPanels: [] } satisfies PersistedStudioState)); },
-    loadState() {
-      const raw = localStorage.getItem(key);
-      return raw ? readState(raw, version) : null;
+    save(layout) {
+      try { localStorage.setItem(key, JSON.stringify({ version, layout, hiddenPanels: [], collapsedPanels: [] } satisfies PersistedStudioState)); }
+      catch { /* storage indisponível não pode interromper o Studio */ }
     },
-    saveState(state) { localStorage.setItem(key, JSON.stringify({ ...state, version } satisfies PersistedStudioState)); },
-    clear() { localStorage.removeItem(key); },
+    loadState() {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? readState(raw, version) : null;
+      } catch { return null; }
+    },
+    saveState(state) {
+      try { localStorage.setItem(key, JSON.stringify({ ...state, version } satisfies PersistedStudioState)); }
+      catch { /* storage indisponível não pode interromper o Studio */ }
+    },
+    clear() { try { localStorage.removeItem(key); } catch { /* best effort */ } },
   };
 }

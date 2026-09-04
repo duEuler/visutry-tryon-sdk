@@ -35,4 +35,24 @@ describe("createLocalStoragePersistence", () => {
     localStorage.setItem("studio-future", JSON.stringify({ version: 8, layout: { root: { type: "row", content: [] } } }));
     expect(persistence.loadState?.()).toBeNull();
   });
+
+  it("sanitizes duplicate and empty panel ids during migration", () => {
+    const persistence = createLocalStoragePersistence("studio-panel-ids", 2);
+    localStorage.setItem("studio-panel-ids", JSON.stringify({
+      version: 2,
+      layout: { root: { type: "row", content: [] } },
+      hiddenPanels: ["camera", "camera", "", 4],
+      collapsedPanels: ["rightDock", "rightDock", "  "],
+    }));
+    expect(persistence.loadState?.()).toMatchObject({ hiddenPanels: ["camera"], collapsedPanels: ["rightDock"] });
+  });
+
+  it("does not throw when storage writes fail", () => {
+    const persistence = createLocalStoragePersistence("studio-write-failure", 1);
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = () => { throw new Error("quota"); };
+    expect(() => persistence.save({ root: { type: "row", content: [] } } as never)).not.toThrow();
+    expect(() => persistence.saveState?.({ version: 1, layout: { root: { type: "row", content: [] } } as never, hiddenPanels: [], collapsedPanels: [] })).not.toThrow();
+    Storage.prototype.setItem = original;
+  });
 });
