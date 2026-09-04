@@ -43,5 +43,5 @@
 }
 
 :where(.audit-collapse-control:hover) { color: #32d99a; }
-:where(.lm_item.audit-collapsed) { height: 28px !important; min-height: 28px !important; }
-:where(.lm_item.audit-collapsed > .lm_content) { display: none !important; }
+:where(.lm_item.audit-collapsed, .lm_item.studio-panel-collapsed) { height: 28px !important; min-height: 28px !important; }
+:where(.lm_item.audit-collapsed > .lm_content, .lm_item.studio-panel-collapsed > .lm_content) { display: none !important; }
