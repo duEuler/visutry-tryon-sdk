@@ -30,6 +30,7 @@ export function createStudioRuntimeAdapter(sdk: VisuTrySDK, options: StudioRunti
   let initialized = false;
   let disposed = false;
   const publish = (patch: AuditSnapshot) => {
+    if (disposed) return;
     snapshot = normalizeAuditSnapshot(patch, snapshot);
     listeners.forEach((listener) => listener(snapshot));
   };
@@ -53,7 +54,11 @@ export function createStudioRuntimeAdapter(sdk: VisuTrySDK, options: StudioRunti
   };
   return {
     getSnapshot: () => snapshot,
-    subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
+    subscribe(listener) {
+      if (disposed) return () => false;
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
     async captureEvidence(): Promise<EvidenceFrame> {
       if (disposed) throw new Error("Studio runtime adapter disposed");
       try {

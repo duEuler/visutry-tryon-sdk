@@ -121,6 +121,17 @@ describe("createStudioRuntimeAdapter", () => {
     expect(sdk.snapshot).not.toHaveBeenCalled();
   });
 
+  it("does not retain subscriptions created after disposal", () => {
+    const sdk = createSdkMock();
+    const adapter = createStudioRuntimeAdapter(sdk as never);
+    adapter.dispose?.();
+    const listener = vi.fn();
+    const unsubscribe = adapter.subscribe(listener);
+    sdk.handlers.get("ready")?.();
+    unsubscribe();
+    expect(listener).not.toHaveBeenCalled();
+  });
+
   it("initializes event handlers only once", async () => {
     const sdk = createSdkMock();
     const adapter = createStudioRuntimeAdapter(sdk as never);
