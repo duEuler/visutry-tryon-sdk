@@ -63,8 +63,8 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     },
     saveLayout() {
       const nextLayout = layout.saveLayout() as unknown as LayoutConfig;
-      options.persistence?.saveState?.({ version: 1, layout: nextLayout, hiddenPanels: [...hiddenPanels], collapsedPanels: [...collapsedPanels] });
-      options.persistence?.save(nextLayout);
+      if (options.persistence?.saveState) options.persistence.saveState({ version: 1, layout: nextLayout, hiddenPanels: [...hiddenPanels], collapsedPanels: [...collapsedPanels] });
+      else options.persistence?.save(nextLayout);
     },
     restoreDefaultLayout() { options.persistence?.clear(); hiddenPanels.clear(); collapsedPanels.clear(); layout.loadLayout(options.initialLayout); resizeController.schedule(); },
     getLayout() { return layout.saveLayout() as unknown as LayoutConfig; },
