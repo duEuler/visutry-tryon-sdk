@@ -189,7 +189,6 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       activeRuntime = undefined;
       setMode("static");
       store.setSnapshot({ mode: "static" });
-      modeListeners.forEach((listener) => listener(mode));
     },
     destroy() {
       if (!mounted) return;
