@@ -18,6 +18,10 @@ export interface AuditSnapshot {
   render?: RenderMetrics;
   evidence?: EvidenceFrame[];
   selectedFrameId?: string | null;
+  /** Diagnostic payloads forwarded by runtime adapters. */
+  face?: unknown;
+  performance?: unknown;
+  error?: unknown;
   [key: string]: unknown;
 }
 export type StudioMode = "static" | "connected" | "degraded";
