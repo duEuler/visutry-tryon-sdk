@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { createCompositeStudioRuntime, type StudioAdapters } from "./adapters.js";
+import type { CameraAdapter } from "./adapters/camera-adapter.js";
+import type { EvidenceAdapter } from "./adapters/evidence-adapter.js";
+import type { GlbAdapter } from "./adapters/glb-adapter.js";
+import type { RendererAdapter } from "./adapters/renderer-adapter.js";
+import type { TrackingAdapter } from "./adapters/tracking-adapter.js";
 
 describe("Studio adapter contracts", () => {
+  it("keeps each adapter boundary independently importable", () => {
+    const adapters: [CameraAdapter, TrackingAdapter, RendererAdapter, GlbAdapter, EvidenceAdapter] = [
+      {}, {}, {}, {}, {},
+    ];
+    expect(adapters).toHaveLength(5);
+  });
+
   it("allows independent optional adapters without requiring a runtime", () => {
     const adapters: StudioAdapters = {
       camera: { start: async () => undefined, stop: () => undefined },

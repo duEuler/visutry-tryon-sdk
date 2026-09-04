@@ -1,36 +1,20 @@
-import type { AuditSnapshot, EvidenceFrame, StudioRuntimeAdapter } from "./types.js";
+import type { AuditSnapshot, StudioRuntimeAdapter } from "./types.js";
+import type { CameraAdapter } from "./adapters/camera-adapter.js";
+import type { TrackingAdapter } from "./adapters/tracking-adapter.js";
+import type { RendererAdapter } from "./adapters/renderer-adapter.js";
+import type { GlbAdapter } from "./adapters/glb-adapter.js";
+import type { EvidenceAdapter } from "./adapters/evidence-adapter.js";
+
+export type { CameraAdapter } from "./adapters/camera-adapter.js";
+export type { TrackingAdapter } from "./adapters/tracking-adapter.js";
+export type { RendererAdapter } from "./adapters/renderer-adapter.js";
+export type { GlbAdapter } from "./adapters/glb-adapter.js";
+export type { EvidenceAdapter } from "./adapters/evidence-adapter.js";
 
 /** Shared lifecycle contract for optional Studio integrations. */
 export interface StudioLifecycleAdapter {
   initialize?(): Promise<void>;
   dispose?(): void;
-}
-
-export interface CameraAdapter extends StudioLifecycleAdapter {
-  start?(): Promise<void>;
-  stop?(): void;
-  getVideo?(): HTMLVideoElement | null;
-}
-
-export interface TrackingAdapter extends StudioLifecycleAdapter {
-  start?(): Promise<void>;
-  stop?(): void;
-  getSnapshot?(): AuditSnapshot;
-}
-
-export interface RendererAdapter extends StudioLifecycleAdapter {
-  resize?(): void;
-  pause?(): void;
-  resume?(): void;
-}
-
-export interface GlbAdapter extends StudioLifecycleAdapter {
-  load?(manifest: unknown): Promise<void>;
-  unload?(): void;
-}
-
-export interface EvidenceAdapter extends StudioLifecycleAdapter {
-  capture?(): Promise<EvidenceFrame>;
 }
 
 /** Composite boundary used by hosts that expose individual adapters. */
