@@ -42,3 +42,38 @@ export interface StudioAdapters {
   evidence?: EvidenceAdapter;
   runtime?: StudioRuntimeAdapter;
 }
+
+/** Composes independent adapters behind the runtime contract used by Studio. */
+export function createCompositeStudioRuntime(adapters: StudioAdapters, initial: AuditSnapshot = {}): StudioRuntimeAdapter {
+  let snapshot: AuditSnapshot = { mode: "connected", ...initial };
+  let disposed = false;
+  const listeners = new Set<(next: AuditSnapshot) => void>();
+  const publish = (next: AuditSnapshot) => {
+    if (disposed) return;
+    snapshot = { ...snapshot, ...next };
+    listeners.forEach((listener) => listener(snapshot));
+  };
+  const lifecycle = [adapters.camera, adapters.tracking, adapters.renderer, adapters.glb, adapters.evidence].filter(Boolean) as StudioLifecycleAdapter[];
+  return {
+    getSnapshot: () => snapshot,
+    subscribe(listener) { if (disposed) return () => undefined; listeners.add(listener); return () => listeners.delete(listener); },
+    async initialize() {
+      if (disposed) return;
+      for (const adapter of lifecycle) await adapter.initialize?.();
+      const tracking = adapters.tracking?.getSnapshot?.();
+      if (tracking) publish(tracking);
+    },
+    async captureEvidence() {
+      if (disposed || !adapters.evidence?.capture) throw new Error("Evidence adapter unavailable");
+      const frame = await adapters.evidence.capture();
+      publish({ evidence: [...(snapshot.evidence ?? []), frame], selectedFrameId: frame.id });
+      return frame;
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      [...lifecycle].reverse().forEach((adapter) => adapter.dispose?.());
+      listeners.clear();
+    },
+  };
+}
