@@ -6,12 +6,21 @@ export interface StudioToolbarBinding {
 
 export interface StudioToolbarOptions {
   accordionPanelIds?: string[];
+  /** Disable all bound controls while the host is unavailable. */
+  enabled?: boolean;
 }
 
 /** Binds declarative toolbar actions to a Studio instance. */
 export function bindStudioToolbar(root: ParentNode, studio: StudioInstance, options: StudioToolbarOptions = {}): StudioToolbarBinding {
   const panelIds = options.accordionPanelIds ?? ["leftDock", "rightDock"];
   const listeners: Array<() => void> = [];
+  const controls = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-studio-action]"));
+  if (options.enabled === false) {
+    controls.forEach((button) => {
+      button.disabled = true;
+      button.setAttribute("aria-disabled", "true");
+    });
+  }
   const on = (selector: string, handler: (button: HTMLButtonElement) => void) => {
     root.querySelectorAll<HTMLButtonElement>(selector).forEach((button) => {
       const listener = () => handler(button);
@@ -19,6 +28,7 @@ export function bindStudioToolbar(root: ParentNode, studio: StudioInstance, opti
       listeners.push(() => button.removeEventListener("click", listener));
     });
   };
+  if (options.enabled === false) return { dispose() {} };
   on('[data-studio-action="save"]', () => studio.saveLayout());
   on('[data-studio-action="restore"]', () => studio.restoreDefaultLayout());
   on('[data-studio-action="expand"]', () => panelIds.forEach((id) => studio.expandPanel(id)));

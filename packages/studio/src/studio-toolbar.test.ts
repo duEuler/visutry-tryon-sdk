@@ -64,4 +64,16 @@ describe("bindStudioToolbar", () => {
     expect(studio.saveLayout).toHaveBeenCalledTimes(2);
     binding.dispose();
   });
+
+  it("can start disabled without binding actions", () => {
+    document.body.innerHTML = '<button data-studio-action="save"></button>';
+    const studio = studioMock();
+    const binding = bindStudioToolbar(document, studio, { enabled: false });
+    const button = document.querySelector<HTMLButtonElement>('[data-studio-action="save"]')!;
+    expect(button.disabled).toBe(true);
+    expect(button.getAttribute("aria-disabled")).toBe("true");
+    button.click();
+    expect(studio.saveLayout).not.toHaveBeenCalled();
+    binding.dispose();
+  });
 });
