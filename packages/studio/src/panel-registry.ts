@@ -3,6 +3,7 @@ import type { AuditSnapshot, PanelId, StudioPanelContext, StudioPanelDefinition 
 
 export interface StudioPanelRegistry {
   register(definition: StudioPanelDefinition): void;
+  unregister(id: PanelId): boolean;
   get(id: PanelId): StudioPanelDefinition | undefined;
   list(): StudioPanelDefinition[];
   create(id: PanelId, context: StudioPanelContext, container: ComponentContainer): void;
@@ -20,6 +21,7 @@ export function createPanelRegistry(definitions: StudioPanelDefinition[] = []): 
       if (entries.has(definition.id)) throw new Error(`Duplicate Studio panel id: ${definition.id}`);
       entries.set(definition.id, definition);
     },
+    unregister(id) { return entries.delete(id); },
     get(id) { return entries.get(id); },
     list() { return [...entries.values()]; },
     create(id, context, container) { entries.get(id)?.create(context, container); },

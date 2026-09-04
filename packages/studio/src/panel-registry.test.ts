@@ -19,4 +19,12 @@ describe("StudioPanelRegistry", () => {
     const registry = createPanelRegistry([definition]);
     expect(() => registry.register(definition)).toThrow(/Duplicate Studio panel id/);
   });
+
+  it("unregisters dynamic panels without affecting the remaining registry", () => {
+    const definition = { id: "dynamic", title: "Dynamic", region: "center" as const, scrollable: false, create: vi.fn() };
+    const registry = createPanelRegistry([definition]);
+    expect(registry.unregister("dynamic")).toBe(true);
+    expect(registry.get("dynamic")).toBeUndefined();
+    expect(registry.unregister("dynamic")).toBe(false);
+  });
 });
