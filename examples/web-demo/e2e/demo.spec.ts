@@ -365,6 +365,8 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator("#connect-runtime")).toHaveText(/Runtime conectado/, { timeout: 30000 });
     await page.locator("#load-glb").click();
     await expect(page.locator("#load-glb")).toHaveText(/GLB carregado/, { timeout: 30000 });
+    await expect(page.locator('[data-panel-id="rightDock"]')).toContainText("Classic Aviator");
+    await expect(page.locator('[data-panel-id="rightDock"]')).toContainText("SunglassesKhronos.glb");
     await page.locator("#capture-evidence").click();
     await expect(page.locator("#capture-evidence")).toHaveText(/Evidência capturada/, { timeout: 30000 });
     await expect(page.locator('[data-panel-id="evidence"] .thumb')).toHaveCount(1);
