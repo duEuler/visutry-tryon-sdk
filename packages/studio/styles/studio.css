@@ -5,6 +5,20 @@
   overflow: hidden;
 }
 
+/* Keep a narrow desktop toolbar from widening the document itself. */
+:where(.topbar) {
+  min-width: 0;
+  overflow: hidden;
+}
+
+:where(.topbar .toolbar) {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
 :where(.studio-panel) {
   min-width: 0;
   min-height: 0;

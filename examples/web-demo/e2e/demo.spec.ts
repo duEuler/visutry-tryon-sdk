@@ -336,9 +336,12 @@ test.describe("Golden Layout Studio", () => {
     const dimensions = await page.evaluate(() => ({
       pageHeight: document.documentElement.scrollHeight,
       viewportHeight: window.innerHeight,
+      pageWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth,
       bodyOverflow: getComputedStyle(document.body).overflow,
     }));
     expect(dimensions.pageHeight).toBeLessThanOrEqual(dimensions.viewportHeight);
+    expect(dimensions.pageWidth).toBeLessThanOrEqual(dimensions.viewportWidth);
     expect(dimensions.bodyOverflow).toBe("hidden");
     await expect(page.locator(".gl-panel--accordion .accordion").first()).toHaveCSS("overflow-y", "auto");
   });
