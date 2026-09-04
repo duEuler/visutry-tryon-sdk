@@ -273,4 +273,15 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator('[data-panel-id="rightDock"]')).toBeVisible();
     await expect(page.locator('[data-panel-id="evidence"]')).toBeVisible();
   });
+
+  test("keeps page scrolling disabled while panel scrolling remains available", async ({ page }) => {
+    const dimensions = await page.evaluate(() => ({
+      pageHeight: document.documentElement.scrollHeight,
+      viewportHeight: window.innerHeight,
+      bodyOverflow: getComputedStyle(document.body).overflow,
+    }));
+    expect(dimensions.pageHeight).toBeLessThanOrEqual(dimensions.viewportHeight);
+    expect(dimensions.bodyOverflow).toBe("hidden");
+    await expect(page.locator(".gl-panel--accordion .accordion").first()).toHaveCSS("overflow-y", "auto");
+  });
 });
