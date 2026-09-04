@@ -84,7 +84,10 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       activeRuntime = runtime;
       mode = "connected";
       store.setSnapshot(runtime.getSnapshot());
-      runtimeUnsubscribe = runtime.subscribe((snapshot) => store.setSnapshot(snapshot));
+      runtimeUnsubscribe = runtime.subscribe((snapshot) => {
+        if (snapshot.mode) mode = snapshot.mode;
+        store.setSnapshot(snapshot);
+      });
       try { await runtime.initialize?.(); } catch { mode = "degraded"; }
     },
     destroy() {
