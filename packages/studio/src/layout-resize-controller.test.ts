@@ -17,10 +17,11 @@ describe("createLayoutResizeController", () => {
     callback?.(0);
     expect(layout.updateSize).toHaveBeenCalledWith(800, 600);
     controller.schedule();
+    const requestsBeforeDispose = request.mock.calls.length;
     controller.dispose();
     expect(cancel).toHaveBeenCalledWith(7);
     controller.schedule();
-    expect(request).toHaveBeenCalledOnce();
+    expect(request.mock.calls.length).toBe(requestsBeforeDispose);
     vi.unstubAllGlobals();
   });
 });
