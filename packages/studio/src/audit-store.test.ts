@@ -14,4 +14,15 @@ describe("AuditStore", () => {
     store.setSnapshot({ mode: "degraded" });
     expect(listener).toHaveBeenCalledTimes(1);
   });
+
+  it("ignores late runtime updates after destruction", () => {
+    const store = new AuditStore({ mode: "static" });
+    const listener = vi.fn();
+    store.subscribe(listener);
+    store.destroy();
+    store.setSnapshot({ mode: "connected" });
+    expect(store.getSnapshot()).toMatchObject({ mode: "static" });
+    expect(listener).not.toHaveBeenCalled();
+    expect(store.subscribe(vi.fn())).toBeTypeOf("function");
+  });
 });
