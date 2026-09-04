@@ -271,6 +271,20 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator("#capture-evidence")).toBeDisabled();
   });
 
+  test("keeps the workspace mounted in degraded runtime mode", async ({ page }) => {
+    await page.evaluate(async () => {
+      const studio = (window as Window & { __visutryStudio?: { connectRuntime(runtime: unknown): Promise<void> } }).__visutryStudio;
+      await studio?.connectRuntime({
+        getSnapshot: () => ({ mode: "connected" }),
+        subscribe: () => () => undefined,
+        initialize: async () => { throw new Error("runtime unavailable"); },
+        dispose: () => undefined,
+      });
+    });
+    await expect(page.locator("#layout-host")).toHaveAttribute("data-studio-mode", "degraded");
+    await expect(page.locator('[data-panel-id="live"]')).toBeVisible();
+  });
+
   test("keeps layout persistence controls visible beside the scrollable toolbar", async ({ page }) => {
     await expect(page.locator("#save-layout")).toBeVisible();
     await expect(page.locator("#reset-layout")).toBeVisible();
