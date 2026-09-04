@@ -27,11 +27,13 @@ const panels: Record<string, Panel> = {
 
 const accordionSections = (ids: string[]): AccordionSection[] => ids.map((id) => ({ id, title: panels[id].title, body: panels[id].body }));
 
-function renderSelectedFrame(element: HTMLElement, selected: { id: string; timestamp: number }): void {
+function renderSelectedFrame(element: HTMLElement, selected: { id: string; timestamp: number; confidence?: number; rmsError?: number }): void {
   const body = element.querySelector<HTMLElement>(".panel-body");
   if (!body) return;
   body.replaceChildren();
   const rows: [string, string][] = [["Time", new Date(selected.timestamp).toLocaleTimeString()], ["Frame", selected.id]];
+  if (selected.rmsError !== undefined) rows.push(["RMS Error", `${selected.rmsError} mm`]);
+  if (selected.confidence !== undefined) rows.push(["Confidence", `${Math.round(selected.confidence * 100)}%`]);
   rows.forEach(([label, value]) => {
     const row = document.createElement("div");
     row.className = "gl-row";
@@ -172,14 +174,14 @@ export function createDefaultPanelDefinitions(studio: Pick<StudioInstance, "coll
     update: (element, snapshot: AuditSnapshot) => {
       updateRuntimePresentation(element, snapshot);
       if (id === "evidence") {
-      const items = (snapshot.evidence ?? []) as { id: string; timestamp: number }[];
+      const items = (snapshot.evidence ?? []) as { id: string; timestamp: number; dataUrl?: string }[];
       const timeline = element.querySelector<HTMLElement>(".timeline");
       if (timeline && snapshot.mode === "connected") timeline.innerHTML = items.length
-        ? renderEvidenceTimeline(items.map((item) => ({ label: new Date(item.timestamp).toLocaleTimeString(), best: item.id === snapshot.selectedFrameId })))
+        ? renderEvidenceTimeline(items.map((item) => ({ label: new Date(item.timestamp).toLocaleTimeString(), dataUrl: item.dataUrl, best: item.id === snapshot.selectedFrameId })))
         : "<span class=\"timeline-empty\">Nenhuma evidência disponível</span>";
       }
       if (id === "selected") {
-      const selected = ((snapshot.evidence ?? []) as { id: string; timestamp: number }[]).find((item) => item.id === snapshot.selectedFrameId);
+      const selected = ((snapshot.evidence ?? []) as { id: string; timestamp: number; confidence?: number; rmsError?: number }[]).find((item) => item.id === snapshot.selectedFrameId);
       if (selected && snapshot.mode !== "static" && snapshot.mode !== "degraded") renderSelectedFrame(element, selected);
       }
     },

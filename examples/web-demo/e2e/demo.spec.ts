@@ -386,6 +386,7 @@ test.describe("Golden Layout Studio", () => {
     await page.locator("#capture-evidence").click();
     await expect(page.locator("#capture-evidence")).toHaveText(/Evidência capturada/, { timeout: 30000 });
     await expect(page.locator('[data-panel-id="evidence"] .thumb')).toHaveCount(1);
+    await expect(page.locator('[data-panel-id="evidence"] .thumb-image')).toHaveCount(1);
   });
 
   test("hides and restores both side docks without moving the bottom row", async ({ page }) => {
