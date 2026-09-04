@@ -1,5 +1,6 @@
 import { GoldenLayout, type LayoutConfig, type ComponentContainer } from "golden-layout";
 import "./styles.css";
+import "./collapse.css";
 
 const key = "visutry-golden-layout-state-v1";
 type Panel = { eyebrow: string; title: string; body: string };
@@ -19,15 +20,25 @@ const panels: Record<string, Panel> = {
 };
 function component(container: ComponentContainer, id: string) {
   const p = panels[id] ?? panels.camera;
-  container.element.innerHTML = `<section class="gl-panel"><div class="panel-heading"><div><div class="eyebrow">${p.eyebrow}</div><h2>${p.title}</h2></div><button class="panel-toggle" type="button" aria-expanded="true" title="Colapsar painel">−</button></div><div class="panel-body">${p.body}</div></section>`;
-  const panel = container.element.querySelector<HTMLElement>(".gl-panel");
-  const toggle = container.element.querySelector<HTMLButtonElement>(".panel-toggle");
-  toggle?.addEventListener("click", () => {
-    const collapsed = panel?.classList.toggle("is-collapsed") ?? false;
-    toggle.textContent = collapsed ? "+" : "−";
-    toggle.setAttribute("aria-expanded", String(!collapsed));
-    toggle.title = collapsed ? "Expandir painel" : "Colapsar painel";
-  });
+  container.element.innerHTML = `<section class="gl-panel"><div class="panel-heading"><div><div class="eyebrow">${p.eyebrow}</div><h2>${p.title}</h2></div></div><div class="panel-body">${p.body}</div></section>`;
+  const item = container.element.closest<HTMLElement>(".lm_item");
+  const controls = item?.querySelector<HTMLElement>(".lm_controls");
+  if (controls && !controls.querySelector(".audit-collapse-control")) {
+    const toggle = document.createElement("button");
+    toggle.className = "audit-collapse-control";
+    toggle.type = "button";
+    toggle.textContent = "▼";
+    toggle.title = "Minimizar janela";
+    toggle.setAttribute("aria-label", "Minimizar janela");
+    controls.prepend(toggle);
+    toggle.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const collapsed = item.classList.toggle("audit-collapsed");
+      toggle.textContent = collapsed ? "▲" : "▼";
+      toggle.title = collapsed ? "Expandir janela" : "Minimizar janela";
+      toggle.setAttribute("aria-label", toggle.title);
+    });
+  }
 }
 const defaultLayout: LayoutConfig = {
   root: {
