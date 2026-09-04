@@ -1,6 +1,6 @@
 import { GoldenLayout, type LayoutConfig } from "golden-layout";
 import { AuditStore } from "./audit-store.js";
-import type { StudioInstance, StudioMode, StudioOptions } from "./types.js";
+import type { StudioInstance, StudioMode, StudioOptions, StudioRuntimeAdapter } from "./types.js";
 
 export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance {
   const store = new AuditStore(options.snapshot);
@@ -9,6 +9,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   let mounted = false;
   let mode: StudioMode = options.runtime ? "connected" : "static";
   let runtimeUnsubscribe: (() => void) | null = null;
+  let activeRuntime: StudioRuntimeAdapter | undefined = options.runtime;
 
   options.panels.forEach((panel) => {
     layout.registerComponentFactoryFunction(panel.id, (container) => {
@@ -48,12 +49,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     mount() {
       if (mounted) return;
       mounted = true;
-      if (options.runtime) {
-        store.setSnapshot(options.runtime.getSnapshot());
-        runtimeUnsubscribe = options.runtime.subscribe((snapshot) => store.setSnapshot(snapshot));
-        const initialization = options.runtime.initialize?.();
-        if (initialization) void initialization.catch(() => { mode = "degraded"; });
-      }
+      if (activeRuntime) void instance.connectRuntime(activeRuntime);
       layout.loadLayout((options.persistence?.load() ?? options.initialLayout) as unknown as LayoutConfig);
       observer.observe(options.host);
       syncSize();
@@ -67,13 +63,22 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
     collapsePanel(id) { setPanelCollapsed(id, true); },
     expandPanel(id) { setPanelCollapsed(id, false); },
     getMode() { return mode; },
+    async connectRuntime(runtime) {
+      runtimeUnsubscribe?.();
+      activeRuntime?.dispose?.();
+      activeRuntime = runtime;
+      mode = "connected";
+      store.setSnapshot(runtime.getSnapshot());
+      runtimeUnsubscribe = runtime.subscribe((snapshot) => store.setSnapshot(snapshot));
+      try { await runtime.initialize?.(); } catch { mode = "degraded"; }
+    },
     destroy() {
       observer.disconnect();
       if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
       store.destroy();
       runtimeUnsubscribe?.();
       runtimeUnsubscribe = null;
-      options.runtime?.dispose?.();
+      activeRuntime?.dispose?.();
       layout.destroy();
       mounted = false;
     },

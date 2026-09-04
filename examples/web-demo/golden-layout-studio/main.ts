@@ -5,6 +5,7 @@ import "./collapse.css";
 import "./layout-fix.css";
 import "./accordion-scroll.css";
 import "./viewport-layout.css";
+import "./runtime-canvas.css";
 
 const persistence = createLocalStoragePersistence("visutry-golden-layout-state-v7", 7);
 type Panel = { eyebrow: string; title: string; body: string };
@@ -13,7 +14,7 @@ const panels: Record<string, Panel> = {
   diagnostics: { eyebrow: "02 / OBSERVAÇÃO", title: "Diagnóstico", body: `<div class="gl-row"><span>Landmarks e overlay</span><strong class="status">ATIVO</strong></div><div class="gl-row"><span>Readout sobre o vídeo</span><strong>ATIVO</strong></div><div class="gl-row"><span>Curva de erro</span><strong>ATIVO</strong></div><div class="gl-row"><span>Snapshots manuais</span><strong>DESATIVADO</strong></div>` },
   quality: { eyebrow: "03 / QUALIDADE", title: "Tracking quality", body: `<div class="metric-grid"><div class="metric"><label>Confiança</label><strong>95%</strong></div><div class="metric"><label>Rosto</label><strong class="status">Detectado</strong></div><div class="metric"><label>Estabilidade</label><strong>0.98</strong></div><div class="metric"><label>Latência</label><strong>19.9 ms</strong></div></div>` },
   error: { eyebrow: "04 / MÉTRICAS", title: "Curva de erro", body: `<div class="visual" style="height:120px"><svg viewBox="0 0 300 100" width="100%" height="100%"><polyline fill="none" stroke="#43e39b" stroke-width="2" points="0,72 30,64 60,67 90,50 120,55 150,35 180,46 210,40 240,48 270,22 300,30"/></svg></div><p>atual <b>0.679 mm</b> · média 0.82 mm · status <span class="status">OK</span></p>` },
-  live: { eyebrow: "PALCO CENTRAL", title: "Live 3D / Face overlay", body: `<div class="visual"><div class="face-wire"><div class="glasses"></div></div><span style="position:absolute;bottom:10px;left:12px;color:#6f89a6">rosto ciano · GLB âmbar · anchors verdes</span></div>` },
+  live: { eyebrow: "PALCO CENTRAL", title: "Live 3D / Face overlay", body: `<div class="visual"><canvas class="studio-live-canvas" aria-label="Canvas Live 3D"></canvas><div class="face-wire"><div class="glasses"></div></div><span style="position:absolute;bottom:10px;left:12px;color:#6f89a6">rosto ciano · GLB âmbar · anchors verdes</span></div>` },
   viewports: { eyebrow: "GEOMETRIA", title: "Viewports 3D", body: `<div class="viewport-grid">${["FRONT","TOP","LEFT","RIGHT"].map((v) => `<div class="mini"><strong>${v}</strong><div class="visual"><div class="face-wire small"><div class="glasses"></div></div></div><small>3D ao vivo · agora</small></div>`).join("")}</div>` },
   glb: { eyebrow: "OBJETIVO", title: "GLB objective", body: `<div class="gl-row"><span>Modelo</span><strong>Classic Aviator</strong></div><div class="gl-row"><span>Arquivo</span><strong>classic_aviator.glb</strong></div><div class="gl-row"><span>Dimensões</span><strong>150 × 58 × 50 mm</strong></div><div class="gl-row"><span>Escala</span><strong>0.213 (livre)</strong></div><div class="gl-row"><span>Visibilidade</span><strong class="status">Exibindo</strong></div>` },
   overlay: { eyebrow: "ALINHAMENTO", title: "Overlay & alignment", body: `<div class="gl-row"><span>Posição</span><strong>-0.288 · 0.130 · -0.002</strong></div><div class="gl-row"><span>Rotação</span><strong>-32.7° · 5.1° · 0.0°</strong></div><div class="gl-row"><span>Modo</span><strong>Eyes Center</strong></div><div class="gl-row"><span>Erro RMS</span><strong class="status">0.679 mm</strong></div>` },
@@ -82,3 +83,19 @@ document.getElementById("reset-layout")?.addEventListener("click", () => studio.
 document.getElementById("expand-accordions")?.addEventListener("click", () => { studio.expandPanel("leftDock"); studio.expandPanel("rightDock"); });
 document.getElementById("collapse-accordions")?.addEventListener("click", () => { studio.collapsePanel("leftDock"); studio.collapsePanel("rightDock"); });
 window.addEventListener("beforeunload", () => studio.destroy());
+document.getElementById("connect-runtime")?.addEventListener("click", async (event) => {
+  const button = event.currentTarget as HTMLButtonElement;
+  const canvas = document.querySelector<HTMLCanvasElement>(".studio-live-canvas");
+  if (!canvas) return;
+  button.disabled = true;
+  button.textContent = "Conectando…";
+  try {
+    const { createVisuTryWebSDK, createStudioRuntimeAdapter } = await import("@visutry/tryon-web");
+    const sdk = createVisuTryWebSDK({ canvas, privacy: { processOnDeviceOnly: true, allowSnapshotExport: false } });
+    await studio.connectRuntime(createStudioRuntimeAdapter(sdk));
+    button.textContent = "Runtime conectado";
+  } catch {
+    button.disabled = false;
+    button.textContent = "Tentar runtime novamente";
+  }
+});

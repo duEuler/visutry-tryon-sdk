@@ -58,4 +58,5 @@ export interface StudioInstance {
   expandPanel(id: PanelId): void;
   destroy(): void;
   getMode(): StudioMode;
+  connectRuntime(runtime: StudioRuntimeAdapter): Promise<void>;
 }
