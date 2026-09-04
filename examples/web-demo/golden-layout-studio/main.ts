@@ -1,5 +1,5 @@
 import { type ComponentContainer } from "golden-layout";
-import { bindAccordion, createDefaultStudioLayout, createGoldenLayoutStudio, createLocalStoragePersistence, createPanelShell, renderAccordion, type StudioPanelDefinition, type StudioRuntimeAdapter } from "@visutry/studio";
+import { bindAccordion, createDefaultStudioLayout, createGoldenLayoutStudio, createLocalStoragePersistence, createPanelShell, renderAccordion, renderEvidenceTimeline, type AuditSnapshot, type StudioPanelDefinition, type StudioRuntimeAdapter } from "@visutry/studio";
 import type { VisuTrySDK } from "@visutry/tryon-core";
 import "./styles.css";
 import "./collapse.css";
@@ -62,6 +62,13 @@ const panelDefinitions: StudioPanelDefinition[] = Object.keys(panels).map((id) =
   region: id === "leftDock" ? "left" : id === "rightDock" ? "right" : id === "evidence" || id === "selected" ? "bottom" : "center",
   scrollable: id === "leftDock" || id === "rightDock",
   create: (_context, container) => component(container, id),
+  update: id === "evidence" ? (element, snapshot: AuditSnapshot) => {
+    const items = (snapshot.evidence ?? []) as { id: string; timestamp: number }[];
+    if (items.length) element.querySelector(".timeline")!.innerHTML = renderEvidenceTimeline(items.map((item) => ({ label: new Date(item.timestamp).toLocaleTimeString(), best: item.id === snapshot.selectedFrameId })));
+  } : id === "selected" ? (element, snapshot: AuditSnapshot) => {
+    const selected = ((snapshot.evidence ?? []) as { id: string; timestamp: number }[]).find((item) => item.id === snapshot.selectedFrameId);
+    if (selected) element.querySelector(".panel-body")!.innerHTML = `<div class="gl-row"><span>Time</span><strong>${new Date(selected.timestamp).toLocaleTimeString()}</strong></div><div class="gl-row"><span>Frame</span><strong>${selected.id}</strong></div>`;
+  } : undefined,
 }));
 const studio = createGoldenLayoutStudio({ host, panels: panelDefinitions, initialLayout: defaultLayout, persistence });
 studio.mount();
@@ -72,6 +79,8 @@ document.getElementById("save-layout")?.addEventListener("click", () => studio.s
 document.getElementById("reset-layout")?.addEventListener("click", () => studio.restoreDefaultLayout());
 document.getElementById("expand-accordions")?.addEventListener("click", () => { studio.expandPanel("leftDock"); studio.expandPanel("rightDock"); });
 document.getElementById("collapse-accordions")?.addEventListener("click", () => { studio.collapsePanel("leftDock"); studio.collapsePanel("rightDock"); });
+document.getElementById("show-side-panels")?.addEventListener("click", () => { studio.showPanel("leftDock"); studio.showPanel("rightDock"); });
+document.getElementById("hide-side-panels")?.addEventListener("click", () => { studio.hidePanel("leftDock"); studio.hidePanel("rightDock"); });
 document.getElementById("toggle-layout-lock")?.addEventListener("click", (event) => { const button = event.currentTarget as HTMLButtonElement; const locked = !studio.isLayoutLocked(); studio.setLayoutLocked(locked); button.textContent = locked ? "Desbloquear layout" : "Bloquear layout"; });
 const runtimeButton = document.getElementById("connect-runtime") as HTMLButtonElement | null;
 const cameraButton = document.getElementById("start-camera") as HTMLButtonElement | null;
