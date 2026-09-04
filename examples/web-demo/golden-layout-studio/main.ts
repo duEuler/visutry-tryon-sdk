@@ -74,6 +74,9 @@ const unsubscribeSnapshot = studio.subscribeSnapshot((snapshot) => {
 let runtimeSdk: VisuTrySDK | null = null;
 let runtimeAdapter: StudioRuntimeAdapter | null = null;
 let resumeTryOnOnVisible = false;
+let cameraReady = false;
+let tryOnReady = false;
+let glbReady = false;
 const unsubscribePanelVisibility = studio.subscribePanelVisibility((id, visible) => {
   if (id !== "live" || !runtimeSdk) return;
   if (!visible) {
@@ -104,6 +107,11 @@ const setRuntimeControls = (mode: StudioMode) => {
       ? "Disponível com runtime conectado"
       : "Conecte o runtime para habilitar este recurso";
   });
+  if (ready) {
+    if (cameraButton) cameraButton.disabled = cameraReady;
+    if (tryOnButton) tryOnButton.disabled = tryOnReady;
+    if (glbButton) glbButton.disabled = glbReady;
+  }
   if (stopButton) stopButton.disabled = !hasRuntime;
 };
 const applyDiagnosticVisibility = (target: string, visible: boolean) => {
@@ -143,6 +151,7 @@ cameraButton?.addEventListener("click", async () => {
       },
     });
     cameraButton.textContent = "Câmera ativa";
+    cameraReady = true;
     setStatus("Câmera iniciada");
   } catch (error) {
     cameraButton.disabled = false;
@@ -155,6 +164,8 @@ tryOnButton?.addEventListener("click", async () => {
   try {
     await runtimeSdk.startTryOn();
     resumeTryOnOnVisible = true;
+    tryOnReady = true;
+    tryOnButton.disabled = true;
     tryOnButton.textContent = "Try-on ativo";
   } catch {
     tryOnButton.textContent = "Tentar try-on novamente";
@@ -167,6 +178,7 @@ glbButton?.addEventListener("click", async () => {
   try {
     const { default: asset } = await import("@visutry/demo-assets/glasses/aviator-classic.json");
     await runtimeSdk.loadGlasses(asset);
+    glbReady = true;
     glbButton.textContent = "GLB carregado";
     setStatus("GLB carregado");
   } catch (error) {
@@ -194,6 +206,9 @@ stopButton?.addEventListener("click", () => {
   resumeTryOnOnVisible = false;
   runtimeSdk = null;
   runtimeAdapter = null;
+  cameraReady = false;
+  tryOnReady = false;
+  glbReady = false;
   studio.disconnectRuntime();
   if (cameraButton) cameraButton.textContent = "Iniciar câmera";
   if (tryOnButton) tryOnButton.textContent = "Iniciar try-on";
@@ -281,14 +296,17 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
       cameraButton.disabled = true;
       cameraButton.textContent = "Câmera ativa";
     }
+    cameraReady = true;
     await runtimeSdk.startTryOn();
     resumeTryOnOnVisible = true;
+    tryOnReady = true;
     if (tryOnButton) {
       tryOnButton.disabled = false;
       tryOnButton.textContent = "Try-on ativo";
     }
     const { default: asset } = await import("@visutry/demo-assets/glasses/aviator-classic.json");
     await runtimeSdk.loadGlasses(asset);
+    glbReady = true;
     if (glbButton) {
       glbButton.disabled = true;
       glbButton.textContent = "GLB carregado";
