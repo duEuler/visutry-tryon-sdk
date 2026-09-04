@@ -159,6 +159,15 @@
   color: #39dca2;
 }
 
+:where(.diagnostic-option) {
+  cursor: pointer;
+}
+
+:where(.diagnostic-option input) {
+  accent-color: #39dca2;
+  cursor: pointer;
+}
+
 :where(.studio-panel--scrollable.gl-panel--accordion) .accordion-content {
   display: none;
   padding: 12px;
@@ -194,6 +203,10 @@
 }
 
 :where(.studio-panel--hidden) {
+  display: none !important;
+}
+
+:where(.studio-diagnostic-hidden) {
   display: none !important;
 }
 

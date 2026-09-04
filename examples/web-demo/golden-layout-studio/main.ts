@@ -93,6 +93,23 @@ const setRuntimeControls = (mode: StudioMode) => {
   });
   if (stopButton) stopButton.disabled = !hasRuntime;
 };
+const applyDiagnosticVisibility = (target: string, visible: boolean) => {
+  const selectors: Record<string, string> = {
+    landmarks: '#stage .face-wire',
+    readout: '#stage .studio-runtime-caption',
+    error: '[data-panel-id="leftDock"] [data-accordion-id="error"]',
+    snapshots: '[data-panel-id="evidence"]',
+  };
+  const selector = selectors[target];
+  if (!selector) return;
+  document.querySelectorAll<HTMLElement>(selector).forEach((element) => {
+    element.classList.toggle("studio-diagnostic-hidden", !visible);
+  });
+};
+document.querySelectorAll<HTMLInputElement>("[data-diagnostic-toggle]").forEach((control) => {
+  applyDiagnosticVisibility(control.dataset.diagnosticToggle ?? "", control.checked);
+  control.addEventListener("change", () => applyDiagnosticVisibility(control.dataset.diagnosticToggle ?? "", control.checked));
+});
 const unsubscribeMode = studio.subscribeMode((mode) => {
   if (modeLabel) modeLabel.textContent = mode;
   setRuntimeControls(mode);

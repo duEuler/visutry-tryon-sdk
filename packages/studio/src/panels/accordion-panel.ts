@@ -6,7 +6,7 @@ export interface AccordionSection { id: string; title: string; body: string; }
 export function renderAccordion(sections: AccordionSection[]): string {
   return `<div class="accordion">${sections.map((section) => {
     const contentId = `accordion-content-${section.id}`;
-    return `<article class="accordion-item is-open"><button class="accordion-trigger" type="button" aria-expanded="true" aria-controls="${contentId}"><span>${section.title}</span><span aria-hidden="true">−</span></button><div id="${contentId}" class="accordion-content" role="region" aria-label="${section.title}">${section.body}</div></article>`;
+    return `<article class="accordion-item is-open" data-accordion-id="${section.id}"><button class="accordion-trigger" type="button" aria-expanded="true" aria-controls="${contentId}"><span>${section.title}</span><span aria-hidden="true">−</span></button><div id="${contentId}" class="accordion-content" role="region" aria-label="${section.title}">${section.body}</div></article>`;
   }).join("")}</div>`;
 }
 
