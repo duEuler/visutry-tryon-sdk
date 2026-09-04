@@ -20,8 +20,19 @@ if (import.meta.env.DEV) {
 const modeLabel = document.getElementById("studio-mode");
 const statusLabel = document.getElementById("studio-status");
 const setStatus = (message: string) => { if (statusLabel) statusLabel.textContent = message; };
+const formatRuntimeError = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const value = error as { code?: unknown; message?: unknown };
+    if (typeof value.code === "string" && typeof value.message === "string") return `${value.code}: ${value.message}`;
+    if (typeof value.message === "string") return value.message;
+    if (typeof value.code === "string") return value.code;
+  }
+  return "Falha no runtime";
+};
 const syncModeLabel = () => { if (modeLabel) modeLabel.textContent = studio.getMode(); };
 const unsubscribeMode = studio.subscribeMode((mode) => { if (modeLabel) modeLabel.textContent = mode; });
+const unsubscribeSnapshot = studio.subscribeSnapshot((snapshot) => { if (snapshot.error) setStatus(formatRuntimeError(snapshot.error)); });
 let runtimeSdk: VisuTrySDK | null = null;
 let runtimeAdapter: StudioRuntimeAdapter | null = null;
 let resumeTryOnOnVisible = false;
@@ -64,7 +75,7 @@ const stageObserver = typeof IntersectionObserver === "function" && stageElement
     }, { threshold: 0.01 })
   : null;
 stageObserver?.observe(stageElement);
-window.addEventListener("beforeunload", () => { toolbarBinding.dispose(); unsubscribeMode(); unsubscribePanelVisibility(); studio.destroy(); });
+window.addEventListener("beforeunload", () => { toolbarBinding.dispose(); unsubscribeMode(); unsubscribeSnapshot(); unsubscribePanelVisibility(); studio.destroy(); });
 window.addEventListener("beforeunload", () => stageObserver?.disconnect());
 document.getElementById("connect-runtime")?.addEventListener("click", async (event) => {
   const button = event.currentTarget as HTMLButtonElement;
