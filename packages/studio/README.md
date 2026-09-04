@@ -79,3 +79,20 @@ Each panel declares `id`, `title`, `region`, `scrollable`, `create`, and
 optional `update`/`destroy` hooks. Accordion panels set `scrollable: true`;
 simple panels remain non-scrollable. This keeps layout behavior explicit and
 avoids selector-based coupling to Golden Layout internals.
+
+## Toolbar contract
+
+Use `bindStudioToolbar(root, studio)` with buttons carrying a
+`data-studio-action` attribute (`save`, `restore`, `expand`, `collapse`,
+`show-side-panels`, `hide-side-panels` or `lock`). The returned binding has a
+`dispose()` method and should be released together with the Studio instance:
+
+```ts
+const toolbar = bindStudioToolbar(document, studio);
+// on unmount
+toolbar.dispose();
+studio.destroy();
+```
+
+The optional stylesheet is available as `@visutry/studio/styles.css`; import
+it once in the host that renders the Studio panels.
