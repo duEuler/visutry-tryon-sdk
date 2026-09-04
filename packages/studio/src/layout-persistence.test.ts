@@ -10,4 +10,17 @@ describe("createLocalStoragePersistence", () => {
     localStorage.setItem("studio-test", "{");
     expect(persistence.loadState?.()).toBeNull();
   });
+
+  it("migrates legacy snapshots without panel state arrays", () => {
+    const persistence = createLocalStoragePersistence("studio-legacy", 1);
+    const layout = { root: { type: "row", content: [] } } as never;
+    localStorage.setItem("studio-legacy", JSON.stringify({ version: 1, layout }));
+    expect(persistence.loadState?.()).toEqual({ version: 1, layout, hiddenPanels: [], collapsedPanels: [] });
+  });
+
+  it("rejects snapshots with malformed layouts or panel ids", () => {
+    const persistence = createLocalStoragePersistence("studio-malformed", 1);
+    localStorage.setItem("studio-malformed", JSON.stringify({ version: 1, layout: { nope: true }, hiddenPanels: ["camera", 4] }));
+    expect(persistence.loadState?.()).toBeNull();
+  });
 });
