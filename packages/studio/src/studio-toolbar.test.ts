@@ -12,12 +12,22 @@ function studioMock() {
 
 describe("bindStudioToolbar", () => {
   it("binds declarative actions and removes listeners on dispose", () => {
-    document.body.innerHTML = '<button data-studio-action="save"></button><button data-studio-action="lock">Bloquear layout</button>';
+    document.body.innerHTML = '<button data-studio-action="save"></button><button data-studio-action="restore"></button><button data-studio-action="expand"></button><button data-studio-action="collapse"></button><button data-studio-action="show-side-panels"></button><button data-studio-action="hide-side-panels"></button><button data-studio-action="lock">Bloquear layout</button>';
     const studio = studioMock();
     const binding = bindStudioToolbar(document, studio);
     document.querySelector<HTMLButtonElement>('[data-studio-action="save"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-studio-action="restore"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-studio-action="expand"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-studio-action="collapse"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-studio-action="show-side-panels"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-studio-action="hide-side-panels"]')!.click();
     document.querySelector<HTMLButtonElement>('[data-studio-action="lock"]')!.click();
     expect(studio.saveLayout).toHaveBeenCalledOnce();
+    expect(studio.restoreDefaultLayout).toHaveBeenCalledOnce();
+    expect(studio.expandPanel).toHaveBeenCalledWith("leftDock");
+    expect(studio.collapsePanel).toHaveBeenCalledWith("leftDock");
+    expect(studio.showPanel).toHaveBeenCalledWith("leftDock");
+    expect(studio.hidePanel).toHaveBeenCalledWith("leftDock");
     expect(studio.setLayoutLocked).toHaveBeenCalledWith(true);
     binding.dispose();
     document.querySelector<HTMLButtonElement>('[data-studio-action="save"]')!.click();
