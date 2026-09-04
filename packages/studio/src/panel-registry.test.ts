@@ -31,6 +31,7 @@ describe("StudioPanelRegistry", () => {
   it("rejects malformed runtime definitions", () => {
     expect(() => createPanelRegistry([{ id: "", title: "", region: "left", scrollable: false, create: vi.fn() } as never])).toThrow(/id is required/);
     expect(() => createPanelRegistry([{ id: "bad", title: "Bad", region: "floating", scrollable: false, create: vi.fn() } as never])).toThrow(/Invalid Studio panel region/);
+    expect(() => createPanelRegistry([{ id: "scroll", title: "Scroll", region: "left", create: vi.fn() } as never])).toThrow(/scrollable flag is required/);
     expect(() => createPanelRegistry([{ id: "factory", title: "Factory", region: "center", scrollable: false } as never])).toThrow(/factory is required/);
   });
 });

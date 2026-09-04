@@ -16,6 +16,7 @@ function validateDefinition(definition: StudioPanelDefinition): void {
   if (!definition.id || typeof definition.id !== "string") throw new Error("Studio panel id is required");
   if (!definition.title || typeof definition.title !== "string") throw new Error(`Studio panel title is required: ${definition.id}`);
   if (!regions.has(definition.region)) throw new Error(`Invalid Studio panel region: ${definition.id}`);
+  if (typeof definition.scrollable !== "boolean") throw new Error(`Studio panel scrollable flag is required: ${definition.id}`);
   if (typeof definition.create !== "function") throw new Error(`Studio panel factory is required: ${definition.id}`);
 }
 
