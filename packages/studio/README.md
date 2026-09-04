@@ -180,6 +180,17 @@ optional `update`/`destroy` hooks. Accordion panels set `scrollable: true`;
 simple panels remain non-scrollable. This keeps layout behavior explicit and
 avoids selector-based coupling to Golden Layout internals.
 
+### Live face projections and error curve
+
+The `Viewports 3D` panel renders four lightweight canvas projections (front,
+top, left and right) from the latest `face.landmarks.raw` snapshot. The facial
+wireframe is cyan and the glasses fitting guide is an orange wireframe, so the
+same tracked face can be inspected from multiple angles without creating four
+additional WebGL renderers. The `Curva de erro` panel keeps a bounded history of
+RMS samples. Adapters should provide `face.rmsError` when measured data is
+available; the web adapter marks its confidence/stability fallback with
+`face.rmsErrorEstimated` until a physical RMS source is connected.
+
 ## Toolbar contract
 
 Use `bindStudioToolbar(root, studio)` with buttons carrying a
