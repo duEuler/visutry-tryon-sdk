@@ -2,6 +2,8 @@ import type { ComponentContainer } from "golden-layout";
 import { createAccordionPanel, createPanelShell, renderEvidenceTimeline, type AuditSnapshot, type StudioInstance, type StudioPanelDefinition } from "@visutry/studio";
 import { panels, accordionSections } from "./panel-catalog";
 
+const panelCleanups = new WeakMap<HTMLElement, () => void>();
+
 function createPanel(studio: Pick<StudioInstance, "collapsePanel" | "expandPanel">, container: ComponentContainer, id: string): void {
   const panel = panels[id] ?? panels.camera;
   const accordion = id === "leftDock" || id === "rightDock";
@@ -15,6 +17,7 @@ function createPanel(studio: Pick<StudioInstance, "collapsePanel" | "expandPanel
   const controls = item?.querySelector<HTMLElement>(".lm_controls");
   if (!controls || controls.querySelector(".audit-collapse-control")) return;
   const toggle = document.createElement("button");
+  const controller = new AbortController();
   toggle.className = "audit-collapse-control";
   toggle.type = "button";
   toggle.textContent = "▼";
@@ -28,7 +31,8 @@ function createPanel(studio: Pick<StudioInstance, "collapsePanel" | "expandPanel
     toggle.textContent = collapsed ? "▲" : "▼";
     toggle.title = collapsed ? "Expandir janela" : "Minimizar janela";
     toggle.setAttribute("aria-label", toggle.title);
-  });
+  }, { signal: controller.signal });
+  panelCleanups.set(container.element, () => controller.abort());
 }
 
 export function createPanelDefinitions(studio: Pick<StudioInstance, "collapsePanel" | "expandPanel">): StudioPanelDefinition[] {
@@ -38,6 +42,7 @@ export function createPanelDefinitions(studio: Pick<StudioInstance, "collapsePan
     region: id === "leftDock" ? "left" : id === "rightDock" ? "right" : id === "evidence" || id === "selected" ? "bottom" : "center",
     scrollable: id === "leftDock" || id === "rightDock",
     create: (_context, container) => createPanel(studio, container, id),
+    destroy: (element) => { panelCleanups.get(element)?.(); panelCleanups.delete(element); },
     update: id === "evidence" ? (element, snapshot: AuditSnapshot) => {
       const items = (snapshot.evidence ?? []) as { id: string; timestamp: number }[];
       if (items.length) element.querySelector(".timeline")!.innerHTML = renderEvidenceTimeline(items.map((item) => ({ label: new Date(item.timestamp).toLocaleTimeString(), best: item.id === snapshot.selectedFrameId })));
