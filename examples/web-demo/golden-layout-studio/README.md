@@ -11,6 +11,21 @@ geometria visual sem hardware. Para executar também o fluxo real de runtime,
 use `VISUTRY_E2E_CAMERA=1` antes do comando Playwright; os cenários opt-in
 conectam o SDK, validam o auto-start, carregam o GLB e capturam uma evidência.
 
+### Matriz cross-browser
+
+O projeto mantém um gate opcional para Firefox e WebKit, limitado à matriz
+desktop para evitar custo no fluxo diário:
+
+```powershell
+$env:VISUTRY_E2E_CROSS_BROWSER="1"
+pnpm exec playwright install firefox webkit
+pnpm --filter visutry-web-demo exec playwright test --project=firefox-desktop --project=webkit-desktop
+```
+
+Sem os executáveis instalados, o Chromium continua sendo a validação padrão e
+os projetos cross-browser falham explicitamente com a mensagem do Playwright,
+em vez de mascarar a cobertura como aprovada.
+
 O baseline desktop garante que as laterais respeitam o contrato de proporção,
 que a timeline fica contida na região central e que a página não cria scroll
 global. Os scrollbars permanecem somente nos accordions declarados como
