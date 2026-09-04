@@ -87,6 +87,14 @@
   color: #dff8ff;
 }
 
+:where(.topbar button:focus-visible),
+:where(.studio-panel button:focus-visible),
+:where(.studio-panel input:focus-visible),
+:where(.audit-collapse-control:focus-visible) {
+  outline: 2px solid #24c8f2;
+  outline-offset: 2px;
+}
+
 :where(.studio-panel) {
   min-width: 0;
   min-height: 0;

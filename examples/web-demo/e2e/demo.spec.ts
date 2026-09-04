@@ -257,6 +257,9 @@ test.describe("Golden Layout Studio", () => {
       "role",
       "region",
     );
+    await page.locator("#connect-runtime").focus();
+    await expect(page.locator("#connect-runtime")).toHaveCSS("outline-style", "solid");
+    await expect(page.locator("#connect-runtime")).toHaveCSS("outline-width", "2px");
   });
 
   test("toolbar collapses and expands both side columns", async ({ page }) => {
