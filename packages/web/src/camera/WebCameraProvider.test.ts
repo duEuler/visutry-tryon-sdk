@@ -74,6 +74,24 @@ describe("WebCameraProvider", () => {
     expect(mockVideo.play).toHaveBeenCalled();
   });
 
+  it("cleans an acquired stream when video playback fails", async () => {
+    await provider.initialize();
+    const track = { stop: vi.fn(), kind: "video" } as unknown as MediaStreamTrack;
+    const mockStream = { getTracks: () => [track] } as unknown as MediaStream;
+    const mockVideo = makeMockVideo();
+    mockVideo.play = vi.fn().mockRejectedValue(new Error("autoplay blocked"));
+    injectMockVideo(provider, mockVideo);
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia: vi.fn().mockResolvedValue(mockStream) },
+      configurable: true,
+    });
+
+    await expect(provider.start()).rejects.toMatchObject({ code: "CAMERA_NOT_AVAILABLE" });
+    expect(track.stop).toHaveBeenCalledOnce();
+    expect(provider.isRunning).toBe(false);
+    expect(mockVideo.srcObject).toBeNull();
+  });
+
   it("returns null from getCurrentFrame before start", async () => {
     await provider.initialize();
     expect(provider.getCurrentFrame()).toBeNull();

@@ -61,6 +61,9 @@ export class WebCameraProvider implements ICameraProvider {
       this.running = true;
       this.attachTrackListeners();
     } catch (err) {
+      // A failed play/autoplay or device transition must not retain the
+      // acquired stream; retries should start from a clean resource state.
+      this.stop();
       throw this.toSDKError(err);
     }
   }
