@@ -9,3 +9,19 @@ export const auditStudio = {
   face3d: AuditStudioFace3D,
   history: createAuditHistory,
 };
+
+// The studio opens in the same observability posture as the approved concept:
+// the operator sees the face mesh, readout and orthographic views immediately.
+// Snapshots remain opt-in because they allocate image buffers over time.
+window.setTimeout(() => {
+  const enable = (id: string) => {
+    const input = document.getElementById(id) as HTMLInputElement | null;
+    if (!input || input.checked) return;
+    input.checked = true;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  };
+  enable("toggle-diagnostic");
+  enable("toggle-feature-overlay");
+  enable("toggle-feature-readout");
+  enable("toggle-feature-viewports");
+}, 1600);
