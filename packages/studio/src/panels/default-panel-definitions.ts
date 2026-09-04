@@ -3,20 +3,21 @@ import { createAccordionPanel, type AccordionSection } from "./accordion-panel.j
 import { renderEvidenceTimeline } from "./evidence-timeline.js";
 import { renderMetricGrid } from "./metric-grid.js";
 import { createPanelShell } from "./panel-shell.js";
-import { renderViewportGrid } from "./viewport-panel.js";
+import { renderViewportGrid, updateViewportGrid } from "./viewport-panel.js";
 import type { AuditSnapshot, StudioInstance, StudioPanelContext, StudioPanelDefinition } from "../types.js";
 import { itemControls, panelItem } from "../layout/golden-layout-dom.js";
 
 type Panel = { eyebrow: string; title: string; body: string };
 const panelCleanups = new WeakMap<HTMLElement, () => void>();
+const errorHistory = new WeakMap<HTMLElement, number[]>();
 
 const panels: Record<string, Panel> = {
   camera: { eyebrow: "01 / CAPTURA", title: "Câmera", body: renderMetricGrid([{ label: "Fonte", value: "Integrated Webcam" }, { label: "Estado", value: "● Ativa", status: true }, { label: "Resolução", value: "640 × 480" }, { label: "FPS alvo", value: "30" }]).replace(/<strong/g, '<strong data-studio-field="camera"') },
   diagnostics: { eyebrow: "02 / OBSERVAÇÃO", title: "Diagnóstico", body: `<label class="gl-row diagnostic-option"><span>Landmarks e overlay</span><input type="checkbox" data-diagnostic-toggle="landmarks" checked aria-label="Exibir landmarks e overlay"></label><label class="gl-row diagnostic-option"><span>Readout sobre o vídeo</span><input type="checkbox" data-diagnostic-toggle="readout" checked aria-label="Exibir leitura sobre o vídeo"></label><label class="gl-row diagnostic-option"><span>Curva de erro</span><input type="checkbox" data-diagnostic-toggle="error" checked aria-label="Exibir curva de erro"></label><label class="gl-row diagnostic-option"><span>Snapshots manuais</span><input type="checkbox" data-diagnostic-toggle="snapshots" checked aria-label="Exibir snapshots manuais"></label>` },
   quality: { eyebrow: "03 / QUALIDADE", title: "Tracking quality", body: renderMetricGrid([{ label: "Confiança", value: "95%" }, { label: "Rosto", value: "Detectado", status: true }, { label: "Estabilidade", value: "0.98" }, { label: "Latência", value: "19.9 ms" }]).replace(/<strong/g, '<strong data-studio-field="tracking"') },
-  error: { eyebrow: "04 / MÉTRICAS", title: "Curva de erro", body: `<div class="visual" style="height:120px"><svg viewBox="0 0 300 100" width="100%" height="100%"><polyline fill="none" stroke="#43e39b" stroke-width="2" points="0,72 30,64 60,67 90,50 120,55 150,35 180,46 210,40 240,48 270,22 300,30"/></svg></div><p data-studio-field="error-summary">atual <b>0.679 mm</b> · média 0.82 mm · status <span class="status">OK</span></p>` },
+  error: { eyebrow: "04 / MÉTRICAS", title: "Curva de erro", body: `<div class="visual" style="height:120px"><canvas class="error-chart" data-studio-field="error-chart" aria-label="Curva de erro RMS"></canvas></div><p data-studio-field="error-summary">Aguardando amostras do runtime.</p>` },
   live: { eyebrow: "PALCO CENTRAL", title: "Live 3D / Face overlay", body: `<div id="stage" class="visual"><canvas class="studio-live-canvas" aria-label="Canvas Live 3D"></canvas><canvas class="studio-landmark-canvas studio-runtime-hidden" aria-label="Malha facial 3D"></canvas><div class="face-wire"><div class="glasses"></div></div><span class="studio-runtime-caption" data-studio-active-text="rosto ciano · GLB âmbar · anchors verdes" style="position:absolute;bottom:10px;left:12px;color:#6f89a6">rosto ciano · GLB âmbar · anchors verdes</span></div>` },
-  viewports: { eyebrow: "GEOMETRIA", title: "Viewports 3D", body: renderViewportGrid(["FRONT", "TOP", "LEFT", "RIGHT"].map((label) => ({ label, body: `<div class="visual"><div class="face-wire small"><div class="glasses"></div></div></div><small>3D ao vivo · agora</small>` }))) },
+  viewports: { eyebrow: "GEOMETRIA", title: "Viewports 3D", body: renderViewportGrid(["FRONT", "TOP", "LEFT", "RIGHT"].map((label) => ({ label, body: `<div class="visual"><canvas class="viewport-canvas" data-viewport="${label}" aria-label="Projeção facial ${label}"></canvas></div><small>rosto 3D · óculos wireframe</small>` }))) },
   glb: { eyebrow: "OBJETIVO", title: "GLB objective", body: `<div class="gl-row"><span>Modelo</span><strong data-studio-field="glb-name">Classic Aviator</strong></div><div class="gl-row"><span>Arquivo</span><strong data-studio-field="glb-file">classic_aviator.glb</strong></div><div class="gl-row"><span>Dimensões</span><strong data-studio-field="glb-dimensions">150 × 58 × 50 mm</strong></div><div class="gl-row"><span>Escala</span><strong data-studio-field="glb-scale">0.213 (livre)</strong></div><div class="gl-row"><span>Visibilidade</span><strong class="status" data-studio-field="glb-visibility">Exibindo</strong></div>` },
   overlay: { eyebrow: "ALINHAMENTO", title: "Overlay & alignment", body: `<div class="gl-row"><span>Posição</span><strong data-studio-field="overlay-position">-0.288 · 0.130 · -0.002</strong></div><div class="gl-row"><span>Rotação</span><strong data-studio-field="overlay-rotation">-32.7° · 5.1° · 0.0°</strong></div><div class="gl-row"><span>Modo</span><strong data-studio-field="overlay-mode">Eyes Center</strong></div><div class="gl-row"><span>Erro RMS</span><strong class="status" data-studio-field="overlay-error">0.679 mm</strong></div>` },
   pose: { eyebrow: "LEITURA ESPACIAL", title: "Pose & landmarks", body: `<div class="gl-row"><span>Yaw / Pitch / Roll</span><strong data-studio-field="pose">-32.7° / 5.1° / 0.0°</strong></div><div class="gl-row"><span>Landmarks</span><strong data-studio-field="landmarks">478 / 478</strong></div><div class="gl-row"><span>Interpupilar</span><strong data-studio-field="interpupilar">64.2 px</strong></div><div class="gl-row"><span>Bounding box</span><strong data-studio-field="bounding-box">19.7 × 32.4%</strong></div>` },
@@ -74,6 +75,29 @@ function updateRuntimePresentation(element: HTMLElement, snapshot: AuditSnapshot
     setMany("overlay-error", [face?.rmsError === undefined ? undefined : `${face.rmsError} mm`]);
     const errorSummary = element.querySelector<HTMLElement>('[data-studio-field="error-summary"]');
     if (errorSummary) errorSummary.textContent = face?.rmsError === undefined ? "Aguardando amostras do runtime." : `Erro atual: ${face.rmsError} mm`;
+    const chart = element.querySelector<HTMLCanvasElement>(".error-chart");
+    if (chart && face?.rmsError !== undefined) {
+      const samples = errorHistory.get(element) ?? [];
+      samples.push(face.rmsError);
+      if (samples.length > 60) samples.splice(0, samples.length - 60);
+      errorHistory.set(element, samples);
+      const context = chart.getContext("2d");
+      if (context) {
+        const width = Math.max(1, chart.clientWidth || 300);
+        const height = Math.max(1, chart.clientHeight || 120);
+        const dpr = window.devicePixelRatio || 1;
+        chart.width = Math.round(width * dpr); chart.height = Math.round(height * dpr);
+        context.setTransform(dpr, 0, 0, dpr, 0, 0); context.clearRect(0, 0, width, height);
+        const max = Math.max(...samples, 1); const min = Math.min(...samples, 0);
+        context.strokeStyle = "#43e39b"; context.lineWidth = 1.5; context.beginPath();
+        samples.forEach((sample, index) => {
+          const x = samples.length === 1 ? width : (index / (samples.length - 1)) * width;
+          const y = height - ((sample - min) / Math.max(max - min, 0.001)) * (height - 4) - 2;
+          if (index === 0) context.moveTo(x, y); else context.lineTo(x, y);
+        });
+        context.stroke();
+      }
+    }
     setMany("landmarks", [tracking.landmarks ? `${tracking.landmarks} / ${tracking.landmarks}` : undefined]);
     setMany("interpupilar", [face?.interpupilar === undefined ? undefined : `${Math.round(face.interpupilar * 10) / 10} px`]);
     setMany("bounding-box", [face?.bbox ? `${Math.round((face.bbox.width ?? 0) * 1000) / 10} × ${Math.round((face.bbox.height ?? 0) * 1000) / 10}%` : undefined]);
@@ -106,7 +130,7 @@ function updateRuntimePresentation(element: HTMLElement, snapshot: AuditSnapshot
     value.dataset.studioActiveText ??= value.textContent ?? "";
     value.textContent = "runtime desligado";
   });
-  element.querySelectorAll<HTMLElement>(".face-wire, svg").forEach((value) => value.classList.add("studio-runtime-hidden"));
+  element.querySelectorAll<HTMLElement>(".face-wire, svg, .error-chart").forEach((value) => value.classList.add("studio-runtime-hidden"));
   element.querySelectorAll<HTMLElement>("p").forEach((value) => {
     if (!value.textContent?.includes("atual ")) return;
     value.dataset.studioActiveText ??= value.textContent;
@@ -170,9 +194,10 @@ export function createDefaultPanelDefinitions(studio: Pick<StudioInstance, "coll
     region: id === "leftDock" ? "left" : id === "rightDock" ? "right" : id === "evidence" || id === "selected" ? "bottom" : "center",
     scrollable: id === "leftDock" || id === "rightDock",
     create: (context, container) => createPanel(studio, context, container, id),
-    destroy: (element) => { panelCleanups.get(element)?.(); panelCleanups.delete(element); },
-    update: (element, snapshot: AuditSnapshot) => {
+    destroy: (element) => { panelCleanups.get(element)?.(); panelCleanups.delete(element); errorHistory.delete(element); },
+      update: (element, snapshot: AuditSnapshot) => {
       updateRuntimePresentation(element, snapshot);
+      if (id === "viewports") updateViewportGrid(element, snapshot);
       if (id === "evidence") {
       const items = (snapshot.evidence ?? []) as { id: string; timestamp: number; dataUrl?: string }[];
       const timeline = element.querySelector<HTMLElement>(".timeline");
