@@ -82,7 +82,20 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) { runtimeSdk.stopTryOn(); return; }
   if (resumeTryOnOnVisible) void runtimeSdk.startTryOn().catch(() => { if (tryOnButton) tryOnButton.textContent = "Tentar try-on novamente"; });
 });
+const stageElement = document.getElementById("stage");
+const stageObserver = typeof IntersectionObserver === "function" && stageElement
+  ? new IntersectionObserver(([entry]) => {
+      if (!runtimeSdk || document.hidden) return;
+      if (!entry.isIntersecting) {
+        runtimeSdk.stopTryOn();
+        return;
+      }
+      if (resumeTryOnOnVisible) void runtimeSdk.startTryOn().catch(() => { if (tryOnButton) tryOnButton.textContent = "Tentar try-on novamente"; });
+    }, { threshold: 0.01 })
+  : null;
+stageObserver?.observe(stageElement);
 window.addEventListener("beforeunload", () => { toolbarBinding.dispose(); unsubscribeMode(); studio.destroy(); });
+window.addEventListener("beforeunload", () => stageObserver?.disconnect());
 document.getElementById("connect-runtime")?.addEventListener("click", async (event) => {
   const button = event.currentTarget as HTMLButtonElement;
   const canvas = document.querySelector<HTMLCanvasElement>(".studio-live-canvas");
