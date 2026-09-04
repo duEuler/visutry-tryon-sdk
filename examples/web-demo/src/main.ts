@@ -132,7 +132,7 @@ let currentFacingMode: "user" | "environment" = "user";
 let diagnosticEnabled = false;
 let cameraEnabled = true;
 let glbVisible = true;
-let diagnosticFeatures = {
+const diagnosticFeatures = {
   overlay: false,
   readout: false,
   error: true,
@@ -393,7 +393,8 @@ function drawErrorChart(): void {
   errorSamples.forEach((sample, index) => {
     const x = errorSamples.length === 1 ? width / 2 : (index / (errorSamples.length - 1)) * width;
     const y = height - Math.min(sample.error, 0.1) / 0.1 * (height - 16) - 8;
-    index === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
   });
   ctx.stroke();
 }

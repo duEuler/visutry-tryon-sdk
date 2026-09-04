@@ -49,3 +49,37 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  studio-e2e:
+    name: Studio E2E (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, desktop-1366, desktop-1920, firefox-desktop, webkit-desktop]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm --filter visutry-web-demo exec playwright install --with-deps chromium firefox webkit
+
+      - name: Run Golden Layout Studio E2E
+        env:
+          VISUTRY_E2E_CAMERA: "1"
+          VISUTRY_E2E_FAKE_CAMERA: "1"
+          VISUTRY_E2E_CROSS_BROWSER: "1"
+        run: pnpm --filter visutry-web-demo test:e2e -- --project=${{ matrix.project }} --grep "Golden Layout Studio"

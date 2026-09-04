@@ -8,6 +8,8 @@ import "@visutry/studio/theme.css";
 const persistence = createLocalStoragePersistence("visutry-golden-layout-state-v7", 7);
 const defaultLayout = createDefaultStudioLayout();
 const host = document.getElementById("layout-host"); if (!host) throw new Error("layout host ausente");
+// The panel callbacks close over the instance that is created immediately below.
+// eslint-disable-next-line prefer-const
 let studio!: StudioInstance;
 const panelDefinitions = createDefaultPanelDefinitions({ collapsePanel: (id) => studio.collapsePanel(id), expandPanel: (id) => studio.expandPanel(id) });
 studio = createGoldenLayoutStudio({ host, panels: panelDefinitions, initialLayout: defaultLayout, persistence });
