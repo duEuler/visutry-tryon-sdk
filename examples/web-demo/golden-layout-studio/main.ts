@@ -54,6 +54,9 @@ const panelDefinitions: StudioPanelDefinition[] = Object.keys(panels).map((id) =
 }));
 const studio = createGoldenLayoutStudio({ host, panels: panelDefinitions, initialLayout: defaultLayout, persistence });
 studio.mount();
+if (import.meta.env.DEV) {
+  (window as Window & { __visutryStudio?: typeof studio }).__visutryStudio = studio;
+}
 const modeLabel = document.getElementById("studio-mode");
 const statusLabel = document.getElementById("studio-status");
 const setStatus = (message: string) => { if (statusLabel) statusLabel.textContent = message; };

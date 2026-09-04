@@ -295,4 +295,13 @@ test.describe("Golden Layout Studio", () => {
     const resources = await page.evaluate(() => performance.getEntriesByType("resource").map((entry) => entry.name));
     expect(resources.some((name) => /three-vendor|mediapipe-vendor|VisuTryWebSDK/i.test(name))).toBe(false);
   });
+
+  test("destroys and remounts without duplicating the workspace", async ({ page }) => {
+    await page.evaluate(() => (window as Window & { __visutryStudio?: { destroy(): void; mount(): void } }).__visutryStudio?.destroy());
+    await expect(page.locator("#layout-host .lm_item")).toHaveCount(0);
+    await page.evaluate(() => (window as Window & { __visutryStudio?: { destroy(): void; mount(): void } }).__visutryStudio?.mount());
+    await expect(page.locator('[data-panel-id="leftDock"]')).toBeVisible();
+    await expect(page.locator('[data-panel-id="rightDock"]')).toBeVisible();
+    await expect(page.locator('[data-panel-id="evidence"]')).toHaveCount(1);
+  });
 });
