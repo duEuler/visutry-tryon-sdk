@@ -57,6 +57,8 @@ const panelDefinitions: StudioPanelDefinition[] = Object.keys(panels).map((id) =
 const studio = createGoldenLayoutStudio({ host, panels: panelDefinitions, initialLayout: defaultLayout, persistence });
 studio.mount();
 const modeLabel = document.getElementById("studio-mode");
+const statusLabel = document.getElementById("studio-status");
+const setStatus = (message: string) => { if (statusLabel) statusLabel.textContent = message; };
 const syncModeLabel = () => { if (modeLabel) modeLabel.textContent = studio.getMode(); };
 syncModeLabel();
 let runtimeSdk: VisuTrySDK | null = null;
@@ -76,10 +78,10 @@ const glbButton = document.getElementById("load-glb") as HTMLButtonElement | nul
 const evidenceButton = document.getElementById("capture-evidence") as HTMLButtonElement | null;
 const stopButton = document.getElementById("stop-runtime") as HTMLButtonElement | null;
 const setRuntimeControls = (connected: boolean) => { [cameraButton, tryOnButton, glbButton, evidenceButton, stopButton].forEach((button) => { if (button) button.disabled = !connected; }); };
-cameraButton?.addEventListener("click", async () => { if (!runtimeSdk) return; cameraButton.disabled = true; try { await runtimeSdk.startCamera(); cameraButton.textContent = "Câmera ativa"; } catch { cameraButton.disabled = false; cameraButton.textContent = "Tentar câmera novamente"; } });
+cameraButton?.addEventListener("click", async () => { if (!runtimeSdk) return; cameraButton.disabled = true; try { await runtimeSdk.startCamera(); cameraButton.textContent = "Câmera ativa"; setStatus("Câmera iniciada"); } catch (error) { cameraButton.disabled = false; cameraButton.textContent = "Tentar câmera novamente"; setStatus(error instanceof Error ? error.message : "Falha ao iniciar câmera"); } });
 tryOnButton?.addEventListener("click", async () => { if (!runtimeSdk) return; try { await runtimeSdk.startTryOn(); resumeTryOnOnVisible = true; tryOnButton.textContent = "Try-on ativo"; } catch { tryOnButton.textContent = "Tentar try-on novamente"; } });
-glbButton?.addEventListener("click", async () => { if (!runtimeSdk) return; glbButton.disabled = true; glbButton.textContent = "Carregando…"; try { const { default: asset } = await import("@visutry/demo-assets/glasses/aviator-classic.json"); await runtimeSdk.loadGlasses(asset); glbButton.textContent = "GLB carregado"; } catch { glbButton.disabled = false; glbButton.textContent = "Tentar GLB novamente"; } });
-evidenceButton?.addEventListener("click", async () => { if (!runtimeAdapter) return; evidenceButton.disabled = true; try { await runtimeAdapter.captureEvidence?.(); evidenceButton.textContent = "Evidência capturada"; } catch { evidenceButton.disabled = false; evidenceButton.textContent = "Tentar evidência novamente"; } });
+glbButton?.addEventListener("click", async () => { if (!runtimeSdk) return; glbButton.disabled = true; glbButton.textContent = "Carregando…"; try { const { default: asset } = await import("@visutry/demo-assets/glasses/aviator-classic.json"); await runtimeSdk.loadGlasses(asset); glbButton.textContent = "GLB carregado"; setStatus("GLB carregado"); } catch (error) { glbButton.disabled = false; glbButton.textContent = "Tentar GLB novamente"; setStatus(error instanceof Error ? error.message : "Falha ao carregar GLB"); } });
+evidenceButton?.addEventListener("click", async () => { if (!runtimeAdapter) return; evidenceButton.disabled = true; try { await runtimeAdapter.captureEvidence?.(); evidenceButton.textContent = "Evidência capturada"; setStatus("Evidência registrada"); } catch (error) { evidenceButton.disabled = false; evidenceButton.textContent = "Tentar evidência novamente"; setStatus(error instanceof Error ? error.message : "Falha ao capturar evidência"); } });
 stopButton?.addEventListener("click", () => { runtimeSdk?.stopTryOn(); runtimeSdk?.stopCamera(); resumeTryOnOnVisible = false; runtimeAdapter = null; setRuntimeControls(false); if (cameraButton) cameraButton.textContent = "Iniciar câmera"; if (tryOnButton) tryOnButton.textContent = "Iniciar try-on"; if (glbButton) glbButton.textContent = "Carregar GLB"; if (evidenceButton) evidenceButton.textContent = "Capturar evidência"; if (modeLabel) modeLabel.textContent = "static"; });
 document.addEventListener("visibilitychange", () => {
   if (!runtimeSdk) return;
@@ -104,8 +106,10 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
     syncModeLabel();
     setRuntimeControls(mode === "connected");
     button.textContent = mode === "connected" ? "Runtime conectado" : "Runtime indisponível";
-  } catch {
+  } catch (error) {
     button.disabled = false;
     button.textContent = "Tentar runtime novamente";
+    syncModeLabel();
+    setStatus(error instanceof Error ? error.message : "Runtime indisponível");
   }
 });
