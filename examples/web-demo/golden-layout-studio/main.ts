@@ -314,7 +314,7 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
     resumeTryOnOnVisible = true;
     tryOnReady = true;
     if (tryOnButton) {
-      tryOnButton.disabled = false;
+      tryOnButton.disabled = true;
       tryOnButton.textContent = "Try-on ativo";
     }
     const { default: asset } = await import("@visutry/demo-assets/glasses/aviator-classic.json");
