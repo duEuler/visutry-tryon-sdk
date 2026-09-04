@@ -9,6 +9,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
   const registry = createPanelRegistry(options.panels);
   const layout = new GoldenLayout(options.host);
   let mounted = false;
+  let layoutDestroyed = false;
   let mode: StudioMode = options.runtime ? "connected" : "static";
   let runtimeUnsubscribe: (() => void) | null = null;
   let activeRuntime: StudioRuntimeAdapter | undefined = options.runtime;
@@ -56,6 +57,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       const persisted = options.persistence?.loadState?.();
       persisted?.hiddenPanels.forEach((id) => hiddenPanels.add(id));
       persisted?.collapsedPanels.forEach((id) => collapsedPanels.add(id));
+      if (layoutDestroyed) { layout.init(); layoutDestroyed = false; }
       layout.loadLayout((persisted?.layout ?? options.persistence?.load() ?? options.initialLayout) as unknown as LayoutConfig);
       hiddenPanels.forEach((id) => setPanelVisibility(id, false));
       collapsedPanels.forEach((id) => setPanelCollapsed(id, true));
@@ -114,6 +116,7 @@ export function createGoldenLayoutStudio(options: StudioOptions): StudioInstance
       activeRuntime?.dispose?.();
       modeListeners.clear();
       layout.destroy();
+      layoutDestroyed = true;
     },
   };
   return instance;
