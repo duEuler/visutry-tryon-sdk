@@ -8,6 +8,7 @@ import "./layout-fix.css";
 import "./accordion-scroll.css";
 import "./viewport-layout.css";
 import "./runtime-canvas.css";
+import "@visutry/studio/styles.css";
 
 const persistence = createLocalStoragePersistence("visutry-golden-layout-state-v7", 7);
 function component(container: ComponentContainer, id: string) {

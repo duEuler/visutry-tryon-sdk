@@ -1,0 +1,27 @@
+/* Public visual contract for the framework-neutral Studio host. */
+:where(.studio-host) {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:where(.studio-panel) {
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+:where(.studio-panel--scrollable) {
+  min-height: 0;
+  overflow: hidden;
+}
+
+:where(.studio-panel--hidden) {
+  display: none !important;
+}
+
+:where(.studio-layout-locked) .lm_drag_handle,
+:where(.studio-layout-locked) .lm_header .lm_tab {
+  pointer-events: none;
+}
