@@ -10,16 +10,16 @@
   overflow: hidden !important;
 }
 
-:where(.lm_item.studio-panel-item--scrollable > .lm_content) {
+:where(.lm_content.studio-panel--scrollable, .lm_item.studio-panel-item--scrollable > .lm_content) {
   overflow-y: auto !important;
   overflow-x: hidden !important;
   scrollbar-width: thin;
   scrollbar-color: #2d4965 #0b1320;
 }
 
-:where(.lm_item.studio-panel-item--scrollable > .lm_content)::-webkit-scrollbar { width: 8px; }
-:where(.lm_item.studio-panel-item--scrollable > .lm_content)::-webkit-scrollbar-track { background: #0b1320; }
-:where(.lm_item.studio-panel-item--scrollable > .lm_content)::-webkit-scrollbar-thumb { background: #2d4965; border-radius: 4px; }
+:where(.lm_content.studio-panel--scrollable, .lm_item.studio-panel-item--scrollable > .lm_content)::-webkit-scrollbar { width: 8px; }
+:where(.lm_content.studio-panel--scrollable, .lm_item.studio-panel-item--scrollable > .lm_content)::-webkit-scrollbar-track { background: #0b1320; }
+:where(.lm_content.studio-panel--scrollable, .lm_item.studio-panel-item--scrollable > .lm_content)::-webkit-scrollbar-thumb { background: #2d4965; border-radius: 4px; }
 
 :where(#layout-host > .lm_goldenlayout) { height: 100% !important; }
 

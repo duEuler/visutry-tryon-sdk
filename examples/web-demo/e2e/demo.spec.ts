@@ -222,7 +222,11 @@ test.describe("Golden Layout Studio", () => {
 
   test("keeps accordion columns configured for scrolling", async ({ page }) => {
     const scrollContainers = page.locator(".gl-panel--accordion .accordion");
+    const panelContents = page.locator('.lm_content.studio-panel--scrollable');
     await expect(scrollContainers).toHaveCount(2);
+    await expect(panelContents).toHaveCount(2);
+    await expect(panelContents.nth(0)).toHaveCSS("overflow-y", "auto");
+    await expect(panelContents.nth(1)).toHaveCSS("overflow-y", "auto");
     await expect(scrollContainers.nth(0)).toHaveCSS("overflow-y", "auto");
     await expect(scrollContainers.nth(1)).toHaveCSS("overflow-y", "auto");
     await expect(scrollContainers.nth(0)).toHaveCSS("overflow-x", "hidden");
