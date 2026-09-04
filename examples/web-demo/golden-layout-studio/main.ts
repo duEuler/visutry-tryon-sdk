@@ -11,7 +11,12 @@ const persistence = createLocalStoragePersistence("visutry-golden-layout-state-v
 function component(container: ComponentContainer, id: string) {
   const p = panels[id] ?? panels.camera;
   const isAccordionPanel = id === "leftDock" || id === "rightDock";
-  createPanelShell({ panelId: id, getSnapshot: () => ({}) }, container, { panelId: id, body: p.body, accordion: isAccordionPanel });
+  const context = { panelId: id, getSnapshot: () => ({}) };
+  if (isAccordionPanel) {
+    createAccordionPanel(context, container, accordionSections(id === "leftDock" ? ["camera", "diagnostics", "quality", "error"] : ["glb", "overlay", "pose", "metrics"]));
+  } else {
+    createPanelShell(context, container, { panelId: id, body: p.body });
+  }
   const item = container.element.closest<HTMLElement>(".lm_item");
   const controls = item?.querySelector<HTMLElement>(".lm_controls");
   if (controls && !controls.querySelector(".audit-collapse-control")) {
@@ -30,9 +35,6 @@ function component(container: ComponentContainer, id: string) {
       toggle.title = collapsed ? "Expandir janela" : "Minimizar janela";
       toggle.setAttribute("aria-label", toggle.title);
     });
-  }
-  if (isAccordionPanel) {
-    createAccordionPanel({ panelId: id, getSnapshot: () => ({}) }, container, accordionSections(id === "leftDock" ? ["camera", "diagnostics", "quality", "error"] : ["glb", "overlay", "pose", "metrics"]));
   }
 }
 const defaultLayout = createDefaultStudioLayout();
