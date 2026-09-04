@@ -1,3 +1,4 @@
+import { normalizeAuditSnapshot } from "@visutry/studio/audit-snapshot";
 import type { StudioRuntimeAdapter, AuditSnapshot, EvidenceFrame } from "@visutry/studio";
 import type { VisuTrySDK, VisuTrySDKEvents } from "@visutry/tryon-core";
 
@@ -25,11 +26,11 @@ async function composeEvidence(dataUrl: string, video: HTMLVideoElement | null):
 /** Adapts the public web SDK event stream to the Studio runtime contract. */
 export function createStudioRuntimeAdapter(sdk: VisuTrySDK, options: StudioRuntimeAdapterOptions = {}): StudioRuntimeAdapter {
   const listeners = new Set<(snapshot: AuditSnapshot) => void>();
-  let snapshot: AuditSnapshot = { mode: "connected", camera: { active: false }, tracking: { detected: false } };
+  let snapshot: AuditSnapshot = normalizeAuditSnapshot({ mode: "connected", camera: { active: false }, tracking: { detected: false } });
   let initialized = false;
   let disposed = false;
   const publish = (patch: AuditSnapshot) => {
-    snapshot = { ...snapshot, ...patch };
+    snapshot = normalizeAuditSnapshot(patch, snapshot);
     listeners.forEach((listener) => listener(snapshot));
   };
   const handlers: { [K in keyof VisuTrySDKEvents]: VisuTrySDKEvents[K] } = {

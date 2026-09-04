@@ -31,6 +31,15 @@ describe("createStudioRuntimeAdapter", () => {
     expect(adapter.getSnapshot()).toMatchObject({ tracking: { latencyMs: 12 }, render: { frameTimeMs: 4 } });
   });
 
+  it("preserves nested snapshot blocks across SDK events", async () => {
+    const sdk = createSdkMock();
+    const adapter = createStudioRuntimeAdapter(sdk as never);
+    await adapter.initialize?.();
+    sdk.handlers.get("performanceUpdated")?.({ detectLatencyMs: 12, renderLatencyMs: 4 });
+    sdk.handlers.get("poseUpdated")?.({ yaw: 2 });
+    expect(adapter.getSnapshot()).toMatchObject({ tracking: { latencyMs: 12 }, render: { frameTimeMs: 4 }, pose: { yaw: 2 } });
+  });
+
   it("records captured evidence and selects the new frame", async () => {
     const sdk = createSdkMock();
     const adapter = createStudioRuntimeAdapter(sdk as never);
