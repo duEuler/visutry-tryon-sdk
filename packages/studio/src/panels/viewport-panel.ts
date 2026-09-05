@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 
 export interface ViewportDefinition { label: string; body: string; }
 export function renderViewportGrid(viewports: ViewportDefinition[]): string {
@@ -29,6 +30,23 @@ class ViewportScene {
   private loadingGlb = false;
   private lastRaw: unknown[] | null = null;
   private lastView = "";
+  private canonicalIndex: number[] | null = null;
+  private usingCanonical = false;
+
+  private static canonicalIndexPromise: Promise<number[] | null> | null = null;
+
+  private static loadCanonicalIndex(): Promise<number[] | null> {
+    if (!ViewportScene.canonicalIndexPromise) {
+      ViewportScene.canonicalIndexPromise = new Promise((resolve) => {
+        new OBJLoader().load("/models/references/mediapipe/canonical_face_model.obj", (object) => {
+          const mesh = object.children.find((child): child is THREE.Mesh => child instanceof THREE.Mesh);
+          const index = mesh?.geometry.getIndex();
+          resolve(index ? Array.from(index.array as ArrayLike<number>) : null);
+        }, undefined, () => resolve(null));
+      });
+    }
+    return ViewportScene.canonicalIndexPromise;
+  }
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
@@ -36,6 +54,14 @@ class ViewportScene {
     this.scene.background = new THREE.Color("#091321");
     this.scene.add(this.face, this.glasses);
     this.glasses.visible = false;
+    ViewportScene.loadCanonicalIndex().then((index) => {
+      this.canonicalIndex = index;
+      if (this.lastRaw && this.canonicalIndex) {
+        this.rebuildFace(this.lastRaw, []);
+        this.usingCanonical = true;
+        this.renderer.render(this.scene, this.camera);
+      }
+    });
   }
 
   render(snapshot: ViewportSnapshot): void {
@@ -46,7 +72,7 @@ class ViewportScene {
     const height = Math.max(1, this.canvas.clientHeight || 120);
     this.renderer.setSize(width, height, false);
     const view = this.canvas.dataset.viewport ?? "FRONT";
-    if (this.lastRaw !== raw) {
+    if (this.lastRaw !== raw || (this.canonicalIndex !== null && !this.usingCanonical)) {
       this.rebuildFace(raw, face?.landmarks?.connections?.tesselation ?? []);
       this.lastRaw = raw;
     }
@@ -88,20 +114,21 @@ class ViewportScene {
     const positions = raw.map(asPoint).filter((point): point is Point3 => point !== null).flatMap((point) => [(point.x - 0.5) * 2, -(point.y - 0.5) * 2, (point.z ?? 0) * 2]);
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-    const triangles: number[] = [];
+    const triangles: number[] = this.canonicalIndex?.length ? this.canonicalIndex.filter((index) => index < raw.length) : [];
     const adjacency = new Map<number, Set<number>>();
     links.forEach(({ start, end }) => {
       if (!adjacency.has(start)) adjacency.set(start, new Set());
       if (!adjacency.has(end)) adjacency.set(end, new Set());
       adjacency.get(start)!.add(end); adjacency.get(end)!.add(start);
     });
-    links.forEach(({ start, end }) => {
+    if (!triangles.length) links.forEach(({ start, end }) => {
       const common = [...(adjacency.get(start) ?? [])].filter((candidate) => candidate > end && (adjacency.get(end)?.has(candidate) ?? false));
       common.forEach((candidate) => triangles.push(start, end, candidate));
     });
     if (triangles.length) geometry.setIndex(triangles);
     const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: "#34c6f0", wireframe: true, transparent: true, opacity: 0.92 }));
     this.face.add(mesh);
+    this.usingCanonical = Boolean(this.canonicalIndex?.length);
   }
 
   private applyView(view: string): void {
