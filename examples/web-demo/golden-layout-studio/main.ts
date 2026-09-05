@@ -385,6 +385,25 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
       camera: { width: 640, height: 480, frameRate: 30, mirror: true },
       privacy: { processOnDeviceOnly: true, allowSnapshotExport: true },
     });
+    runtimeSdk.on("faceDetected", (face) => {
+      if (!reconstructionCaptureActive || !face.landmarks?.raw?.length) return;
+      reconstructionSession.ingest({
+        id: `sdk-frame-${Date.now()}`,
+        timestamp: Date.now(),
+        landmarks: face.landmarks.raw,
+        connections: face.landmarks.connections?.map(([from, to]) => [from, to] as [number, number]),
+        yaw: lastAuditSnapshot?.pose?.yaw ?? 0,
+        pitch: lastAuditSnapshot?.pose?.pitch ?? 0,
+        roll: lastAuditSnapshot?.pose?.roll ?? 0,
+        confidence: face.quality?.confidence ?? 1,
+        stability: face.quality?.stabilityScore ?? 1,
+      });
+      const progress = reconstructionSession.getProgress();
+      const progressBar = document.querySelector<HTMLProgressElement>("#reconstruction-progress");
+      if (progressBar) progressBar.value = progress.percent;
+      const progressLabel = document.querySelector<HTMLElement>("#reconstruction-progress-label");
+      if (progressLabel) progressLabel.textContent = `${progress.percent}% · ${progress.acceptedFrames} leituras`;
+    });
     runtimeAdapter = createStudioRuntimeAdapter(runtimeSdk, {
       getVideo: () => document.querySelector<HTMLVideoElement>("#camera-video"),
     });
