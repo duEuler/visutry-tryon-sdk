@@ -7,6 +7,7 @@ import {
   type StudioInstance,
   type StudioMode,
   type StudioRuntimeAdapter,
+  type AuditSnapshot,
   createFaceReconstructionSession,
   type FaceReconstructionSession,
 } from "@visutry/studio";
@@ -37,6 +38,7 @@ studio.mount();
 const landmarkCanvas = document.querySelector<HTMLCanvasElement>(".studio-landmark-canvas");
 let landmarkOverlay: { renderFromFace(face: NormalizedFaceResult, width: number, height: number): void; clear(): void } | null = null;
 let lastFace: NormalizedFaceResult | null = null;
+let lastAuditSnapshot: AuditSnapshot | null = null;
 const reconstructionSession: FaceReconstructionSession = createFaceReconstructionSession({ maxFrames: 120, minConfidence: 0.45 });
 const toolbarBinding = bindStudioToolbar(document, studio);
 if (import.meta.env.DEV) {
@@ -75,6 +77,7 @@ const syncModeLabel = () => {
   if (modeLabel) modeLabel.textContent = studio.getMode();
 };
 const unsubscribeSnapshot = studio.subscribeSnapshot((snapshot) => {
+  lastAuditSnapshot = snapshot;
   if (snapshot.error) setStatus(formatRuntimeError(snapshot.error));
   const face = snapshot.face as NormalizedFaceResult | undefined;
   if (face?.landmarks?.raw?.length) lastFace = face;
@@ -87,7 +90,7 @@ const unsubscribeSnapshot = studio.subscribeSnapshot((snapshot) => {
       yaw: snapshot.pose?.yaw ?? 0,
       pitch: snapshot.pose?.pitch ?? 0,
       roll: snapshot.pose?.roll ?? 0,
-      confidence: snapshot.tracking?.confidence ?? 0,
+      confidence: snapshot.tracking?.confidence ?? face.quality?.confidence ?? 0,
       stability: snapshot.tracking?.stability ?? 0,
       faceCoverage: face.bbox ? Math.min(1, Math.max(0, face.bbox.width * face.bbox.height * 3)) : undefined,
     });
@@ -244,6 +247,12 @@ reconstructionButton?.addEventListener("click", () => {
   if (!runtimeAdapter || studio.getMode() !== "connected") return;
   if (reconstructionSession.getState() === "capturing") {
     const reconstruction = reconstructionSession.finish();
+    if (reconstruction.capturedFrames === 0) {
+      runtimeAdapter.setSnapshot?.({ reconstruction: null });
+      reconstructionButton.textContent = "Capturar reconstrução";
+      setStatus("Nenhuma leitura aceita; mantenha o rosto visível e tente novamente");
+      return;
+    }
     runtimeAdapter.setSnapshot?.({ reconstruction });
     reconstructionButton.textContent = "Reconstrução congelada";
     reconstructionButton.title = `Cobertura ${Math.round(reconstruction.coverage * 100)}%`;
@@ -253,6 +262,20 @@ reconstructionButton?.addEventListener("click", () => {
     return;
   }
   reconstructionSession.start();
+  if (lastFace?.landmarks?.raw?.length) {
+    reconstructionSession.ingest({
+      id: `frame-${Date.now()}-initial`,
+      timestamp: Date.now(),
+      landmarks: lastFace.landmarks.raw,
+      connections: lastFace.landmarks.connections?.map(([from, to]) => [from, to] as [number, number]),
+      yaw: lastAuditSnapshot?.pose?.yaw ?? 0,
+      pitch: lastAuditSnapshot?.pose?.pitch ?? 0,
+      roll: lastAuditSnapshot?.pose?.roll ?? 0,
+      confidence: lastAuditSnapshot?.tracking?.confidence ?? lastFace.quality?.confidence ?? 0,
+      stability: lastAuditSnapshot?.tracking?.stability ?? lastFace.quality?.stabilityScore ?? 0,
+      faceCoverage: lastFace.bbox ? Math.min(1, Math.max(0, lastFace.bbox.width * lastFace.bbox.height * 3)) : undefined,
+    });
+  }
   runtimeAdapter.setSnapshot?.({ reconstruction: null });
   if (clearReconstructionButton) clearReconstructionButton.disabled = true;
   if (exportReconstructionButton) exportReconstructionButton.disabled = true;
