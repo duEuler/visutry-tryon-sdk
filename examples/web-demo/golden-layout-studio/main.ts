@@ -386,6 +386,11 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
       privacy: { processOnDeviceOnly: true, allowSnapshotExport: true },
     });
     runtimeSdk.on("faceDetected", (face) => {
+      lastFace = face;
+      if (landmarkOverlay && landmarkCanvas) {
+        landmarkCanvas.classList.remove("studio-runtime-hidden");
+        landmarkOverlay.renderFromFace(face, 640, 480);
+      }
       if (!reconstructionCaptureActive || !face.landmarks?.raw?.length) return;
       reconstructionSession.ingest({
         id: `sdk-frame-${Date.now()}`,
