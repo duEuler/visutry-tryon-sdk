@@ -149,6 +149,8 @@ const setRuntimeControls = (mode: StudioMode) => {
     if (cameraButton) cameraButton.disabled = cameraReady;
     if (tryOnButton) tryOnButton.disabled = tryOnReady;
     if (glbButton) glbButton.disabled = glbReady;
+    if (clearReconstructionButton) clearReconstructionButton.disabled = !reconstructionSession.getSnapshot()?.completed;
+    if (exportReconstructionButton) exportReconstructionButton.disabled = !reconstructionSession.getSnapshot()?.completed;
   }
   if (stopButton) stopButton.disabled = !hasRuntime;
 };
@@ -262,9 +264,9 @@ clearReconstructionButton?.addEventListener("click", () => {
   if (!runtimeAdapter || studio.getMode() !== "connected") return;
   reconstructionSession.cancel();
   runtimeAdapter.setSnapshot?.({ reconstruction: null });
-  reconstructionButton && (reconstructionButton.textContent = "Capturar reconstrução");
+    if (reconstructionButton) reconstructionButton.textContent = "Capturar reconstrução";
   clearReconstructionButton.disabled = true;
-  exportReconstructionButton && (exportReconstructionButton.disabled = true);
+  if (exportReconstructionButton) exportReconstructionButton.disabled = true;
   setStatus("Reconstrução limpa");
 });
 exportReconstructionButton?.addEventListener("click", () => {
