@@ -112,13 +112,17 @@ class ViewportScene {
 
   clear(): void {
     this.renderer.setSize(Math.max(1, this.canvas.clientWidth || 160), Math.max(1, this.canvas.clientHeight || 120), false);
-    this.renderer.clear();
+    this.face.clear();
+    this.face.visible = false;
+    this.glasses.visible = false;
+    this.renderer.render(this.scene, this.camera);
   }
 
   render(snapshot: ViewportSnapshot): void {
     const face = snapshot.face as { landmarks?: { raw?: unknown[]; connections?: { tesselation?: Array<{ start: number; end: number }> } }; pose?: { matrix?: number[] } } | undefined;
     const raw = face?.landmarks?.raw ?? [];
     if (snapshot.mode !== "connected" || raw.length < 3) return;
+    this.face.visible = true;
     const width = Math.max(1, this.canvas.clientWidth || 160);
     const height = Math.max(1, this.canvas.clientHeight || 120);
     this.renderer.setSize(width, height, false);
