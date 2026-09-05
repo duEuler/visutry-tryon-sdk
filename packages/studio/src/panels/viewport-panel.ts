@@ -40,7 +40,6 @@ class ViewportScene {
   private glbOrigin: { x: number; y: number; z: number } | null = null;
   private glbFrameWidthMm = 150;
   private lastRaw: unknown[] | null = null;
-  private lastView = "";
   private canonicalIndex: number[] | null = null;
   private usingCanonical = false;
   private faceCenter = new THREE.Vector3();
@@ -103,10 +102,10 @@ class ViewportScene {
       this.rebuildFace(raw, face?.landmarks?.connections?.tesselation ?? []);
       this.lastRaw = raw;
     }
-    if (this.lastView !== view) {
-      this.applyView(view);
-      this.lastView = view;
-    }
+    // The camera basis follows the tracked head pose, while each viewport
+    // keeps its own fixed axis (front/top/left/right) around the same eye
+    // anchor. This makes FRONT face the eyes instead of the page's global Z.
+    this.applyView(view);
     this.applyGlassesPose();
     this.loadGlb(snapshot.glb);
     this.renderer.render(this.scene, this.camera);
@@ -224,13 +223,27 @@ class ViewportScene {
   }
 
   private applyView(view: string): void {
-    // Position the camera on each axis; calling lookAt after assigning a
-    // rotation would otherwise reset that rotation and make every viewport
-    // render the same front projection.
-    if (view === "TOP") this.camera.position.set(this.cameraTarget.x, this.cameraTarget.y + 3, this.cameraTarget.z);
-    else if (view === "LEFT") this.camera.position.set(this.cameraTarget.x - 3, this.cameraTarget.y, this.cameraTarget.z);
-    else if (view === "RIGHT") this.camera.position.set(this.cameraTarget.x + 3, this.cameraTarget.y, this.cameraTarget.z);
-    else this.camera.position.set(this.cameraTarget.x, this.cameraTarget.y, this.cameraTarget.z + 3);
+    const poseRotation = this.lastPose.rotation ?? new THREE.Euler(
+      THREE.MathUtils.degToRad(this.lastPose.pitch ?? 0),
+      THREE.MathUtils.degToRad(this.lastPose.yaw ?? 0),
+      THREE.MathUtils.degToRad(this.lastPose.roll ?? 0),
+    );
+    const orientation = poseRotation instanceof THREE.Euler
+      ? new THREE.Quaternion().setFromEuler(poseRotation)
+      : new THREE.Quaternion().setFromEuler(new THREE.Euler(poseRotation.x, poseRotation.y, poseRotation.z));
+    // Landmarks are expressed from the camera toward the face; to place the
+    // viewport camera in the face's local frame we use the inverse rotation.
+    orientation.conjugate();
+    const offset = view === "TOP"
+      ? new THREE.Vector3(0, 3, 0)
+      : view === "LEFT"
+        ? new THREE.Vector3(-3, 0, 0)
+        : view === "RIGHT"
+          ? new THREE.Vector3(3, 0, 0)
+          : new THREE.Vector3(0, 0, 3);
+    offset.applyQuaternion(orientation);
+    this.camera.position.copy(this.cameraTarget).add(offset);
+    this.camera.up.set(0, 1, 0).applyQuaternion(orientation);
     this.camera.lookAt(this.cameraTarget);
     this.camera.updateProjectionMatrix();
   }
