@@ -46,6 +46,9 @@ class ViewportScene {
   private faceFitScale = 1;
   private eyeCenter = new THREE.Vector3();
   private eyeDistance = 0;
+  private faceRight = new THREE.Vector3(1, 0, 0);
+  private faceUp = new THREE.Vector3(0, 1, 0);
+  private faceForward = new THREE.Vector3(0, 0, 1);
   private cameraTarget = new THREE.Vector3();
   private lastPose: NonNullable<ViewportSnapshot["pose"]> = { yaw: 0, pitch: 0, roll: 0 };
 
@@ -202,11 +205,18 @@ class ViewportScene {
       const leftWorld = new THREE.Vector3(...toWorld(leftEye));
       const rightWorld = new THREE.Vector3(...toWorld(rightEye));
       this.eyeDistance = leftWorld.distanceTo(rightWorld);
+      this.faceRight.copy(rightWorld).sub(leftWorld).normalize();
       this.eyeCenter.set(...toWorld({
         x: (leftEye.x + rightEye.x) / 2,
         y: (leftEye.y + rightEye.y) / 2,
         z: ((leftEye.z ?? 0) + (rightEye.z ?? 0)) / 2,
       }));
+      const forehead = points[10] ? new THREE.Vector3(...toWorld(points[10])) : this.eyeCenter.clone().add(new THREE.Vector3(0, 0.2, 0));
+      this.faceUp.copy(forehead).sub(this.eyeCenter).normalize();
+      this.faceForward.copy(this.faceRight).cross(this.faceUp).normalize();
+      const nose = points[1] ? new THREE.Vector3(...toWorld(points[1])) : this.eyeCenter;
+      if (this.faceForward.dot(nose.clone().sub(this.eyeCenter)) < 0) this.faceForward.negate();
+      this.faceUp.copy(this.faceForward).cross(this.faceRight).normalize();
     }
     this.cameraTarget.copy(this.eyeCenter).multiplyScalar(this.faceFitScale).add(this.world.position);
     const geometry = new THREE.BufferGeometry();
@@ -229,30 +239,18 @@ class ViewportScene {
   }
 
   private applyView(view: string): void {
-    const poseRotation = this.lastPose.rotation ?? new THREE.Euler(
-      THREE.MathUtils.degToRad(this.lastPose.pitch ?? 0),
-      THREE.MathUtils.degToRad(this.lastPose.yaw ?? 0),
-      THREE.MathUtils.degToRad(this.lastPose.roll ?? 0),
-    );
-    const orientation = poseRotation instanceof THREE.Euler
-      ? new THREE.Quaternion().setFromEuler(poseRotation)
-      : new THREE.Quaternion().setFromEuler(new THREE.Euler(poseRotation.x, poseRotation.y, poseRotation.z));
-    // Landmarks are expressed from the camera toward the face; to place the
-    // viewport camera in the face's local frame we use the inverse rotation.
-    orientation.conjugate();
-    // FRONT is the canonical camera. Other panels are only camera moves from
-    // that baseline (the scene objects are never transformed per viewport).
+    // FRONT is the canonical camera. Other panels move from that baseline
+    // using the measured face basis; scene objects are never transformed.
     const offset = view === "TOP"
-      ? new THREE.Vector3(0, 3, 3)
+      ? this.faceForward.clone().add(this.faceUp)
       : view === "LEFT"
-        ? new THREE.Vector3(-3, 0, 3)
+        ? this.faceForward.clone().sub(this.faceRight)
         : view === "RIGHT"
-          ? new THREE.Vector3(3, 0, 3)
-          : new THREE.Vector3(0, 0, 3);
+          ? this.faceForward.clone().add(this.faceRight)
+          : this.faceForward.clone();
     offset.setLength(3);
-    offset.applyQuaternion(orientation);
     this.camera.position.copy(this.cameraTarget).add(offset);
-    this.camera.up.set(0, 1, 0).applyQuaternion(orientation);
+    this.camera.up.copy(this.faceUp);
     this.camera.lookAt(this.cameraTarget);
     this.camera.updateProjectionMatrix();
   }
