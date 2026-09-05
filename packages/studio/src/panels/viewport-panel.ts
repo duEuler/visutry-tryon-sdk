@@ -265,7 +265,7 @@ class ViewportScene {
           const cx = (minX + maxX) / 2; const cy = (minY + maxY) / 2;
           const out: number[] = [];
           for (let i = 0; i < this.canonicalPositions!.length; i += 3) {
-            out.push(this.eyeCenter.x + (this.canonicalPositions![i] - cx) / sx * rawWidth, this.eyeCenter.y + (this.canonicalPositions![i + 1] - cy) / sy * rawHeight, this.eyeCenter.z + this.canonicalPositions![i + 2] / sx * rawWidth);
+            out.push(this.eyeCenter.x + (this.canonicalPositions![i] - cx) / sx * rawWidth, this.eyeCenter.y - (this.canonicalPositions![i + 1] - cy) / sy * rawHeight, this.eyeCenter.z + this.canonicalPositions![i + 2] / sx * rawWidth);
           }
           return out;
         })()
