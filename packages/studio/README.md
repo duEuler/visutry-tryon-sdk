@@ -191,6 +191,28 @@ RMS samples. Adapters should provide `face.rmsError` when measured data is
 available; the web adapter marks its confidence/stability fallback with
 `face.rmsErrorEstimated` until a physical RMS source is connected.
 
+### Reconstrução estática e calibração
+
+`createFaceReconstructionSession()` coleta amostras orientadas do rosto e
+produz uma reconstrução congelada para os quatro viewports. A captura pode ser
+alimentada por qualquer adapter, sem dependência de câmera ou MediaPipe no
+pacote:
+
+```ts
+const session = createFaceReconstructionSession({ maxFrames: 120 });
+session.start();
+session.ingest({ landmarks, yaw, pitch, roll, confidence, stability });
+const reconstruction = session.finish();
+runtime.setSnapshot?.({ reconstruction });
+```
+
+Os pontos `source: "observed"` representam leituras reais e aparecem em
+ciano. Pontos `source: "estimated"` preenchem regiões não capturadas e aparecem
+em rosa, incluindo a orientação visual de pescoço e ombros. O GLB é desenhado
+separadamente em wireframe laranja. Depois de `finish()`, os viewports usam a
+reconstrução congelada mesmo que novos frames cheguem ao runtime; iniciar uma
+nova sessão substitui explicitamente o modelo anterior.
+
 ## Toolbar contract
 
 Use `bindStudioToolbar(root, studio)` with buttons carrying a
