@@ -242,6 +242,8 @@ reconstructionButton?.addEventListener("click", () => {
     const progress = reconstructionSession.getProgress();
     if (!reconstructionSession.canFinish()) {
       const labels: Record<string, string> = { front: "frente", left: "lado esquerdo", right: "lado direito" };
+      reconstructionButton.textContent = "Finalizar reconstrução";
+      reconstructionButton.title = "Ainda falta capturar os ângulos indicados";
       setStatus(`Continue girando o rosto: falta ${progress.missingRegions.map((region) => labels[region] ?? region).join(" e ")}`);
       return;
     }
@@ -284,13 +286,14 @@ reconstructionButton?.addEventListener("click", () => {
   if (exportReconstructionButton) exportReconstructionButton.disabled = true;
   reconstructionButton.textContent = "Finalizar reconstrução";
   reconstructionButton.title = "Finalize após girar o rosto para os ângulos desejados";
+  reconstructionButton.setAttribute("aria-label", "Finalizar reconstrução 3D");
   setStatus("Capturando ângulos: frente, topo, esquerda e direita");
 });
 clearReconstructionButton?.addEventListener("click", () => {
   if (!runtimeAdapter || studio.getMode() !== "connected") return;
   reconstructionSession.cancel();
   runtimeAdapter.setSnapshot?.({ reconstruction: null });
-    if (reconstructionButton) reconstructionButton.textContent = "Capturar reconstrução";
+    if (reconstructionButton) { reconstructionButton.textContent = "Capturar reconstrução"; reconstructionButton.setAttribute("aria-label", "Capturar reconstrução 3D"); }
   clearReconstructionButton.disabled = true;
   if (exportReconstructionButton) exportReconstructionButton.disabled = true;
   setStatus("Reconstrução limpa");
@@ -322,7 +325,7 @@ stopButton?.addEventListener("click", () => {
   if (glbButton) glbButton.textContent = "Carregar GLB";
   if (evidenceButton) evidenceButton.textContent = "Capturar evidência";
   reconstructionSession.cancel();
-  if (reconstructionButton) reconstructionButton.textContent = "Capturar reconstrução";
+  if (reconstructionButton) { reconstructionButton.textContent = "Capturar reconstrução"; reconstructionButton.setAttribute("aria-label", "Capturar reconstrução 3D"); }
   if (clearReconstructionButton) clearReconstructionButton.disabled = true;
   if (exportReconstructionButton) exportReconstructionButton.disabled = true;
   setStatus("Runtime parado; dados limpos");
