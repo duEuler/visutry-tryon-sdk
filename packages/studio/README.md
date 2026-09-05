@@ -213,6 +213,17 @@ separadamente em wireframe laranja. Depois de `finish()`, os viewports usam a
 reconstrução congelada mesmo que novos frames cheguem ao runtime; iniciar uma
 nova sessão substitui explicitamente o modelo anterior.
 
+As amostras são limitadas a 60 frames, pontuadas por confiança, estabilidade,
+landmarks válidos, enquadramento, oclusão e aderência ao ângulo, e alinhadas ao
+espaço canônico antes da mesclagem. As conexões de tesselation/contorno
+fornecidas pelo MediaPipe são preservadas para a malha; quando não existem, o
+renderer usa uma malha leve de fallback.
+
+No demo, `Capturar reconstrução` inicia/finaliza a sessão, `Limpar reconstrução`
+remove o modelo congelado e `Exportar calibração` baixa o snapshot versionado.
+Sem GLB carregado, nenhum óculos é inventado: o painel mostra “GLB aguardando
+carregamento” e mantém apenas a face observada/estimada.
+
 ## Toolbar contract
 
 Use `bindStudioToolbar(root, studio)` with buttons carrying a
