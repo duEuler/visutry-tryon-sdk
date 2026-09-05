@@ -92,7 +92,7 @@ const unsubscribeSnapshot = studio.subscribeSnapshot((snapshot) => {
       faceCoverage: face.bbox ? Math.min(1, Math.max(0, face.bbox.width * face.bbox.height * 3)) : undefined,
     });
     const progress = reconstructionSession.getProgress();
-    const labels: Record<string, string> = { front: "Frontal", left: "Lateral esq.", right: "Lateral dir.", top: "Topo", chin: "Queixo" };
+    const labels: Record<string, string> = { front: "Frontal", left: "Lateral esq.", right: "Lateral dir.", top: "Topo", chin: "Queixo", neck: "Pescoço", shoulders: "Ombros" };
     const done = progress.observedRegions.map((region) => `${labels[region] ?? region} ✓`).join(" · ");
     const missing = progress.missingRegions.map((region) => `${labels[region] ?? region} em captura`).join(" · ");
     setStatus(`${done}${done && missing ? " · " : ""}${missing}`);

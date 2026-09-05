@@ -26,7 +26,7 @@ export interface FaceReconstructionSessionOptions {
   autoComplete?: boolean;
 }
 
-const DEFAULT_REGIONS: FaceRegion[] = ["front", "left", "right", "top", "chin"];
+const DEFAULT_REGIONS: FaceRegion[] = ["front", "left", "right", "top", "chin", "neck", "shoulders"];
 const asFinite = (value: unknown, fallback = 0): number => typeof value === "number" && Number.isFinite(value) ? value : fallback;
 
 function classifyRegions(sample: FaceReconstructionSample): FaceRegion[] {
@@ -38,6 +38,9 @@ function classifyRegions(sample: FaceReconstructionSample): FaceRegion[] {
   if (yaw >= 12) regions.push("right");
   if (pitch >= 10) regions.push("top");
   if (pitch <= -12) regions.push("chin");
+  const validY = sample.landmarks.filter((point) => Number.isFinite(point.y)).map((point) => point.y);
+  if (validY.some((y) => y > 0.72)) regions.push("neck");
+  if (validY.some((y) => y > 0.86)) regions.push("shoulders");
   return regions.length ? regions : ["front"];
 }
 
