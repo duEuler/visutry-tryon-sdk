@@ -41,13 +41,25 @@ export function createStudioRuntimeAdapter(sdk: VisuTrySDK, options: StudioRunti
   };
   const normalizePose = (value: unknown) => {
     if (!value || typeof value !== "object") return null;
-    const pose = value as { yaw?: unknown; pitch?: unknown; roll?: unknown; position?: unknown; rotation?: unknown };
+    const pose = value as { yaw?: unknown; pitch?: unknown; roll?: unknown; position?: unknown; rotation?: unknown; scale?: unknown; visible?: unknown; reason?: unknown };
     const rotation = pose.rotation as { x?: unknown; y?: unknown; z?: unknown } | undefined;
+    const scale = pose.scale as { x?: unknown; y?: unknown; z?: unknown } | undefined;
+    const position = pose.position as { x?: unknown; y?: unknown; z?: unknown } | undefined;
     return {
       yaw: asNumber(pose.yaw) ?? asNumber(rotation?.y),
       pitch: asNumber(pose.pitch) ?? asNumber(rotation?.x),
       roll: asNumber(pose.roll) ?? asNumber(rotation?.z),
-      position: pose.position as { x: number; y: number; z: number } | undefined,
+      position: position && asNumber(position.x) !== undefined && asNumber(position.y) !== undefined && asNumber(position.z) !== undefined
+        ? { x: asNumber(position.x)!, y: asNumber(position.y)!, z: asNumber(position.z)! }
+        : undefined,
+      rotation: rotation && asNumber(rotation.x) !== undefined && asNumber(rotation.y) !== undefined && asNumber(rotation.z) !== undefined
+        ? { x: asNumber(rotation.x)!, y: asNumber(rotation.y)!, z: asNumber(rotation.z)! }
+        : undefined,
+      scale: scale && asNumber(scale.x) !== undefined && asNumber(scale.y) !== undefined && asNumber(scale.z) !== undefined
+        ? { x: asNumber(scale.x)!, y: asNumber(scale.y)!, z: asNumber(scale.z)! }
+        : undefined,
+      visible: typeof pose.visible === "boolean" ? pose.visible : undefined,
+      reason: typeof pose.reason === "string" ? pose.reason : undefined,
     };
   };
   const publish = (patch: AuditSnapshot) => {

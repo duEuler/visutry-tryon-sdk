@@ -11,7 +11,13 @@ type Point3 = { x: number; y: number; z?: number };
 type ViewportSnapshot = {
   mode?: string;
   face?: unknown;
-  pose?: { yaw?: number; pitch?: number; roll?: number } | null;
+  pose?: {
+    yaw?: number; pitch?: number; roll?: number;
+    position?: { x: number; y: number; z: number };
+    rotation?: { x: number; y: number; z: number };
+    scale?: { x: number; y: number; z: number };
+    visible?: boolean;
+  } | null;
   glb?: unknown;
   reconstruction?: { landmarks: Array<{ index: number; x: number; y: number; z: number; source: "observed" | "estimated" }>; connections?: Array<[number, number]>; completed: boolean; coverage: number; capturedFrames: number } | null;
 };
@@ -23,11 +29,16 @@ class ViewportScene {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 100);
+  private readonly world = new THREE.Group();
   private readonly face = new THREE.Group();
   private readonly glasses = new THREE.Group();
   private readonly loader = new GLTFLoader();
   private loadedGlb = "";
   private loadingGlb = false;
+  private glbRoot: THREE.Object3D | null = null;
+  private glbModelScale = 1;
+  private glbOrigin: { x: number; y: number; z: number } | null = null;
+  private glbFrameWidthMm = 150;
   private lastRaw: unknown[] | null = null;
   private lastView = "";
   private canonicalIndex: number[] | null = null;
@@ -35,9 +46,9 @@ class ViewportScene {
   private faceCenter = new THREE.Vector3();
   private faceFitScale = 1;
   private eyeCenter = new THREE.Vector3();
-  private eyeDistance = 0.35;
-  private glassesBaseWidth = 1;
-  private lastPose = { yaw: 0, pitch: 0, roll: 0 };
+  private eyeDistance = 0;
+  private cameraTarget = new THREE.Vector3();
+  private lastPose: NonNullable<ViewportSnapshot["pose"]> = { yaw: 0, pitch: 0, roll: 0 };
 
   private static canonicalIndexPromise: Promise<number[] | null> | null = null;
 
@@ -58,7 +69,8 @@ class ViewportScene {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.scene.background = new THREE.Color("#091321");
-    this.scene.add(this.face, this.glasses);
+    this.scene.add(this.world);
+    this.world.add(this.face, this.glasses);
     this.glasses.visible = false;
     ViewportScene.loadCanonicalIndex().then((index) => {
       this.canonicalIndex = index;
@@ -82,6 +94,10 @@ class ViewportScene {
       yaw: snapshot.pose?.yaw ?? 0,
       pitch: snapshot.pose?.pitch ?? 0,
       roll: snapshot.pose?.roll ?? 0,
+      position: snapshot.pose?.position,
+      rotation: snapshot.pose?.rotation,
+      scale: snapshot.pose?.scale,
+      visible: snapshot.pose?.visible,
     };
     if (this.lastRaw !== raw || (this.canonicalIndex !== null && !this.usingCanonical)) {
       this.rebuildFace(raw, face?.landmarks?.connections?.tesselation ?? []);
@@ -91,7 +107,7 @@ class ViewportScene {
       this.applyView(view);
       this.lastView = view;
     }
-    this.applyGlassesPose(face?.pose?.matrix);
+    this.applyGlassesPose();
     this.loadGlb(snapshot.glb);
     this.renderer.render(this.scene, this.camera);
   }
@@ -112,23 +128,38 @@ class ViewportScene {
     this.renderer.dispose();
   }
 
-  private applyGlassesPose(matrix?: number[]): void {
-    if (!this.glasses.visible) return;
-    // The viewport face is normalized into a unit render space. Anchor the
-    // GLB to the observed eye line in that same space instead of applying the
-    // metric camera-space matrix directly (which would put a millimetre asset
-    // outside the orthographic frustum).
+  private applyGlassesPose(): void {
+    if (!this.loadedGlb) return;
+    // This is the same pose contract consumed by the Live 3D renderer. The
+    // viewport's `world` group applies only a visual fit transform, so the
+    // relative GLB-to-face position remains the solver's exact result.
+    const pose = this.lastPose;
+    const position = pose.position;
     this.glasses.matrixAutoUpdate = true;
-    this.glasses.position.copy(this.eyeCenter);
-    this.glasses.rotation.set(
-      THREE.MathUtils.degToRad(this.lastPose.pitch),
-      THREE.MathUtils.degToRad(this.lastPose.yaw),
-      THREE.MathUtils.degToRad(this.lastPose.roll),
+    this.glasses.position.set(position?.x ?? this.eyeCenter.x, position?.y ?? this.eyeCenter.y, position?.z ?? this.eyeCenter.z);
+    if (pose.rotation) this.glasses.rotation.set(pose.rotation.x, pose.rotation.y, pose.rotation.z);
+    else this.glasses.rotation.set(
+      THREE.MathUtils.degToRad(pose.pitch ?? 0),
+      THREE.MathUtils.degToRad(pose.yaw ?? 0),
+      THREE.MathUtils.degToRad(pose.roll ?? 0),
     );
-    const fit = Math.max(0.02, this.eyeDistance * 1.95);
-    const scale = fit / Math.max(this.glassesBaseWidth, 0.001);
-    this.glasses.scale.setScalar(scale);
-    void matrix;
+    const scale = pose.scale ?? (this.eyeDistance > 1e-6
+      ? (() => {
+          const physicalWidth = this.glbFrameWidthMm / 200;
+          const fitted = this.eyeDistance / Math.max(physicalWidth, 1e-6);
+          return { x: fitted * 0.45, y: fitted * 0.45, z: fitted * 0.45 };
+        })()
+      : { x: 1, y: 1, z: 1 });
+    this.glasses.scale.set(-scale.x, scale.y, scale.z);
+    if (this.glbRoot && this.glbOrigin) {
+      const factor = this.glbModelScale * scale.x;
+      this.glbRoot.position.set(
+        -this.glbOrigin.x * factor,
+        -this.glbOrigin.y * factor,
+        -this.glbOrigin.z * factor,
+      );
+    }
+    this.glasses.visible = pose.visible !== false;
   }
 
   private rebuildFace(raw: unknown[], links: Array<{ start: number; end: number }>): void {
@@ -136,35 +167,43 @@ class ViewportScene {
     const points = raw.map(asPoint);
     const valid = points.filter((point): point is Point3 => point !== null);
     if (!valid.length) return;
-    const minX = Math.min(...valid.map((point) => point.x));
-    const maxX = Math.max(...valid.map((point) => point.x));
-    const minY = Math.min(...valid.map((point) => point.y));
-    const maxY = Math.max(...valid.map((point) => point.y));
-    const minZ = Math.min(...valid.map((point) => point.z ?? 0));
-    const maxZ = Math.max(...valid.map((point) => point.z ?? 0));
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
-    const centerZ = (minZ + maxZ) / 2;
-    this.faceFitScale = 1.55 / Math.max(maxX - minX, maxY - minY, 0.05);
-    this.faceCenter.set(centerX, centerY, centerZ);
+    const frameAspect = 4 / 3;
+    const toRenderWorld = (point: Point3): THREE.Vector3 => new THREE.Vector3(
+      (point.x - 0.5) * frameAspect,
+      0.5 - point.y,
+      point.z ?? 0,
+    );
+    const renderPoints = valid.map(toRenderWorld);
+    const worldMinX = Math.min(...renderPoints.map((point) => point.x));
+    const worldMaxX = Math.max(...renderPoints.map((point) => point.x));
+    const worldMinY = Math.min(...renderPoints.map((point) => point.y));
+    const worldMaxY = Math.max(...renderPoints.map((point) => point.y));
+    const worldCenter = new THREE.Vector3(
+      (worldMinX + worldMaxX) / 2,
+      (worldMinY + worldMaxY) / 2,
+      renderPoints.reduce((sum, point) => sum + point.z, 0) / renderPoints.length,
+    );
+    this.faceFitScale = 1.55 / Math.max(worldMaxX - worldMinX, worldMaxY - worldMinY, 0.05);
+    this.faceCenter.copy(worldCenter);
+    this.world.scale.setScalar(this.faceFitScale);
+    this.world.position.set(-worldCenter.x * this.faceFitScale, -worldCenter.y * this.faceFitScale, -worldCenter.z * this.faceFitScale);
     const toWorld = (point: Point3 | null): [number, number, number] => point
-      ? [(point.x - centerX) * this.faceFitScale, -(point.y - centerY) * this.faceFitScale, ((point.z ?? 0) - centerZ) * this.faceFitScale * 1.8]
+      ? [((point.x - 0.5) * frameAspect), 0.5 - point.y, point.z ?? 0]
       : [0, 0, 0];
     const positions = points.flatMap(toWorld);
     const leftEye = points[33];
     const rightEye = points[263];
     if (leftEye && rightEye) {
+      const leftWorld = new THREE.Vector3(...toWorld(leftEye));
+      const rightWorld = new THREE.Vector3(...toWorld(rightEye));
+      this.eyeDistance = leftWorld.distanceTo(rightWorld);
       this.eyeCenter.set(...toWorld({
         x: (leftEye.x + rightEye.x) / 2,
         y: (leftEye.y + rightEye.y) / 2,
         z: ((leftEye.z ?? 0) + (rightEye.z ?? 0)) / 2,
       }));
-      this.eyeDistance = Math.max(0.05, Math.hypot(
-        (rightEye.x - leftEye.x) * this.faceFitScale,
-        (rightEye.y - leftEye.y) * this.faceFitScale,
-        ((rightEye.z ?? 0) - (leftEye.z ?? 0)) * this.faceFitScale * 1.8,
-      ));
     }
+    this.cameraTarget.copy(this.eyeCenter).multiplyScalar(this.faceFitScale).add(this.world.position);
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
     const triangles: number[] = this.canonicalIndex?.length ? this.canonicalIndex.filter((index) => index < raw.length) : [];
@@ -188,38 +227,42 @@ class ViewportScene {
     // Position the camera on each axis; calling lookAt after assigning a
     // rotation would otherwise reset that rotation and make every viewport
     // render the same front projection.
-    if (view === "TOP") this.camera.position.set(0, 3, 0);
-    else if (view === "LEFT") this.camera.position.set(-3, 0, 0);
-    else if (view === "RIGHT") this.camera.position.set(3, 0, 0);
-    else this.camera.position.set(0, 0, 3);
-    this.camera.lookAt(this.eyeCenter);
+    if (view === "TOP") this.camera.position.set(this.cameraTarget.x, this.cameraTarget.y + 3, this.cameraTarget.z);
+    else if (view === "LEFT") this.camera.position.set(this.cameraTarget.x - 3, this.cameraTarget.y, this.cameraTarget.z);
+    else if (view === "RIGHT") this.camera.position.set(this.cameraTarget.x + 3, this.cameraTarget.y, this.cameraTarget.z);
+    else this.camera.position.set(this.cameraTarget.x, this.cameraTarget.y, this.cameraTarget.z + 3);
+    this.camera.lookAt(this.cameraTarget);
     this.camera.updateProjectionMatrix();
   }
 
   private loadGlb(glb: unknown): void {
-    const manifest = glb && typeof glb === "object" ? glb as { modelUrl?: unknown; dimensions?: { frameWidthMm?: unknown } } : null;
+    const manifest = glb && typeof glb === "object" ? glb as {
+      modelUrl?: unknown;
+      dimensions?: { frameWidthMm?: unknown };
+      coordinateSystem?: { unit?: unknown };
+      anchors?: { origin?: { x?: unknown; y?: unknown; z?: unknown } };
+    } : null;
     const modelUrl = manifest && typeof manifest.modelUrl === "string" ? manifest.modelUrl : "";
     if (!modelUrl || modelUrl === this.loadedGlb || this.loadingGlb) return;
     this.loadingGlb = true;
     this.loader.load(modelUrl, (result) => {
       this.glasses.clear();
-      // GLB assets do not share a guaranteed origin. Normalize the model
-      // around its own bounding-box center before the eye anchor is applied;
-      // otherwise a valid pose can still appear visibly above the face.
       result.scene.updateMatrixWorld(true);
       const sourceBounds = new THREE.Box3().setFromObject(result.scene);
       const sourceWidth = sourceBounds.max.x - sourceBounds.min.x;
       const frameWidthMm = typeof manifest?.dimensions?.frameWidthMm === "number" ? manifest.dimensions.frameWidthMm : 150;
       const widthNormalization = sourceWidth > 1e-6 ? (frameWidthMm / 200) / sourceWidth : 0.01;
-      result.scene.scale.setScalar(widthNormalization);
-      result.scene.updateMatrixWorld(true);
-      const normalizedBounds = new THREE.Box3().setFromObject(result.scene);
-      const normalizedCenter = normalizedBounds.getCenter(new THREE.Vector3());
-      this.glassesBaseWidth = Math.max(normalizedBounds.max.x - normalizedBounds.min.x, 0.001);
-      // Keep depth untouched (it is meaningful for TOP/LEFT/RIGHT), while
-      // moving the model's local X/Y center onto the eye-line anchor.
-      result.scene.position.x -= normalizedCenter.x;
-      result.scene.position.y -= normalizedCenter.y + 0.22;
+      const unitFactor = manifest?.coordinateSystem?.unit === "meter" ? 1000 : manifest?.coordinateSystem?.unit === "centimeter" ? 10 : 1;
+      const modelScale = unitFactor * widthNormalization;
+      result.scene.scale.setScalar(modelScale);
+      const origin = manifest?.anchors?.origin;
+      this.glbModelScale = modelScale;
+      this.glbFrameWidthMm = frameWidthMm;
+      this.glbOrigin = origin && [origin.x, origin.y, origin.z].every((value) => typeof value === "number")
+        ? { x: Number(origin.x), y: Number(origin.y), z: Number(origin.z) }
+        : null;
+      this.glbRoot = result.scene;
+      result.scene.position.set(0, 0, 0);
       result.scene.traverse((object) => {
         const mesh = object as THREE.Mesh;
         if (!mesh.isMesh) return;
@@ -239,6 +282,7 @@ class ViewportScene {
       this.glasses.renderOrder = 10;
       this.loadedGlb = modelUrl;
       this.loadingGlb = false;
+      this.applyGlassesPose();
       this.renderer.render(this.scene, this.camera);
     }, undefined, () => { this.loadingGlb = false; });
   }
