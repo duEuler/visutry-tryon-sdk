@@ -122,13 +122,15 @@ const tryOnButton = document.getElementById("start-tryon") as HTMLButtonElement 
 const glbButton = document.getElementById("load-glb") as HTMLButtonElement | null;
 const evidenceButton = document.getElementById("capture-evidence") as HTMLButtonElement | null;
 const reconstructionButton = document.getElementById("capture-reconstruction") as HTMLButtonElement | null;
+const clearReconstructionButton = document.getElementById("clear-reconstruction") as HTMLButtonElement | null;
+const exportReconstructionButton = document.getElementById("export-reconstruction") as HTMLButtonElement | null;
 const stopButton = document.getElementById("stop-runtime") as HTMLButtonElement | null;
 const setRuntimeControls = (mode: StudioMode) => {
   const ready = mode === "connected";
   const hasRuntime = mode !== "static";
   document.body.dataset.runtimeMode = mode;
   if (runtimeButton) runtimeButton.disabled = hasRuntime;
-  [cameraButton, tryOnButton, glbButton, evidenceButton, reconstructionButton].forEach((button) => {
+  [cameraButton, tryOnButton, glbButton, evidenceButton, reconstructionButton, clearReconstructionButton, exportReconstructionButton].forEach((button) => {
     if (!button) return;
     button.disabled = !ready;
     button.setAttribute("aria-disabled", String(!ready));
@@ -236,14 +238,39 @@ reconstructionButton?.addEventListener("click", () => {
     runtimeAdapter.setSnapshot?.({ reconstruction });
     reconstructionButton.textContent = "Reconstrução congelada";
     reconstructionButton.title = `Cobertura ${Math.round(reconstruction.coverage * 100)}%`;
+    if (clearReconstructionButton) clearReconstructionButton.disabled = false;
+    if (exportReconstructionButton) exportReconstructionButton.disabled = false;
     setStatus(`Reconstrução concluída · ${Math.round(reconstruction.coverage * 100)}% de cobertura`);
     return;
   }
   reconstructionSession.start();
   runtimeAdapter.setSnapshot?.({ reconstruction: null });
+  if (clearReconstructionButton) clearReconstructionButton.disabled = true;
+  if (exportReconstructionButton) exportReconstructionButton.disabled = true;
   reconstructionButton.textContent = "Finalizar reconstrução";
   reconstructionButton.title = "Finalize após girar o rosto para os ângulos desejados";
   setStatus("Capturando ângulos: frente, topo, esquerda e direita");
+});
+clearReconstructionButton?.addEventListener("click", () => {
+  if (!runtimeAdapter || studio.getMode() !== "connected") return;
+  reconstructionSession.cancel();
+  runtimeAdapter.setSnapshot?.({ reconstruction: null });
+  reconstructionButton && (reconstructionButton.textContent = "Capturar reconstrução");
+  clearReconstructionButton.disabled = true;
+  exportReconstructionButton && (exportReconstructionButton.disabled = true);
+  setStatus("Reconstrução limpa");
+});
+exportReconstructionButton?.addEventListener("click", () => {
+  const reconstruction = reconstructionSession.getSnapshot();
+  if (!reconstruction?.completed) return;
+  const blob = new Blob([JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), reconstruction }, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "visutry-face-calibration.json";
+  anchor.click();
+  URL.revokeObjectURL(url);
+  setStatus("Snapshot de calibração exportado");
 });
 stopButton?.addEventListener("click", () => {
   runtimeSdk?.stopTryOn();
@@ -261,6 +288,8 @@ stopButton?.addEventListener("click", () => {
   if (evidenceButton) evidenceButton.textContent = "Capturar evidência";
   reconstructionSession.cancel();
   if (reconstructionButton) reconstructionButton.textContent = "Capturar reconstrução";
+  if (clearReconstructionButton) clearReconstructionButton.disabled = true;
+  if (exportReconstructionButton) exportReconstructionButton.disabled = true;
   setStatus("Runtime parado; dados limpos");
 });
 document.addEventListener("visibilitychange", () => {

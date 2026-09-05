@@ -9,6 +9,10 @@ export interface FaceReconstructionSample {
   roll?: number;
   confidence?: number;
   stability?: number;
+  /** Normalized face size used to prefer well-framed observations. */
+  faceCoverage?: number;
+  /** Optional detector occlusion estimate, where 1 means fully occluded. */
+  occlusion?: number;
 }
 
 export type FaceReconstructionSessionState = "idle" | "capturing" | "processing" | "completed" | "cancelled";
@@ -17,6 +21,7 @@ export interface FaceReconstructionSessionOptions {
   maxFrames?: number;
   minConfidence?: number;
   requiredRegions?: FaceRegion[];
+  autoComplete?: boolean;
 }
 
 const DEFAULT_REGIONS: FaceRegion[] = ["front", "left", "right", "top", "chin"];
@@ -34,14 +39,22 @@ function classifyRegions(sample: FaceReconstructionSample): FaceRegion[] {
   return regions.length ? regions : ["front"];
 }
 
-function scoreSample(sample: FaceReconstructionSample): number {
+function scoreSample(sample: FaceReconstructionSample, targetYaw: number, targetPitch: number): number {
   const confidence = Math.max(0, Math.min(1, asFinite(sample.confidence, 0)));
   const stability = Math.max(0, Math.min(1, asFinite(sample.stability, confidence)));
   const validRatio = sample.landmarks.length ? sample.landmarks.filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y)).length / sample.landmarks.length : 0;
-  return confidence * 0.5 + validRatio * 0.3 + stability * 0.2;
+  const orientationMatch = Math.max(0, 1 - (Math.abs(asFinite(sample.yaw) - targetYaw) + Math.abs(asFinite(sample.pitch) - targetPitch)) / 90);
+  const faceCoverage = Math.max(0, Math.min(1, asFinite(sample.faceCoverage, 0.75)));
+  const occlusion = Math.max(0, Math.min(1, asFinite(sample.occlusion, 0)));
+  return confidence * 0.4 + validRatio * 0.25 + stability * 0.2 + orientationMatch * 0.1 + faceCoverage * 0.05 - occlusion * 0.15;
 }
 
-function estimatePoint(index: number, count: number): ReconstructedPoint {
+function estimatePoint(index: number, count: number, observed: Map<number, ReconstructedPoint>): ReconstructedPoint {
+  const previous = observed.get(index - 1);
+  const next = observed.get(index + 1);
+  if (previous && next) {
+    return { index, x: (previous.x + next.x) / 2, y: (previous.y + next.y) / 2, z: (previous.z + next.z) / 2, source: "estimated", confidence: 0 };
+  }
   const angle = (index / Math.max(1, count)) * Math.PI * 2;
   const ring = index % 3;
   return {
@@ -64,7 +77,7 @@ export class FaceReconstructionSession {
   private reconstruction: FaceReconstruction | null = null;
 
   constructor(options: FaceReconstructionSessionOptions = {}) {
-    this.maxFrames = Math.max(1, Math.floor(options.maxFrames ?? 60));
+    this.maxFrames = Math.max(1, Math.min(60, Math.floor(options.maxFrames ?? 60)));
     this.minConfidence = Math.max(0, Math.min(1, options.minConfidence ?? 0.35));
     this.requiredRegions = options.requiredRegions?.length ? [...options.requiredRegions] : [...DEFAULT_REGIONS];
   }
@@ -84,8 +97,10 @@ export class FaceReconstructionSession {
     const normalized: FaceReconstructionSample = { ...sample, id: sample.id ?? `frame-${this.samples.length + 1}`, timestamp: sample.timestamp ?? Date.now() };
     this.samples.push(normalized);
     if (this.samples.length > this.maxFrames) this.samples.splice(0, this.samples.length - this.maxFrames);
-    const score = scoreSample(normalized);
-    classifyRegions(normalized).forEach((region) => {
+    const regions = classifyRegions(normalized);
+    const target = regions.includes("front") ? 0 : regions.includes("top") ? 0 : regions.includes("left") ? -30 : 30;
+    const score = scoreSample(normalized, target, regions.includes("top") ? 15 : regions.includes("chin") ? -15 : 0);
+    regions.forEach((region) => {
       const previous = this.bestByRegion.get(region);
       if (!previous || score > previous.score) this.bestByRegion.set(region, { sample: normalized, score });
     });
@@ -111,7 +126,7 @@ export class FaceReconstructionSession {
       if (!previous || score > previous.confidence) byIndex.set(index, { index, x: point.x, y: point.y, z: asFinite(point.z), source: "observed", confidence: score, frameId: sample.id });
     }));
     const count = Math.max(478, ...this.samples.map((sample) => sample.landmarks.length), 1);
-    const landmarks = Array.from({ length: count }, (_, index) => byIndex.get(index) ?? estimatePoint(index, count));
+    const landmarks = Array.from({ length: count }, (_, index) => byIndex.get(index) ?? estimatePoint(index, count, byIndex));
     const estimatedRegions = this.requiredRegions.filter((region) => !observedRegions.includes(region));
     const coverage = landmarks.length ? landmarks.filter((point) => point.source === "observed").length / landmarks.length : 0;
     const confidence = landmarks.length ? landmarks.reduce((sum, point) => sum + point.confidence, 0) / landmarks.length : 0;

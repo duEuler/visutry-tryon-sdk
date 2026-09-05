@@ -8,6 +8,7 @@ type ViewportSnapshot = {
   mode?: string;
   face?: unknown;
   pose?: { yaw?: number; pitch?: number; roll?: number } | null;
+  glb?: unknown;
   reconstruction?: { landmarks: Array<{ index: number; x: number; y: number; z: number; source: "observed" | "estimated" }>; completed: boolean; coverage: number; capturedFrames: number } | null;
 };
 
@@ -107,6 +108,7 @@ function drawViewport(canvas: HTMLCanvasElement, snapshot: ViewportSnapshot): vo
     context.quadraticCurveTo(width * 0.5, height * 0.82, width * 0.66, height * 0.9);
     context.stroke();
   }
+  if (!snapshot.glb) return;
   const eyeLeft = fitted[Math.min(33, fitted.length - 1)];
   const eyeRight = fitted[Math.min(263, fitted.length - 1)];
   if (!eyeLeft || !eyeRight) return;
@@ -138,4 +140,7 @@ export function updateViewportGrid(element: HTMLElement, snapshot: ViewportSnaps
       ? `Reconstrução fixa · ${Math.round(reconstruction.coverage * 100)}% cobertura · ${reconstruction.capturedFrames} leituras`
       : "Ao vivo · inicie uma reconstrução para congelar";
   }
+  element.querySelectorAll<HTMLElement>("[data-viewport-caption]").forEach((caption) => {
+    caption.textContent = snapshot.glb ? "rosto 3D · óculos GLB wireframe" : "rosto 3D · óculos GLB aguardando carregamento";
+  });
 }
