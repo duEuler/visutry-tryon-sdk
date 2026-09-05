@@ -90,7 +90,7 @@ const unsubscribeSnapshot = studio.subscribeSnapshot((snapshot) => {
       yaw: snapshot.pose?.yaw ?? 0,
       pitch: snapshot.pose?.pitch ?? 0,
       roll: snapshot.pose?.roll ?? 0,
-      confidence: snapshot.tracking?.confidence ?? face.quality?.confidence ?? 0,
+      confidence: snapshot.tracking?.confidence ?? face.quality?.confidence ?? 1,
       stability: snapshot.tracking?.stability ?? 0,
       faceCoverage: face.bbox ? Math.min(1, Math.max(0, face.bbox.width * face.bbox.height * 3)) : undefined,
     });
@@ -287,7 +287,7 @@ document.addEventListener("click", (event) => {
       yaw: lastAuditSnapshot?.pose?.yaw ?? 0,
       pitch: lastAuditSnapshot?.pose?.pitch ?? 0,
       roll: lastAuditSnapshot?.pose?.roll ?? 0,
-      confidence: lastAuditSnapshot?.tracking?.confidence ?? lastFace.quality?.confidence ?? 0,
+      confidence: lastAuditSnapshot?.tracking?.confidence ?? lastFace.quality?.confidence ?? 1,
       stability: lastAuditSnapshot?.tracking?.stability ?? lastFace.quality?.stabilityScore ?? 0,
       faceCoverage: lastFace.bbox ? Math.min(1, Math.max(0, lastFace.bbox.width * lastFace.bbox.height * 3)) : undefined,
     });
