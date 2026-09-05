@@ -288,7 +288,7 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator("#load-glb")).toBeDisabled();
     await expect(page.locator("#capture-evidence")).toBeDisabled();
     for (const id of ["start-camera", "start-tryon", "load-glb", "capture-evidence", "stop-runtime"]) {
-      await expect(page.locator(`#${id}`)).toHaveCSS("opacity", "0.5");
+      await expect(page.locator(`#${id}`)).toBeHidden();
     }
   });
 
@@ -346,8 +346,8 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator('[data-panel-id="live"]')).toBeVisible();
     await expect(page.locator("#connect-runtime")).toBeDisabled();
     await expect(page.locator("#stop-runtime")).toBeEnabled();
-    for (const id of ["start-camera", "start-tryon", "load-glb", "capture-evidence", "capture-reconstruction"]) {
-      await expect(page.locator(`#${id}`)).toBeDisabled();
+    for (const id of ["start-camera", "start-tryon", "load-glb", "capture-evidence"]) {
+      await expect(page.locator(`#${id}`)).toBeHidden();
     }
   });
 
