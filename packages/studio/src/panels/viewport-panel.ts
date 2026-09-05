@@ -95,6 +95,11 @@ class ViewportScene {
     ViewportScene.loadCanonicalIndex().then((canonical) => {
       this.canonicalIndex = canonical?.index ?? null;
       this.canonicalPositions = canonical?.positions ?? null;
+      if (this.canonicalPositions) {
+        this.faceRight.set(1, 0, 0);
+        this.faceUp.set(0, 1, 0);
+        this.faceForward.set(0, 0, 1);
+      }
       if (this.lastRaw && this.canonicalIndex) {
         this.rebuildFace(this.lastRaw, []);
         this.usingCanonical = true;
@@ -226,18 +231,20 @@ class ViewportScene {
       const leftWorld = new THREE.Vector3(...toWorld(leftEye));
       const rightWorld = new THREE.Vector3(...toWorld(rightEye));
       this.eyeDistance = leftWorld.distanceTo(rightWorld);
-      this.faceRight.copy(rightWorld).sub(leftWorld).normalize();
+      if (!this.canonicalPositions) this.faceRight.copy(rightWorld).sub(leftWorld).normalize();
       this.eyeCenter.set(...toWorld({
         x: (leftEye.x + rightEye.x) / 2,
         y: (leftEye.y + rightEye.y) / 2,
         z: ((leftEye.z ?? 0) + (rightEye.z ?? 0)) / 2,
       }));
       const forehead = points[10] ? new THREE.Vector3(...toWorld(points[10])) : this.eyeCenter.clone().add(new THREE.Vector3(0, 0.2, 0));
-      this.faceUp.copy(forehead).sub(this.eyeCenter).normalize();
-      this.faceForward.copy(this.faceRight).cross(this.faceUp).normalize();
-      const nose = points[1] ? new THREE.Vector3(...toWorld(points[1])) : this.eyeCenter;
-      if (this.faceForward.dot(nose.clone().sub(this.eyeCenter)) < 0) this.faceForward.negate();
-      this.faceUp.copy(this.faceForward).cross(this.faceRight).normalize();
+      if (!this.canonicalPositions) {
+        this.faceUp.copy(forehead).sub(this.eyeCenter).normalize();
+        this.faceForward.copy(this.faceRight).cross(this.faceUp).normalize();
+        const nose = points[1] ? new THREE.Vector3(...toWorld(points[1])) : this.eyeCenter;
+        if (this.faceForward.dot(nose.clone().sub(this.eyeCenter)) < 0) this.faceForward.negate();
+        this.faceUp.copy(this.faceForward).cross(this.faceRight).normalize();
+      }
       // MediaPipe can flip the reconstructed basis when the head turns. Keep
       // the camera's vertical axis aligned with render-world Y so every panel
       // remains upright instead of rendering the face upside down.
