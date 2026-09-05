@@ -39,7 +39,7 @@ const landmarkCanvas = document.querySelector<HTMLCanvasElement>(".studio-landma
 let landmarkOverlay: { renderFromFace(face: NormalizedFaceResult, width: number, height: number): void; clear(): void } | null = null;
 let lastFace: NormalizedFaceResult | null = null;
 let lastAuditSnapshot: AuditSnapshot | null = null;
-const reconstructionSession: FaceReconstructionSession = createFaceReconstructionSession({ maxFrames: 120, minConfidence: 0.45 });
+const reconstructionSession: FaceReconstructionSession = createFaceReconstructionSession({ maxFrames: 120, minConfidence: 0.45, requiredRegions: ["front", "left", "right"] });
 const toolbarBinding = bindStudioToolbar(document, studio);
 if (import.meta.env.DEV) {
   (window as Window & { __visutryStudio?: typeof studio }).__visutryStudio = studio;
@@ -98,7 +98,11 @@ const unsubscribeSnapshot = studio.subscribeSnapshot((snapshot) => {
     const labels: Record<string, string> = { front: "Frontal", left: "Lateral esq.", right: "Lateral dir.", top: "Topo", chin: "Queixo", neck: "Pescoço", shoulders: "Ombros" };
     const done = progress.observedRegions.map((region) => `${labels[region] ?? region} ✓`).join(" · ");
     const missing = progress.missingRegions.map((region) => `${labels[region] ?? region} em captura`).join(" · ");
-    setStatus(`${done}${done && missing ? " · " : ""}${missing}`);
+    const progressBar = document.querySelector<HTMLProgressElement>("#reconstruction-progress");
+    if (progressBar) progressBar.value = progress.percent;
+    const progressLabel = document.querySelector<HTMLElement>("#reconstruction-progress-label");
+    if (progressLabel) progressLabel.textContent = `${progress.percent}% · ${progress.acceptedFrames} leituras`;
+    setStatus(progress.ready ? `${done} · perspectiva suficiente; finalize para gravar` : `${done}${done && missing ? " · " : ""}${missing}`);
   }
   if (landmarkOverlay && snapshot.mode === "connected" && snapshot.tracking?.detected && lastFace?.landmarks?.raw?.length) {
     landmarkCanvas?.classList.remove("studio-runtime-hidden");
@@ -235,6 +239,12 @@ evidenceButton?.addEventListener("click", async () => {
 reconstructionButton?.addEventListener("click", () => {
   if (!runtimeAdapter || studio.getMode() !== "connected") return;
   if (reconstructionSession.getState() === "capturing") {
+    const progress = reconstructionSession.getProgress();
+    if (!reconstructionSession.canFinish()) {
+      const labels: Record<string, string> = { front: "frente", left: "lado esquerdo", right: "lado direito" };
+      setStatus(`Continue girando o rosto: falta ${progress.missingRegions.map((region) => labels[region] ?? region).join(" e ")}`);
+      return;
+    }
     const reconstruction = reconstructionSession.finish();
     if (reconstruction.capturedFrames === 0) {
       runtimeAdapter.setSnapshot?.({ reconstruction: null });
@@ -251,6 +261,10 @@ reconstructionButton?.addEventListener("click", () => {
     return;
   }
   reconstructionSession.start();
+  const progressBar = document.querySelector<HTMLProgressElement>("#reconstruction-progress");
+  if (progressBar) progressBar.value = 0;
+  const progressLabel = document.querySelector<HTMLElement>("#reconstruction-progress-label");
+  if (progressLabel) progressLabel.textContent = "0% · aguardando ângulos";
   if (lastFace?.landmarks?.raw?.length) {
     reconstructionSession.ingest({
       id: `frame-${Date.now()}-initial`,

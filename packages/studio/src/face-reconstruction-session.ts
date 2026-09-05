@@ -17,7 +17,7 @@ export interface FaceReconstructionSample {
 }
 
 export type FaceReconstructionSessionState = "idle" | "capturing" | "processing" | "completed" | "cancelled";
-export interface FaceReconstructionProgress { state: FaceReconstructionSessionState; observedRegions: FaceRegion[]; missingRegions: FaceRegion[]; acceptedFrames: number; maxFrames: number; }
+export interface FaceReconstructionProgress { state: FaceReconstructionSessionState; observedRegions: FaceRegion[]; missingRegions: FaceRegion[]; acceptedFrames: number; maxFrames: number; percent: number; ready: boolean; }
 
 export interface FaceReconstructionSessionOptions {
   maxFrames?: number;
@@ -107,8 +107,12 @@ export class FaceReconstructionSession {
   getSnapshot(): FaceReconstruction | null { return this.reconstruction; }
   getProgress(): FaceReconstructionProgress {
     const observedRegions = [...this.bestByRegion.keys()];
-    return { state: this.state, observedRegions, missingRegions: this.requiredRegions.filter((region) => !observedRegions.includes(region)), acceptedFrames: this.samples.length, maxFrames: this.maxFrames };
+    const missingRegions = this.requiredRegions.filter((region) => !observedRegions.includes(region));
+    const percent = Math.round(((this.requiredRegions.length - missingRegions.length) / Math.max(1, this.requiredRegions.length)) * 100);
+    return { state: this.state, observedRegions, missingRegions, acceptedFrames: this.samples.length, maxFrames: this.maxFrames, percent, ready: missingRegions.length === 0 };
   }
+
+  canFinish(): boolean { return this.getProgress().ready && this.samples.length > 0; }
 
   start(): void {
     this.samples.length = 0;

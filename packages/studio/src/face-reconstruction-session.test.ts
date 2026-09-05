@@ -8,6 +8,18 @@ const sample = (id: string, yaw: number, pitch = 0, confidence = 0.95) => ({
 });
 
 describe("FaceReconstructionSession", () => {
+  it("does not become ready before lateral coverage is captured", () => {
+    const session = new FaceReconstructionSession({ requiredRegions: ["front", "left", "right"] });
+    session.start();
+    expect(session.ingest(sample("front", 0))).toBe(true);
+    expect(session.canFinish()).toBe(false);
+    expect(session.getProgress().missingRegions).toEqual(["left", "right"]);
+    expect(session.ingest(sample("left", -30))).toBe(true);
+    expect(session.canFinish()).toBe(false);
+    expect(session.ingest(sample("right", 30))).toBe(true);
+    expect(session.canFinish()).toBe(true);
+  });
+
   it("accumulates oriented frames and freezes a reconstruction", () => {
     const session = new FaceReconstructionSession({ minConfidence: 0.4 });
     session.start();
