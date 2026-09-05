@@ -11,6 +11,12 @@
   overflow: hidden;
 }
 
+.topbar .brand { flex: 0 0 auto; min-width: 0; gap: 8px; }
+.topbar .brand-copy { min-width: 0; display: grid; gap: 2px; }
+.topbar .brand-title { display: flex; align-items: baseline; gap: 7px; white-space: nowrap; }
+.topbar .session { margin-left: 0; display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+.topbar .session .muted { margin-left: 5px; }
+
 :where(.topbar .toolbar) {
   min-width: 0;
   flex: 1 1 auto;
@@ -84,9 +90,8 @@
   font-size: 15px;
 }
 
-:where(.topbar .toolbar button:disabled) {
-  opacity: .5;
-  cursor: not-allowed;
+.topbar .toolbar button:disabled {
+  display: none;
 }
 
 /* Viewport reconstruction legend: cyan is observed, pink is inferred. */
