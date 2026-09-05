@@ -89,6 +89,13 @@
   cursor: not-allowed;
 }
 
+/* Viewport reconstruction legend: cyan is observed, pink is inferred. */
+.reconstruction-status,
+.reconstruction-legend { display:flex; gap:8px; flex-wrap:wrap; margin-top:5px; font-size:9px; color:#7890aa; }
+.legend-observed { color:#34c6f0; }
+.legend-estimated { color:#ee74c4; }
+.legend-glasses { color:#f1b54a; }
+
 :where(.topbar #connect-runtime) {
   border-color: #24c8f2;
   color: #dff8ff;

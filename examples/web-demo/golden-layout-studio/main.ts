@@ -7,6 +7,8 @@ import {
   type StudioInstance,
   type StudioMode,
   type StudioRuntimeAdapter,
+  createFaceReconstructionSession,
+  type FaceReconstructionSession,
 } from "@visutry/studio";
 import type { NormalizedFaceResult, VisuTrySDK } from "@visutry/tryon-core";
 import "./runtime-canvas.css";
@@ -35,6 +37,7 @@ studio.mount();
 const landmarkCanvas = document.querySelector<HTMLCanvasElement>(".studio-landmark-canvas");
 let landmarkOverlay: { renderFromFace(face: NormalizedFaceResult, width: number, height: number): void; clear(): void } | null = null;
 let lastFace: NormalizedFaceResult | null = null;
+const reconstructionSession: FaceReconstructionSession = createFaceReconstructionSession({ maxFrames: 120, minConfidence: 0.45 });
 const toolbarBinding = bindStudioToolbar(document, studio);
 if (import.meta.env.DEV) {
   (window as Window & { __visutryStudio?: typeof studio }).__visutryStudio = studio;
@@ -75,6 +78,18 @@ const unsubscribeSnapshot = studio.subscribeSnapshot((snapshot) => {
   if (snapshot.error) setStatus(formatRuntimeError(snapshot.error));
   const face = snapshot.face as NormalizedFaceResult | undefined;
   if (face?.landmarks?.raw?.length) lastFace = face;
+  if (reconstructionSession.getState() === "capturing" && face?.landmarks?.raw?.length) {
+    reconstructionSession.ingest({
+      id: `frame-${Date.now()}`,
+      timestamp: Date.now(),
+      landmarks: face.landmarks.raw,
+      yaw: snapshot.pose?.yaw ?? 0,
+      pitch: snapshot.pose?.pitch ?? 0,
+      roll: snapshot.pose?.roll ?? 0,
+      confidence: snapshot.tracking?.confidence ?? 0,
+      stability: snapshot.tracking?.stability ?? 0,
+    });
+  }
   if (landmarkOverlay && snapshot.mode === "connected" && snapshot.tracking?.detected && lastFace?.landmarks?.raw?.length) {
     landmarkCanvas?.classList.remove("studio-runtime-hidden");
     landmarkOverlay.renderFromFace(lastFace, snapshot.camera?.width ?? 640, snapshot.camera?.height ?? 480);
@@ -106,13 +121,14 @@ const cameraButton = document.getElementById("start-camera") as HTMLButtonElemen
 const tryOnButton = document.getElementById("start-tryon") as HTMLButtonElement | null;
 const glbButton = document.getElementById("load-glb") as HTMLButtonElement | null;
 const evidenceButton = document.getElementById("capture-evidence") as HTMLButtonElement | null;
+const reconstructionButton = document.getElementById("capture-reconstruction") as HTMLButtonElement | null;
 const stopButton = document.getElementById("stop-runtime") as HTMLButtonElement | null;
 const setRuntimeControls = (mode: StudioMode) => {
   const ready = mode === "connected";
   const hasRuntime = mode !== "static";
   document.body.dataset.runtimeMode = mode;
   if (runtimeButton) runtimeButton.disabled = hasRuntime;
-  [cameraButton, tryOnButton, glbButton, evidenceButton].forEach((button) => {
+  [cameraButton, tryOnButton, glbButton, evidenceButton, reconstructionButton].forEach((button) => {
     if (!button) return;
     button.disabled = !ready;
     button.setAttribute("aria-disabled", String(!ready));
@@ -213,6 +229,22 @@ evidenceButton?.addEventListener("click", async () => {
     setStatus(error instanceof Error ? error.message : "Falha ao capturar evidência");
   }
 });
+reconstructionButton?.addEventListener("click", () => {
+  if (!runtimeAdapter || studio.getMode() !== "connected") return;
+  if (reconstructionSession.getState() === "capturing") {
+    const reconstruction = reconstructionSession.finish();
+    runtimeAdapter.setSnapshot?.({ reconstruction });
+    reconstructionButton.textContent = "Reconstrução congelada";
+    reconstructionButton.title = `Cobertura ${Math.round(reconstruction.coverage * 100)}%`;
+    setStatus(`Reconstrução concluída · ${Math.round(reconstruction.coverage * 100)}% de cobertura`);
+    return;
+  }
+  reconstructionSession.start();
+  runtimeAdapter.setSnapshot?.({ reconstruction: null });
+  reconstructionButton.textContent = "Finalizar reconstrução";
+  reconstructionButton.title = "Finalize após girar o rosto para os ângulos desejados";
+  setStatus("Capturando ângulos: frente, topo, esquerda e direita");
+});
 stopButton?.addEventListener("click", () => {
   runtimeSdk?.stopTryOn();
   runtimeSdk?.stopCamera();
@@ -227,6 +259,8 @@ stopButton?.addEventListener("click", () => {
   if (tryOnButton) tryOnButton.textContent = "Iniciar try-on";
   if (glbButton) glbButton.textContent = "Carregar GLB";
   if (evidenceButton) evidenceButton.textContent = "Capturar evidência";
+  reconstructionSession.cancel();
+  if (reconstructionButton) reconstructionButton.textContent = "Capturar reconstrução";
   setStatus("Runtime parado; dados limpos");
 });
 document.addEventListener("visibilitychange", () => {
