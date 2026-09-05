@@ -236,27 +236,28 @@ evidenceButton?.addEventListener("click", async () => {
     setStatus(error instanceof Error ? error.message : "Falha ao capturar evidência");
   }
 });
-reconstructionButton?.addEventListener("click", () => {
-  if (!runtimeAdapter || studio.getMode() !== "connected") return;
+document.addEventListener("click", (event) => {
+  const button = (event.target as HTMLElement | null)?.closest<HTMLButtonElement>("#capture-reconstruction");
+  if (!button || !runtimeAdapter || studio.getMode() !== "connected") return;
   if (reconstructionSession.getState() === "capturing") {
     const progress = reconstructionSession.getProgress();
     if (!reconstructionSession.canFinish()) {
       const labels: Record<string, string> = { front: "frente", left: "lado esquerdo", right: "lado direito" };
-      reconstructionButton.textContent = "Finalizar reconstrução";
-      reconstructionButton.title = "Ainda falta capturar os ângulos indicados";
+      button.textContent = "Finalizar reconstrução";
+      button.title = "Ainda falta capturar os ângulos indicados";
       setStatus(`Continue girando o rosto: falta ${progress.missingRegions.map((region) => labels[region] ?? region).join(" e ")}`);
       return;
     }
     const reconstruction = reconstructionSession.finish();
     if (reconstruction.capturedFrames === 0) {
       runtimeAdapter.setSnapshot?.({ reconstruction: null });
-      reconstructionButton.textContent = "Capturar reconstrução";
+      button.textContent = "Capturar reconstrução";
       setStatus("Nenhuma leitura aceita; mantenha o rosto visível e tente novamente");
       return;
     }
     runtimeAdapter.setSnapshot?.({ reconstruction });
-    reconstructionButton.textContent = "Reconstrução congelada";
-    reconstructionButton.title = `Cobertura ${Math.round(reconstruction.coverage * 100)}%`;
+    button.textContent = "Reconstrução congelada";
+    button.title = `Cobertura ${Math.round(reconstruction.coverage * 100)}%`;
     if (clearReconstructionButton) clearReconstructionButton.disabled = false;
     if (exportReconstructionButton) exportReconstructionButton.disabled = false;
     setStatus(`Reconstrução concluída · ${Math.round(reconstruction.coverage * 100)}% de cobertura`);
@@ -284,9 +285,9 @@ reconstructionButton?.addEventListener("click", () => {
   runtimeAdapter.setSnapshot?.({ reconstruction: null });
   if (clearReconstructionButton) clearReconstructionButton.disabled = true;
   if (exportReconstructionButton) exportReconstructionButton.disabled = true;
-  reconstructionButton.textContent = "Finalizar reconstrução";
-  reconstructionButton.title = "Finalize após girar o rosto para os ângulos desejados";
-  reconstructionButton.setAttribute("aria-label", "Finalizar reconstrução 3D");
+  button.textContent = "Finalizar reconstrução";
+  button.title = "Finalize após girar o rosto para os ângulos desejados";
+  button.setAttribute("aria-label", "Finalizar reconstrução 3D");
   setStatus("Capturando ângulos: frente, topo, esquerda e direita");
 });
 clearReconstructionButton?.addEventListener("click", () => {
