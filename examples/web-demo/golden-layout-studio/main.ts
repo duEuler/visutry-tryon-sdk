@@ -422,6 +422,13 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
       glbButton.textContent = "GLB carregado";
     }
     setStatus("Câmera, try-on e GLB ativos");
+    // Start collecting angular coverage immediately after connection. This
+    // does not create the 3D model; it only waits for front/left/right views.
+    if (reconstructionSession.getState() !== "capturing") reconstructionSession.start();
+    const progressBar = document.querySelector<HTMLProgressElement>("#reconstruction-progress");
+    if (progressBar) progressBar.value = 0;
+    const progressLabel = document.querySelector<HTMLElement>("#reconstruction-progress-label");
+    if (progressLabel) progressLabel.textContent = "0% · vire o rosto para os lados";
     const mode = studio.getMode();
     syncModeLabel();
     setRuntimeControls(mode);
