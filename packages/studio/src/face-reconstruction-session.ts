@@ -28,10 +28,14 @@ export interface FaceReconstructionSessionOptions {
 
 const DEFAULT_REGIONS: FaceRegion[] = ["front", "left", "right", "top", "chin", "neck", "shoulders"];
 const asFinite = (value: unknown, fallback = 0): number => typeof value === "number" && Number.isFinite(value) ? value : fallback;
+const angleDegrees = (value: unknown): number => {
+  const angle = asFinite(value);
+  return Math.abs(angle) <= Math.PI * 2.1 ? (angle * 180) / Math.PI : angle;
+};
 
 function classifyRegions(sample: FaceReconstructionSample): FaceRegion[] {
-  const yaw = asFinite(sample.yaw);
-  const pitch = asFinite(sample.pitch);
+  const yaw = angleDegrees(sample.yaw);
+  const pitch = angleDegrees(sample.pitch);
   const regions: FaceRegion[] = [];
   if (Math.abs(yaw) < 18) regions.push("front");
   if (yaw <= -12) regions.push("left");
@@ -48,16 +52,16 @@ function scoreSample(sample: FaceReconstructionSample, targetYaw: number, target
   const confidence = Math.max(0, Math.min(1, asFinite(sample.confidence, 0)));
   const stability = Math.max(0, Math.min(1, asFinite(sample.stability, confidence)));
   const validRatio = sample.landmarks.length ? sample.landmarks.filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y)).length / sample.landmarks.length : 0;
-  const orientationMatch = Math.max(0, 1 - (Math.abs(asFinite(sample.yaw) - targetYaw) + Math.abs(asFinite(sample.pitch) - targetPitch)) / 90);
+  const orientationMatch = Math.max(0, 1 - (Math.abs(angleDegrees(sample.yaw) - targetYaw) + Math.abs(angleDegrees(sample.pitch) - targetPitch)) / 90);
   const faceCoverage = Math.max(0, Math.min(1, asFinite(sample.faceCoverage, 0.75)));
   const occlusion = Math.max(0, Math.min(1, asFinite(sample.occlusion, 0)));
   return confidence * 0.4 + validRatio * 0.25 + stability * 0.2 + orientationMatch * 0.1 + faceCoverage * 0.05 - occlusion * 0.15;
 }
 
 function alignPoint(point: { x: number; y: number; z?: number }, sample: FaceReconstructionSample): { x: number; y: number; z: number } {
-  const yaw = (asFinite(sample.yaw) * Math.PI) / 180;
-  const pitch = (asFinite(sample.pitch) * Math.PI) / 180;
-  const roll = (asFinite(sample.roll) * Math.PI) / 180;
+  const yaw = (angleDegrees(sample.yaw) * Math.PI) / 180;
+  const pitch = (angleDegrees(sample.pitch) * Math.PI) / 180;
+  const roll = (angleDegrees(sample.roll) * Math.PI) / 180;
   const cx = point.x - 0.5;
   const cy = point.y - 0.5;
   const cz = asFinite(point.z);
