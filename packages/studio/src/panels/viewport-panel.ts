@@ -142,13 +142,16 @@ class ViewportScene {
       THREE.MathUtils.degToRad(pose.yaw ?? 0),
       THREE.MathUtils.degToRad(pose.roll ?? 0),
     );
-    const scale = pose.scale ?? (this.eyeDistance > 1e-6
+    // Fit the normalized GLB to the measured eye span in the same render
+    // world as the face. This keeps the static audit view at Live's visual
+    // width even when a legacy/default pose scale is present in the SDK.
+    const scale = this.eyeDistance > 1e-6
       ? (() => {
           const physicalWidth = this.glbFrameWidthMm / 200;
           const fitted = this.eyeDistance / Math.max(physicalWidth, 1e-6);
-          return { x: fitted * 0.45, y: fitted * 0.45, z: fitted * 0.45 };
+          return { x: fitted, y: fitted, z: fitted };
         })()
-      : { x: 1, y: 1, z: 1 });
+      : (pose.scale ?? { x: 1, y: 1, z: 1 });
     // Viewports are physical-space projections, not the mirrored video
     // surface. Keep the GLB's handedness so temples extend behind the head
     // in LEFT/RIGHT and remain consistent with the Live anchor.
