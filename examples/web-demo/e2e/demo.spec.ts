@@ -346,9 +346,30 @@ test.describe("Golden Layout Studio", () => {
     await expect(page.locator('[data-panel-id="live"]')).toBeVisible();
     await expect(page.locator("#connect-runtime")).toBeDisabled();
     await expect(page.locator("#stop-runtime")).toBeEnabled();
-    for (const id of ["start-camera", "start-tryon", "load-glb", "capture-evidence"]) {
+    for (const id of ["start-camera", "start-tryon", "load-glb", "capture-evidence", "capture-reconstruction"]) {
       await expect(page.locator(`#${id}`)).toBeDisabled();
     }
+  });
+
+  test("renders a published reconstruction as a frozen viewport state", async ({ page }) => {
+    await page.evaluate(async () => {
+      const studio = (window as Window & { __visutryStudio?: { connectRuntime(runtime: unknown): Promise<void> } }).__visutryStudio;
+      const listeners = new Set<(snapshot: unknown) => void>();
+      const runtime = {
+        getSnapshot: () => ({ mode: "connected", tracking: { detected: true } }),
+        subscribe: (listener: (snapshot: unknown) => void) => { listeners.add(listener); return () => listeners.delete(listener); },
+        initialize: async () => undefined,
+        setSnapshot: (patch: unknown) => { listeners.forEach((listener) => listener({ mode: "connected", tracking: { detected: true }, ...(patch as object) })); },
+      };
+      (window as Window & { __reconstructionRuntime?: typeof runtime }).__reconstructionRuntime = runtime;
+      await studio?.connectRuntime(runtime);
+    });
+    await page.evaluate(() => {
+      const runtime = (window as Window & { __reconstructionRuntime?: { setSnapshot?: (patch: unknown) => void } }).__reconstructionRuntime;
+      runtime?.setSnapshot?.({ reconstruction: { completed: true, coverage: 1, capturedFrames: 4, landmarks: [] } });
+    });
+    await expect(page.locator("[data-reconstruction-status]")).toHaveText(/Reconstrução fixa/);
+    await expect(page.locator(".reconstruction-legend")).toContainText("preenchimento estimado");
   });
 
   test("resets volatile runtime state when disconnected", async ({ page }) => {
