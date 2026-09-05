@@ -240,13 +240,16 @@ class ViewportScene {
     // Landmarks are expressed from the camera toward the face; to place the
     // viewport camera in the face's local frame we use the inverse rotation.
     orientation.conjugate();
+    // FRONT is the canonical camera. Other panels are only camera moves from
+    // that baseline (the scene objects are never transformed per viewport).
     const offset = view === "TOP"
-      ? new THREE.Vector3(0, 3, 0)
+      ? new THREE.Vector3(0, 3, 3)
       : view === "LEFT"
-        ? new THREE.Vector3(-3, 0, 0)
+        ? new THREE.Vector3(-3, 0, 3)
         : view === "RIGHT"
-          ? new THREE.Vector3(3, 0, 0)
+          ? new THREE.Vector3(3, 0, 3)
           : new THREE.Vector3(0, 0, 3);
+    offset.setLength(3);
     offset.applyQuaternion(orientation);
     this.camera.position.copy(this.cameraTarget).add(offset);
     this.camera.up.set(0, 1, 0).applyQuaternion(orientation);
