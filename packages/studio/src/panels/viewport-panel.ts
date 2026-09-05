@@ -41,6 +41,7 @@ class ViewportScene {
   private glbFrameWidthMm = 150;
   private lastRaw: unknown[] | null = null;
   private canonicalIndex: number[] | null = null;
+  private canonicalPositions: number[] | null = null;
   private usingCanonical = false;
   private faceCenter = new THREE.Vector3();
   private faceFitScale = 1;
@@ -54,15 +55,16 @@ class ViewportScene {
   private pointer: { x: number; y: number } | null = null;
   private lastPose: NonNullable<ViewportSnapshot["pose"]> = { yaw: 0, pitch: 0, roll: 0 };
 
-  private static canonicalIndexPromise: Promise<number[] | null> | null = null;
+  private static canonicalIndexPromise: Promise<{ index: number[]; positions: number[] } | null> | null = null;
 
-  private static loadCanonicalIndex(): Promise<number[] | null> {
+  private static loadCanonicalIndex(): Promise<{ index: number[]; positions: number[] } | null> {
     if (!ViewportScene.canonicalIndexPromise) {
       ViewportScene.canonicalIndexPromise = new Promise((resolve) => {
         new OBJLoader().load("/models/references/mediapipe/canonical_face_model.obj", (object) => {
           const mesh = object.children.find((child): child is THREE.Mesh => child instanceof THREE.Mesh);
           const index = mesh?.geometry.getIndex();
-          resolve(index ? Array.from(index.array as ArrayLike<number>) : null);
+          const attribute = mesh?.geometry.getAttribute("position");
+          resolve(index && attribute ? { index: Array.from(index.array as ArrayLike<number>), positions: Array.from(attribute.array as ArrayLike<number>) } : null);
         }, undefined, () => resolve(null));
       });
     }
@@ -90,8 +92,9 @@ class ViewportScene {
     canvas.addEventListener("pointerup", () => { this.pointer = null; });
     canvas.addEventListener("pointercancel", () => { this.pointer = null; });
     canvas.addEventListener("wheel", (event) => { event.preventDefault(); this.manualCamera = true; const factor = event.ctrlKey ? 1.03 : 1.08; this.camera.zoom = THREE.MathUtils.clamp(this.camera.zoom * (event.deltaY < 0 ? factor : 1 / factor), 0.35, 6); this.camera.updateProjectionMatrix(); }, { passive: false });
-    ViewportScene.loadCanonicalIndex().then((index) => {
-      this.canonicalIndex = index;
+    ViewportScene.loadCanonicalIndex().then((canonical) => {
+      this.canonicalIndex = canonical?.index ?? null;
+      this.canonicalPositions = canonical?.positions ?? null;
       if (this.lastRaw && this.canonicalIndex) {
         this.rebuildFace(this.lastRaw, []);
         this.usingCanonical = true;
@@ -243,9 +246,26 @@ class ViewportScene {
         this.faceForward.negate();
       }
     }
+    const facePositions = this.canonicalPositions && this.canonicalPositions.length >= 3
+      ? (() => {
+          let minX = Infinity; let maxX = -Infinity; let minY = Infinity; let maxY = -Infinity;
+          for (let i = 0; i < this.canonicalPositions!.length; i += 3) {
+            minX = Math.min(minX, this.canonicalPositions![i]); maxX = Math.max(maxX, this.canonicalPositions![i]);
+            minY = Math.min(minY, this.canonicalPositions![i + 1]); maxY = Math.max(maxY, this.canonicalPositions![i + 1]);
+          }
+          const sx = Math.max(maxX - minX, 1e-6); const sy = Math.max(maxY - minY, 1e-6);
+          const rawWidth = Math.max(worldMaxX - worldMinX, 0.05); const rawHeight = Math.max(worldMaxY - worldMinY, 0.05);
+          const cx = (minX + maxX) / 2; const cy = (minY + maxY) / 2;
+          const out: number[] = [];
+          for (let i = 0; i < this.canonicalPositions!.length; i += 3) {
+            out.push(this.eyeCenter.x + (this.canonicalPositions![i] - cx) / sx * rawWidth, this.eyeCenter.y - (this.canonicalPositions![i + 1] - cy) / sy * rawHeight, this.eyeCenter.z + this.canonicalPositions![i + 2] / sx * rawWidth);
+          }
+          return out;
+        })()
+      : positions;
     this.cameraTarget.copy(this.eyeCenter).multiplyScalar(this.faceFitScale).add(this.world.position);
     const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(facePositions, 3));
     const triangles: number[] = this.canonicalIndex?.length ? this.canonicalIndex.filter((index) => index < raw.length) : [];
     const adjacency = new Map<number, Set<number>>();
     links.forEach(({ start, end }) => {
