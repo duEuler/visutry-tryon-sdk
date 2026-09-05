@@ -22,7 +22,6 @@ type ViewportSnapshot = {
   reconstruction?: { landmarks: Array<{ index: number; x: number; y: number; z: number; source: "observed" | "estimated" }>; connections?: Array<[number, number]>; completed: boolean; coverage: number; capturedFrames: number } | null;
 };
 
-const staticViewportSnapshots = new WeakMap<HTMLElement, Pick<ViewportSnapshot, "face" | "pose">>();
 const viewportScenes = new WeakMap<HTMLCanvasElement, ViewportScene>();
 
 class ViewportScene {
@@ -110,6 +109,11 @@ class ViewportScene {
   }
 
   resetCamera(): void { this.manualCamera = false; this.camera.zoom = 1; this.camera.updateProjectionMatrix(); this.pointer = null; }
+
+  clear(): void {
+    this.renderer.setSize(Math.max(1, this.canvas.clientWidth || 160), Math.max(1, this.canvas.clientHeight || 120), false);
+    this.renderer.clear();
+  }
 
   render(snapshot: ViewportSnapshot): void {
     const face = snapshot.face as { landmarks?: { raw?: unknown[]; connections?: { tesselation?: Array<{ start: number; end: number }> } }; pose?: { matrix?: number[] } } | undefined;
@@ -504,25 +508,18 @@ export function updateViewportGrid(element: HTMLElement, snapshot: ViewportSnaps
   });
   const hasReconstruction = Boolean(snapshot.reconstruction?.completed);
   const hasFace = Boolean((snapshot.face as { landmarks?: { raw?: unknown[] } } | undefined)?.landmarks?.raw?.length);
-  if (snapshot.mode !== "connected") staticViewportSnapshots.delete(element);
-  if (!hasReconstruction && hasFace && !staticViewportSnapshots.has(element)) {
-    staticViewportSnapshots.set(element, { face: snapshot.face, pose: snapshot.pose });
-  }
-  const staticReference = staticViewportSnapshots.get(element);
-  const viewportSnapshot = hasReconstruction || !staticReference
-    ? snapshot
-    : { ...snapshot, face: staticReference.face, pose: staticReference.pose };
   element.querySelectorAll<HTMLCanvasElement>("canvas.viewport-canvas").forEach((canvas) => {
     let scene = viewportScenes.get(canvas);
     if (!scene) { scene = new ViewportScene(canvas); viewportScenes.set(canvas, scene); }
-    scene.render(viewportSnapshot);
+    if (hasReconstruction) scene.render(snapshot);
+    else scene.clear();
   });
   const status = element.querySelector<HTMLElement>("[data-reconstruction-status]");
   if (status) {
     const reconstruction = snapshot.reconstruction;
     status.textContent = reconstruction?.completed
       ? `Reconstrução fixa · ${Math.round(reconstruction.coverage * 100)}% cobertura · ${reconstruction.capturedFrames} leituras`
-      : staticReference ? "Modelo 3D fixo · leitura inicial" : "Aguardando leitura facial";
+      : hasFace ? "Gire o rosto para esquerda e direita para gerar o modelo 3D" : "Aguardando leitura facial";
   }
   element.querySelectorAll<HTMLElement>("[data-viewport-caption]").forEach((caption) => {
     caption.textContent = snapshot.glb ? "rosto 3D · óculos GLB wireframe" : "rosto 3D · óculos GLB aguardando carregamento";
