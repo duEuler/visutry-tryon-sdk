@@ -36,6 +36,7 @@ class ViewportScene {
   private faceFitScale = 1;
   private eyeCenter = new THREE.Vector3();
   private eyeDistance = 0.35;
+  private glassesBaseWidth = 1;
   private lastPose = { yaw: 0, pitch: 0, roll: 0 };
 
   private static canonicalIndexPromise: Promise<number[] | null> | null = null;
@@ -125,9 +126,7 @@ class ViewportScene {
       THREE.MathUtils.degToRad(this.lastPose.roll),
     );
     const fit = Math.max(0.02, this.eyeDistance * 1.95);
-    const bounds = new THREE.Box3().setFromObject(this.glasses);
-    const width = Math.max(bounds.max.x - bounds.min.x, 0.001);
-    const scale = fit / width;
+    const scale = fit / Math.max(this.glassesBaseWidth, 0.001);
     this.glasses.scale.setScalar(scale);
     void matrix;
   }
@@ -193,7 +192,7 @@ class ViewportScene {
     else if (view === "LEFT") this.camera.position.set(-3, 0, 0);
     else if (view === "RIGHT") this.camera.position.set(3, 0, 0);
     else this.camera.position.set(0, 0, 3);
-    this.camera.lookAt(0, 0, 0);
+    this.camera.lookAt(this.eyeCenter);
     this.camera.updateProjectionMatrix();
   }
 
@@ -216,6 +215,7 @@ class ViewportScene {
       result.scene.updateMatrixWorld(true);
       const normalizedBounds = new THREE.Box3().setFromObject(result.scene);
       const normalizedCenter = normalizedBounds.getCenter(new THREE.Vector3());
+      this.glassesBaseWidth = Math.max(normalizedBounds.max.x - normalizedBounds.min.x, 0.001);
       // Keep depth untouched (it is meaningful for TOP/LEFT/RIGHT), while
       // moving the model's local X/Y center onto the eye-line anchor.
       result.scene.position.x -= normalizedCenter.x;
