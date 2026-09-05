@@ -217,6 +217,13 @@ class ViewportScene {
       const nose = points[1] ? new THREE.Vector3(...toWorld(points[1])) : this.eyeCenter;
       if (this.faceForward.dot(nose.clone().sub(this.eyeCenter)) < 0) this.faceForward.negate();
       this.faceUp.copy(this.faceForward).cross(this.faceRight).normalize();
+      // MediaPipe can flip the reconstructed basis when the head turns. Keep
+      // the camera's vertical axis aligned with render-world Y so every panel
+      // remains upright instead of rendering the face upside down.
+      if (this.faceUp.y < 0) {
+        this.faceUp.negate();
+        this.faceForward.negate();
+      }
     }
     this.cameraTarget.copy(this.eyeCenter).multiplyScalar(this.faceFitScale).add(this.world.position);
     const geometry = new THREE.BufferGeometry();
