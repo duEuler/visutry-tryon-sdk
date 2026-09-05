@@ -1,3 +1,6 @@
+import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+
 export interface ViewportDefinition { label: string; body: string; }
 export function renderViewportGrid(viewports: ViewportDefinition[]): string {
   return `<div class="viewport-grid">${viewports.map((viewport) => `<div class="mini"><strong>${viewport.label}</strong>${viewport.body}</div>`).join("")}</div>`;
@@ -13,6 +16,124 @@ type ViewportSnapshot = {
 };
 
 const staticViewportSnapshots = new WeakMap<HTMLElement, Pick<ViewportSnapshot, "face" | "pose">>();
+const viewportScenes = new WeakMap<HTMLCanvasElement, ViewportScene>();
+
+class ViewportScene {
+  private readonly renderer: THREE.WebGLRenderer;
+  private readonly scene = new THREE.Scene();
+  private readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 100);
+  private readonly face = new THREE.Group();
+  private readonly glasses = new THREE.Group();
+  private readonly loader = new GLTFLoader();
+  private loadedGlb = "";
+  private loadingGlb = false;
+  private lastRaw: unknown[] | null = null;
+  private lastView = "";
+
+  constructor(private readonly canvas: HTMLCanvasElement) {
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.scene.background = new THREE.Color("#091321");
+    this.scene.add(this.face, this.glasses);
+    this.glasses.visible = false;
+  }
+
+  render(snapshot: ViewportSnapshot): void {
+    const face = snapshot.face as { landmarks?: { raw?: unknown[]; connections?: { tesselation?: Array<{ start: number; end: number }> } }; pose?: { matrix?: number[] } } | undefined;
+    const raw = face?.landmarks?.raw ?? [];
+    if (snapshot.mode !== "connected" || raw.length < 3) return;
+    const width = Math.max(1, this.canvas.clientWidth || 160);
+    const height = Math.max(1, this.canvas.clientHeight || 120);
+    this.renderer.setSize(width, height, false);
+    const view = this.canvas.dataset.viewport ?? "FRONT";
+    if (this.lastRaw !== raw) {
+      this.rebuildFace(raw, face?.landmarks?.connections?.tesselation ?? []);
+      this.lastRaw = raw;
+    }
+    if (this.lastView !== view) {
+      this.applyView(view);
+      this.lastView = view;
+    }
+    this.applyGlassesPose(face?.pose?.matrix);
+    this.loadGlb(snapshot.glb);
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  dispose(): void {
+    this.face.traverse((object) => {
+      const mesh = object as THREE.Mesh;
+      if (mesh.geometry) mesh.geometry.dispose();
+      if (Array.isArray(mesh.material)) mesh.material.forEach((material) => material.dispose());
+      else if (mesh.material) mesh.material.dispose();
+    });
+    this.glasses.traverse((object) => {
+      const mesh = object as THREE.Mesh;
+      if (mesh.geometry) mesh.geometry.dispose();
+      if (Array.isArray(mesh.material)) mesh.material.forEach((material) => material.dispose());
+      else if (mesh.material) mesh.material.dispose();
+    });
+    this.renderer.dispose();
+  }
+
+  private applyGlassesPose(matrix?: number[]): void {
+    if (!matrix || matrix.length < 16) return;
+    const transform = new THREE.Matrix4().fromArray(matrix);
+    this.glasses.matrixAutoUpdate = false;
+    this.glasses.matrix.copy(transform);
+    this.glasses.matrixWorldNeedsUpdate = true;
+  }
+
+  private rebuildFace(raw: unknown[], links: Array<{ start: number; end: number }>): void {
+    this.face.clear();
+    const positions = raw.map(asPoint).filter((point): point is Point3 => point !== null).flatMap((point) => [(point.x - 0.5) * 2, -(point.y - 0.5) * 2, (point.z ?? 0) * 2]);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    const triangles: number[] = [];
+    const adjacency = new Map<number, Set<number>>();
+    links.forEach(({ start, end }) => {
+      if (!adjacency.has(start)) adjacency.set(start, new Set());
+      if (!adjacency.has(end)) adjacency.set(end, new Set());
+      adjacency.get(start)!.add(end); adjacency.get(end)!.add(start);
+    });
+    links.forEach(({ start, end }) => {
+      const common = [...(adjacency.get(start) ?? [])].filter((candidate) => candidate > end && (adjacency.get(end)?.has(candidate) ?? false));
+      common.forEach((candidate) => triangles.push(start, end, candidate));
+    });
+    if (triangles.length) geometry.setIndex(triangles);
+    const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: "#34c6f0", wireframe: true, transparent: true, opacity: 0.92 }));
+    this.face.add(mesh);
+  }
+
+  private applyView(view: string): void {
+    this.camera.position.set(0, 0, 3);
+    this.camera.rotation.set(0, 0, 0);
+    if (view === "TOP") this.camera.rotation.x = -Math.PI / 2;
+    if (view === "LEFT") this.camera.rotation.y = -Math.PI / 2;
+    if (view === "RIGHT") this.camera.rotation.y = Math.PI / 2;
+    this.camera.lookAt(0, 0, 0);
+    this.camera.updateProjectionMatrix();
+  }
+
+  private loadGlb(glb: unknown): void {
+    const modelUrl = glb && typeof glb === "object" && typeof (glb as { modelUrl?: unknown }).modelUrl === "string" ? (glb as { modelUrl: string }).modelUrl : "";
+    if (!modelUrl || modelUrl === this.loadedGlb || this.loadingGlb) return;
+    this.loadingGlb = true;
+    this.loader.load(modelUrl, (result) => {
+      this.glasses.clear();
+      result.scene.traverse((object) => {
+        const mesh = object as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        mesh.material = new THREE.MeshBasicMaterial({ color: "#f1b54a", wireframe: true });
+      });
+      result.scene.scale.setScalar(0.01);
+      this.glasses.add(result.scene);
+      this.glasses.visible = true;
+      this.loadedGlb = modelUrl;
+      this.loadingGlb = false;
+      this.renderer.render(this.scene, this.camera);
+    }, undefined, () => { this.loadingGlb = false; });
+  }
+}
 
 const asPoint = (value: unknown): Point3 | null => {
   if (!value || typeof value !== "object") return null;
@@ -134,6 +255,10 @@ function drawViewport(canvas: HTMLCanvasElement, snapshot: ViewportSnapshot): vo
   context.stroke();
 }
 
+// Kept for backwards compatibility with consumers that still import the
+// legacy helpers; the Studio now renders Viewports through ViewportScene.
+void drawViewport;
+
 /** Updates all four lightweight face projections from the latest audit snapshot. */
 export function updateViewportGrid(element: HTMLElement, snapshot: ViewportSnapshot): void {
   const hasReconstruction = Boolean(snapshot.reconstruction?.completed);
@@ -146,7 +271,11 @@ export function updateViewportGrid(element: HTMLElement, snapshot: ViewportSnaps
   const viewportSnapshot = hasReconstruction || !staticReference
     ? snapshot
     : { ...snapshot, face: staticReference.face, pose: staticReference.pose };
-  element.querySelectorAll<HTMLCanvasElement>("canvas.viewport-canvas").forEach((canvas) => drawViewport(canvas, viewportSnapshot));
+  element.querySelectorAll<HTMLCanvasElement>("canvas.viewport-canvas").forEach((canvas) => {
+    let scene = viewportScenes.get(canvas);
+    if (!scene) { scene = new ViewportScene(canvas); viewportScenes.set(canvas, scene); }
+    scene.render(viewportSnapshot);
+  });
   const status = element.querySelector<HTMLElement>("[data-reconstruction-status]");
   if (status) {
     const reconstruction = snapshot.reconstruction;
