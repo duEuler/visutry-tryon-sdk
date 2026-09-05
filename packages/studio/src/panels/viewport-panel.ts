@@ -38,6 +38,7 @@ class ViewportScene {
   private glbRoot: THREE.Object3D | null = null;
   private glbModelScale = 1;
   private glbOrigin: { x: number; y: number; z: number } | null = null;
+  private glbCenter: { x: number; y: number; z: number } | null = null;
   private glbFrameWidthMm = 150;
   private lastRaw: unknown[] | null = null;
   private canonicalIndex: number[] | null = null;
@@ -162,10 +163,11 @@ class ViewportScene {
     // viewport's `world` group applies only a visual fit transform, so the
     // relative GLB-to-face position remains the solver's exact result.
     const pose = this.lastPose;
-    const position = pose.position;
+    const position = this.canonicalPositions ? undefined : pose.position;
     this.glasses.matrixAutoUpdate = true;
     this.glasses.position.set(position?.x ?? this.eyeCenter.x, position?.y ?? this.eyeCenter.y, position?.z ?? this.eyeCenter.z);
-    if (pose.rotation) this.glasses.rotation.set(pose.rotation.x, pose.rotation.y, pose.rotation.z);
+    if (this.canonicalPositions) this.glasses.rotation.set(0, 0, 0);
+    else if (pose.rotation) this.glasses.rotation.set(pose.rotation.x, pose.rotation.y, pose.rotation.z);
     else this.glasses.rotation.set(
       THREE.MathUtils.degToRad(pose.pitch ?? 0),
       THREE.MathUtils.degToRad(pose.yaw ?? 0),
@@ -185,12 +187,13 @@ class ViewportScene {
     // surface. Keep the GLB's handedness so temples extend behind the head
     // in LEFT/RIGHT and remain consistent with the Live anchor.
     this.glasses.scale.set(scale.x, scale.y, scale.z);
-    if (this.glbRoot && this.glbOrigin) {
+    if (this.glbRoot && (this.glbCenter || this.glbOrigin)) {
       const factor = this.glbModelScale * scale.x;
+      const origin = this.glbCenter ?? this.glbOrigin!;
       this.glbRoot.position.set(
-        -this.glbOrigin.x * factor,
-        -this.glbOrigin.y * factor,
-        -this.glbOrigin.z * factor,
+        -origin.x * factor,
+        -origin.y * factor,
+        -origin.z * factor,
       );
     }
     this.glasses.visible = pose.visible !== false;
@@ -255,17 +258,17 @@ class ViewportScene {
     }
     const facePositions = this.canonicalPositions && this.canonicalPositions.length >= 3
       ? (() => {
-          let minX = Infinity; let maxX = -Infinity; let minY = Infinity; let maxY = -Infinity;
-          for (let i = 0; i < this.canonicalPositions!.length; i += 3) {
-            minX = Math.min(minX, this.canonicalPositions![i]); maxX = Math.max(maxX, this.canonicalPositions![i]);
-            minY = Math.min(minY, this.canonicalPositions![i + 1]); maxY = Math.max(maxY, this.canonicalPositions![i + 1]);
-          }
-          const sx = Math.max(maxX - minX, 1e-6); const sy = Math.max(maxY - minY, 1e-6);
-          const rawWidth = Math.max(worldMaxX - worldMinX, 0.05); const rawHeight = Math.max(worldMaxY - worldMinY, 0.05);
-          const cx = (minX + maxX) / 2; const cy = (minY + maxY) / 2;
+          // Anchor the canonical OBJ on its eye landmarks, not on the outer
+          // head bounding box. The box center is below the eyes and makes the
+          // GLB appear detached when the face is recentered for the viewport.
+          const canonicalLeft = new THREE.Vector3(this.canonicalPositions![33 * 3], this.canonicalPositions![33 * 3 + 1], this.canonicalPositions![33 * 3 + 2]);
+          const canonicalRight = new THREE.Vector3(this.canonicalPositions![263 * 3], this.canonicalPositions![263 * 3 + 1], this.canonicalPositions![263 * 3 + 2]);
+          const canonicalEyeCenter = canonicalLeft.clone().add(canonicalRight).multiplyScalar(0.5);
+          const canonicalEyeDistance = canonicalLeft.distanceTo(canonicalRight);
+          const scale = this.eyeDistance / Math.max(canonicalEyeDistance, 1e-6);
           const out: number[] = [];
           for (let i = 0; i < this.canonicalPositions!.length; i += 3) {
-            out.push(this.eyeCenter.x + (this.canonicalPositions![i] - cx) / sx * rawWidth, this.eyeCenter.y - (this.canonicalPositions![i + 1] - cy) / sy * rawHeight, this.eyeCenter.z + this.canonicalPositions![i + 2] / sx * rawWidth);
+            out.push(this.eyeCenter.x + (this.canonicalPositions![i] - canonicalEyeCenter.x) * scale, this.eyeCenter.y + (this.canonicalPositions![i + 1] - canonicalEyeCenter.y) * scale, this.eyeCenter.z + (this.canonicalPositions![i + 2] - canonicalEyeCenter.z) * scale);
           }
           return out;
         })()
@@ -322,6 +325,7 @@ class ViewportScene {
       this.glasses.clear();
       result.scene.updateMatrixWorld(true);
       const sourceBounds = new THREE.Box3().setFromObject(result.scene);
+      const sourceCenter = sourceBounds.getCenter(new THREE.Vector3());
       const sourceWidth = sourceBounds.max.x - sourceBounds.min.x;
       const frameWidthMm = typeof manifest?.dimensions?.frameWidthMm === "number" ? manifest.dimensions.frameWidthMm : 150;
       const widthNormalization = sourceWidth > 1e-6 ? (frameWidthMm / 200) / sourceWidth : 0.01;
@@ -334,6 +338,9 @@ class ViewportScene {
       this.glbOrigin = origin && [origin.x, origin.y, origin.z].every((value) => typeof value === "number")
         ? { x: Number(origin.x), y: Number(origin.y), z: Number(origin.z) }
         : null;
+      // Use the actual mesh center for the viewport pivot. Manifest origins
+      // describe the authoring file and can be outside the visible frame.
+      this.glbCenter = { x: sourceCenter.x, y: sourceCenter.y, z: sourceCenter.z };
       this.glbRoot = result.scene;
       result.scene.position.set(0, 0, 0);
       result.scene.traverse((object) => {
