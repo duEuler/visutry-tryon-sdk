@@ -4,7 +4,7 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 
 export interface ViewportDefinition { label: string; body: string; }
 export function renderViewportGrid(viewports: ViewportDefinition[]): string {
-  return `<div class="viewport-grid">${viewports.map((viewport) => `<div class="mini"><strong>${viewport.label}</strong>${viewport.body}</div>`).join("")}</div>`;
+  return `<div class="viewport-grid">${viewports.map((viewport) => `<div class="mini"><div class="viewport-heading"><strong>${viewport.label}</strong><button type="button" data-viewport-reset="${viewport.label}" aria-label="Restaurar câmera ${viewport.label}" title="Restaurar câmera">↺</button></div>${viewport.body}</div>`).join("")}</div>`;
 }
 
 type Point3 = { x: number; y: number; z?: number };
@@ -50,6 +50,8 @@ class ViewportScene {
   private faceUp = new THREE.Vector3(0, 1, 0);
   private faceForward = new THREE.Vector3(0, 0, 1);
   private cameraTarget = new THREE.Vector3();
+  private manualCamera = false;
+  private pointer: { x: number; y: number } | null = null;
   private lastPose: NonNullable<ViewportSnapshot["pose"]> = { yaw: 0, pitch: 0, roll: 0 };
 
   private static canonicalIndexPromise: Promise<number[] | null> | null = null;
@@ -74,6 +76,20 @@ class ViewportScene {
     this.scene.add(this.world);
     this.world.add(this.face, this.glasses);
     this.glasses.visible = false;
+    canvas.addEventListener("pointerdown", (event) => { this.pointer = { x: event.clientX, y: event.clientY }; canvas.setPointerCapture(event.pointerId); this.manualCamera = true; });
+    canvas.addEventListener("pointermove", (event) => {
+      if (!this.pointer) return;
+      const dx = event.clientX - this.pointer.x; const dy = event.clientY - this.pointer.y;
+      this.pointer = { x: event.clientX, y: event.clientY };
+      const offset = this.camera.position.clone().sub(this.cameraTarget);
+      const yaw = new THREE.Quaternion().setFromAxisAngle(this.faceUp, -dx * 0.01);
+      const pitch = new THREE.Quaternion().setFromAxisAngle(this.faceRight, -dy * 0.01);
+      offset.applyQuaternion(yaw).applyQuaternion(pitch);
+      this.camera.position.copy(this.cameraTarget).add(offset); this.camera.lookAt(this.cameraTarget);
+    });
+    canvas.addEventListener("pointerup", () => { this.pointer = null; });
+    canvas.addEventListener("pointercancel", () => { this.pointer = null; });
+    canvas.addEventListener("wheel", (event) => { event.preventDefault(); this.manualCamera = true; const factor = event.ctrlKey ? 1.03 : 1.08; this.camera.zoom = THREE.MathUtils.clamp(this.camera.zoom * (event.deltaY < 0 ? factor : 1 / factor), 0.35, 6); this.camera.updateProjectionMatrix(); }, { passive: false });
     ViewportScene.loadCanonicalIndex().then((index) => {
       this.canonicalIndex = index;
       if (this.lastRaw && this.canonicalIndex) {
@@ -83,6 +99,8 @@ class ViewportScene {
       }
     });
   }
+
+  resetCamera(): void { this.manualCamera = false; this.camera.zoom = 1; this.camera.updateProjectionMatrix(); this.pointer = null; }
 
   render(snapshot: ViewportSnapshot): void {
     const face = snapshot.face as { landmarks?: { raw?: unknown[]; connections?: { tesselation?: Array<{ start: number; end: number }> } }; pose?: { matrix?: number[] } } | undefined;
@@ -246,6 +264,7 @@ class ViewportScene {
   }
 
   private applyView(view: string): void {
+    if (this.manualCamera) { this.camera.lookAt(this.cameraTarget); return; }
     // FRONT is the canonical camera. Other panels move from that baseline
     // using the measured face basis; scene objects are never transformed.
     const offset = view === "TOP"
@@ -441,6 +460,14 @@ void drawViewport;
 
 /** Updates all four lightweight face projections from the latest audit snapshot. */
 export function updateViewportGrid(element: HTMLElement, snapshot: ViewportSnapshot): void {
+  element.querySelectorAll<HTMLButtonElement>("[data-viewport-reset]").forEach((button) => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => {
+      const canvas = element.querySelector<HTMLCanvasElement>(`canvas[data-viewport="${button.dataset.viewportReset}"]`);
+      if (canvas) viewportScenes.get(canvas)?.resetCamera();
+    });
+  });
   const hasReconstruction = Boolean(snapshot.reconstruction?.completed);
   const hasFace = Boolean((snapshot.face as { landmarks?: { raw?: unknown[] } } | undefined)?.landmarks?.raw?.length);
   if (snapshot.mode !== "connected") staticViewportSnapshots.delete(element);
