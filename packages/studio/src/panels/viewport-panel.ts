@@ -32,6 +32,11 @@ class ViewportScene {
   private lastView = "";
   private canonicalIndex: number[] | null = null;
   private usingCanonical = false;
+  private faceCenter = new THREE.Vector3();
+  private faceFitScale = 1;
+  private eyeCenter = new THREE.Vector3();
+  private eyeDistance = 0.35;
+  private lastPose = { yaw: 0, pitch: 0, roll: 0 };
 
   private static canonicalIndexPromise: Promise<number[] | null> | null = null;
 
@@ -72,6 +77,11 @@ class ViewportScene {
     const height = Math.max(1, this.canvas.clientHeight || 120);
     this.renderer.setSize(width, height, false);
     const view = this.canvas.dataset.viewport ?? "FRONT";
+    this.lastPose = {
+      yaw: snapshot.pose?.yaw ?? 0,
+      pitch: snapshot.pose?.pitch ?? 0,
+      roll: snapshot.pose?.roll ?? 0,
+    };
     if (this.lastRaw !== raw || (this.canonicalIndex !== null && !this.usingCanonical)) {
       this.rebuildFace(raw, face?.landmarks?.connections?.tesselation ?? []);
       this.lastRaw = raw;
@@ -102,16 +112,60 @@ class ViewportScene {
   }
 
   private applyGlassesPose(matrix?: number[]): void {
-    if (!matrix || matrix.length < 16) return;
-    const transform = new THREE.Matrix4().fromArray(matrix);
-    this.glasses.matrixAutoUpdate = false;
-    this.glasses.matrix.copy(transform);
-    this.glasses.matrixWorldNeedsUpdate = true;
+    if (!this.glasses.visible) return;
+    // The viewport face is normalized into a unit render space. Anchor the
+    // GLB to the observed eye line in that same space instead of applying the
+    // metric camera-space matrix directly (which would put a millimetre asset
+    // outside the orthographic frustum).
+    this.glasses.matrixAutoUpdate = true;
+    this.glasses.position.copy(this.eyeCenter);
+    this.glasses.rotation.set(
+      THREE.MathUtils.degToRad(this.lastPose.pitch),
+      THREE.MathUtils.degToRad(this.lastPose.yaw),
+      THREE.MathUtils.degToRad(this.lastPose.roll),
+    );
+    const fit = Math.max(0.02, this.eyeDistance * 1.95);
+    const bounds = new THREE.Box3().setFromObject(this.glasses);
+    const width = Math.max(bounds.max.x - bounds.min.x, 0.001);
+    const scale = fit / width;
+    this.glasses.scale.setScalar(scale);
+    void matrix;
   }
 
   private rebuildFace(raw: unknown[], links: Array<{ start: number; end: number }>): void {
     this.face.clear();
-    const positions = raw.map(asPoint).filter((point): point is Point3 => point !== null).flatMap((point) => [(point.x - 0.5) * 2, -(point.y - 0.5) * 2, (point.z ?? 0) * 2]);
+    const points = raw.map(asPoint);
+    const valid = points.filter((point): point is Point3 => point !== null);
+    if (!valid.length) return;
+    const minX = Math.min(...valid.map((point) => point.x));
+    const maxX = Math.max(...valid.map((point) => point.x));
+    const minY = Math.min(...valid.map((point) => point.y));
+    const maxY = Math.max(...valid.map((point) => point.y));
+    const minZ = Math.min(...valid.map((point) => point.z ?? 0));
+    const maxZ = Math.max(...valid.map((point) => point.z ?? 0));
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    const centerZ = (minZ + maxZ) / 2;
+    this.faceFitScale = 1.55 / Math.max(maxX - minX, maxY - minY, 0.05);
+    this.faceCenter.set(centerX, centerY, centerZ);
+    const toWorld = (point: Point3 | null): [number, number, number] => point
+      ? [(point.x - centerX) * this.faceFitScale, -(point.y - centerY) * this.faceFitScale, ((point.z ?? 0) - centerZ) * this.faceFitScale * 1.8]
+      : [0, 0, 0];
+    const positions = points.flatMap(toWorld);
+    const leftEye = points[33];
+    const rightEye = points[263];
+    if (leftEye && rightEye) {
+      this.eyeCenter.set(...toWorld({
+        x: (leftEye.x + rightEye.x) / 2,
+        y: (leftEye.y + rightEye.y) / 2,
+        z: ((leftEye.z ?? 0) + (rightEye.z ?? 0)) / 2,
+      }));
+      this.eyeDistance = Math.max(0.05, Math.hypot(
+        (rightEye.x - leftEye.x) * this.faceFitScale,
+        (rightEye.y - leftEye.y) * this.faceFitScale,
+        ((rightEye.z ?? 0) - (leftEye.z ?? 0)) * this.faceFitScale * 1.8,
+      ));
+    }
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
     const triangles: number[] = this.canonicalIndex?.length ? this.canonicalIndex.filter((index) => index < raw.length) : [];
@@ -132,29 +186,57 @@ class ViewportScene {
   }
 
   private applyView(view: string): void {
-    this.camera.position.set(0, 0, 3);
-    this.camera.rotation.set(0, 0, 0);
-    if (view === "TOP") this.camera.rotation.x = -Math.PI / 2;
-    if (view === "LEFT") this.camera.rotation.y = -Math.PI / 2;
-    if (view === "RIGHT") this.camera.rotation.y = Math.PI / 2;
+    // Position the camera on each axis; calling lookAt after assigning a
+    // rotation would otherwise reset that rotation and make every viewport
+    // render the same front projection.
+    if (view === "TOP") this.camera.position.set(0, 3, 0);
+    else if (view === "LEFT") this.camera.position.set(-3, 0, 0);
+    else if (view === "RIGHT") this.camera.position.set(3, 0, 0);
+    else this.camera.position.set(0, 0, 3);
     this.camera.lookAt(0, 0, 0);
     this.camera.updateProjectionMatrix();
   }
 
   private loadGlb(glb: unknown): void {
-    const modelUrl = glb && typeof glb === "object" && typeof (glb as { modelUrl?: unknown }).modelUrl === "string" ? (glb as { modelUrl: string }).modelUrl : "";
+    const manifest = glb && typeof glb === "object" ? glb as { modelUrl?: unknown; dimensions?: { frameWidthMm?: unknown } } : null;
+    const modelUrl = manifest && typeof manifest.modelUrl === "string" ? manifest.modelUrl : "";
     if (!modelUrl || modelUrl === this.loadedGlb || this.loadingGlb) return;
     this.loadingGlb = true;
     this.loader.load(modelUrl, (result) => {
       this.glasses.clear();
+      // GLB assets do not share a guaranteed origin. Normalize the model
+      // around its own bounding-box center before the eye anchor is applied;
+      // otherwise a valid pose can still appear visibly above the face.
+      result.scene.updateMatrixWorld(true);
+      const sourceBounds = new THREE.Box3().setFromObject(result.scene);
+      const sourceWidth = sourceBounds.max.x - sourceBounds.min.x;
+      const frameWidthMm = typeof manifest?.dimensions?.frameWidthMm === "number" ? manifest.dimensions.frameWidthMm : 150;
+      const widthNormalization = sourceWidth > 1e-6 ? (frameWidthMm / 200) / sourceWidth : 0.01;
+      result.scene.scale.setScalar(widthNormalization);
+      result.scene.updateMatrixWorld(true);
+      const normalizedBounds = new THREE.Box3().setFromObject(result.scene);
+      const normalizedCenter = normalizedBounds.getCenter(new THREE.Vector3());
+      // Keep depth untouched (it is meaningful for TOP/LEFT/RIGHT), while
+      // moving the model's local X/Y center onto the eye-line anchor.
+      result.scene.position.x -= normalizedCenter.x;
+      result.scene.position.y -= normalizedCenter.y + 0.22;
       result.scene.traverse((object) => {
         const mesh = object as THREE.Mesh;
         if (!mesh.isMesh) return;
-        mesh.material = new THREE.MeshBasicMaterial({ color: "#f1b54a", wireframe: true });
+        mesh.frustumCulled = false;
+        mesh.renderOrder = 10;
+        mesh.material = new THREE.MeshBasicMaterial({
+          color: "#f1b54a",
+          wireframe: true,
+          depthTest: false,
+          depthWrite: false,
+          transparent: true,
+          opacity: 0.98,
+        });
       });
-      result.scene.scale.setScalar(0.01);
       this.glasses.add(result.scene);
       this.glasses.visible = true;
+      this.glasses.renderOrder = 10;
       this.loadedGlb = modelUrl;
       this.loadingGlb = false;
       this.renderer.render(this.scene, this.camera);
