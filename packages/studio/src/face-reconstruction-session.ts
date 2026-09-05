@@ -13,6 +13,7 @@ export interface FaceReconstructionSample {
   faceCoverage?: number;
   /** Optional detector occlusion estimate, where 1 means fully occluded. */
   occlusion?: number;
+  connections?: Array<[number, number]>;
 }
 
 export type FaceReconstructionSessionState = "idle" | "capturing" | "processing" | "completed" | "cancelled";
@@ -48,6 +49,22 @@ function scoreSample(sample: FaceReconstructionSample, targetYaw: number, target
   const faceCoverage = Math.max(0, Math.min(1, asFinite(sample.faceCoverage, 0.75)));
   const occlusion = Math.max(0, Math.min(1, asFinite(sample.occlusion, 0)));
   return confidence * 0.4 + validRatio * 0.25 + stability * 0.2 + orientationMatch * 0.1 + faceCoverage * 0.05 - occlusion * 0.15;
+}
+
+function alignPoint(point: { x: number; y: number; z?: number }, sample: FaceReconstructionSample): { x: number; y: number; z: number } {
+  const yaw = (asFinite(sample.yaw) * Math.PI) / 180;
+  const pitch = (asFinite(sample.pitch) * Math.PI) / 180;
+  const roll = (asFinite(sample.roll) * Math.PI) / 180;
+  const cx = point.x - 0.5;
+  const cy = point.y - 0.5;
+  const cz = asFinite(point.z);
+  const xRoll = cx * Math.cos(-roll) - cy * Math.sin(-roll);
+  const yRoll = cx * Math.sin(-roll) + cy * Math.cos(-roll);
+  const yPitch = yRoll * Math.cos(-pitch) - cz * Math.sin(-pitch);
+  const zPitch = yRoll * Math.sin(-pitch) + cz * Math.cos(-pitch);
+  const xYaw = xRoll * Math.cos(-yaw) - zPitch * Math.sin(-yaw);
+  const zYaw = xRoll * Math.sin(-yaw) + zPitch * Math.cos(-yaw);
+  return { x: xYaw + 0.5, y: yPitch + 0.5, z: zYaw };
 }
 
 function estimatePoint(index: number, count: number, observed: Map<number, ReconstructedPoint>): ReconstructedPoint {
@@ -127,15 +144,17 @@ export class FaceReconstructionSession {
     const observedRegions = [...this.bestByRegion.keys()];
     this.bestByRegion.forEach(({ sample, score }) => sample.landmarks.forEach((point, index) => {
       if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
+      const aligned = alignPoint(point, sample);
       const previous = byIndex.get(index);
-      if (!previous || score > previous.confidence) byIndex.set(index, { index, x: point.x, y: point.y, z: asFinite(point.z), source: "observed", confidence: score, frameId: sample.id });
+      if (!previous || score > previous.confidence) byIndex.set(index, { index, x: aligned.x, y: aligned.y, z: aligned.z, source: "observed", confidence: score, frameId: sample.id });
     }));
     const count = Math.max(478, ...this.samples.map((sample) => sample.landmarks.length), 1);
     const landmarks = Array.from({ length: count }, (_, index) => byIndex.get(index) ?? estimatePoint(index, count, byIndex));
     const estimatedRegions = this.requiredRegions.filter((region) => !observedRegions.includes(region));
     const coverage = landmarks.length ? landmarks.filter((point) => point.source === "observed").length / landmarks.length : 0;
     const confidence = landmarks.length ? landmarks.reduce((sum, point) => sum + point.confidence, 0) / landmarks.length : 0;
-    return { landmarks, observedRegions, estimatedRegions, coverage, confidence, capturedFrames: this.samples.length, completed: true, frozenAt: Date.now() };
+    const connections = this.samples.find((sample) => sample.connections?.length)?.connections;
+    return { landmarks, connections, observedRegions, estimatedRegions, coverage, confidence, capturedFrames: this.samples.length, completed: true, frozenAt: Date.now() };
   }
 }
 

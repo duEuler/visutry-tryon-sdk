@@ -83,11 +83,13 @@ const unsubscribeSnapshot = studio.subscribeSnapshot((snapshot) => {
       id: `frame-${Date.now()}`,
       timestamp: Date.now(),
       landmarks: face.landmarks.raw,
+      connections: face.landmarks.connections?.map(([from, to]) => [from, to] as [number, number]),
       yaw: snapshot.pose?.yaw ?? 0,
       pitch: snapshot.pose?.pitch ?? 0,
       roll: snapshot.pose?.roll ?? 0,
       confidence: snapshot.tracking?.confidence ?? 0,
       stability: snapshot.tracking?.stability ?? 0,
+      faceCoverage: face.bbox ? Math.min(1, Math.max(0, face.bbox.width * face.bbox.height * 3)) : undefined,
     });
     const progress = reconstructionSession.getProgress();
     const labels: Record<string, string> = { front: "Frontal", left: "Lateral esq.", right: "Lateral dir.", top: "Topo", chin: "Queixo" };

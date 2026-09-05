@@ -9,7 +9,7 @@ type ViewportSnapshot = {
   face?: unknown;
   pose?: { yaw?: number; pitch?: number; roll?: number } | null;
   glb?: unknown;
-  reconstruction?: { landmarks: Array<{ index: number; x: number; y: number; z: number; source: "observed" | "estimated" }>; completed: boolean; coverage: number; capturedFrames: number } | null;
+  reconstruction?: { landmarks: Array<{ index: number; x: number; y: number; z: number; source: "observed" | "estimated" }>; connections?: Array<[number, number]>; completed: boolean; coverage: number; capturedFrames: number } | null;
 };
 
 const asPoint = (value: unknown): Point3 | null => {
@@ -60,7 +60,7 @@ function drawViewport(canvas: HTMLCanvasElement, snapshot: ViewportSnapshot): vo
     : raw.map(asPoint).filter((point): point is Point3 => point !== null).map((point, index) => ({ ...point, index, source: "observed" as const }));
   if (snapshot.mode !== "connected" || points.length < 3) return;
   const view = canvas.dataset.viewport ?? "FRONT";
-  const pose = snapshot.pose ?? {};
+  const pose = reconstruction ? {} : snapshot.pose ?? {};
   const projected = points.map((point) => project(point, view, pose.yaw ?? 0, pose.pitch ?? 0, pose.roll ?? 0));
   const bounds = projected.reduce((value, point) => ({
     minX: Math.min(value.minX, point.x), maxX: Math.max(value.maxX, point.x),
@@ -80,9 +80,11 @@ function drawViewport(canvas: HTMLCanvasElement, snapshot: ViewportSnapshot): vo
   });
   context.strokeStyle = "rgba(52, 198, 240, .32)";
   context.lineWidth = 0.7;
-  const meshLinks: Array<[number, number]> = [];
-  for (let index = 1; index < fitted.length; index += 1) meshLinks.push([index - 1, index]);
-  for (let index = 17; index < fitted.length; index += 1) meshLinks.push([index - 17, index]);
+  const meshLinks: Array<[number, number]> = reconstruction?.connections?.length ? reconstruction.connections : [];
+  if (!meshLinks.length) {
+    for (let index = 1; index < fitted.length; index += 1) meshLinks.push([index - 1, index]);
+    for (let index = 17; index < fitted.length; index += 1) meshLinks.push([index - 17, index]);
+  }
   meshLinks.forEach(([from, to]) => {
     const previous = fitted[from];
     const point = fitted[to];

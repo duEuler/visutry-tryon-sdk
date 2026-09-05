@@ -14,6 +14,7 @@ export type ReconstructedPointSource = "observed" | "estimated";
 export interface ReconstructedPoint { index: number; x: number; y: number; z: number; source: ReconstructedPointSource; confidence: number; frameId?: string; }
 export interface FaceReconstruction {
   landmarks: ReconstructedPoint[];
+  connections?: Array<[number, number]>;
   observedRegions: FaceRegion[];
   estimatedRegions: FaceRegion[];
   coverage: number;
