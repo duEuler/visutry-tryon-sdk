@@ -149,7 +149,10 @@ class ViewportScene {
           return { x: fitted * 0.45, y: fitted * 0.45, z: fitted * 0.45 };
         })()
       : { x: 1, y: 1, z: 1 });
-    this.glasses.scale.set(-scale.x, scale.y, scale.z);
+    // Viewports are physical-space projections, not the mirrored video
+    // surface. Keep the GLB's handedness so temples extend behind the head
+    // in LEFT/RIGHT and remain consistent with the Live anchor.
+    this.glasses.scale.set(scale.x, scale.y, scale.z);
     if (this.glbRoot && this.glbOrigin) {
       const factor = this.glbModelScale * scale.x;
       this.glbRoot.position.set(
