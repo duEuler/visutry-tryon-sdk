@@ -39,7 +39,6 @@ const landmarkCanvas = document.querySelector<HTMLCanvasElement>(".studio-landma
 let landmarkOverlay: { renderFromFace(face: NormalizedFaceResult, width: number, height: number): void; clear(): void } | null = null;
 let lastFace: NormalizedFaceResult | null = null;
 let lastAuditSnapshot: AuditSnapshot | null = null;
-let viewportFrozen = false;
 const reconstructionSession: FaceReconstructionSession = createFaceReconstructionSession({ maxFrames: 120, minConfidence: 0.45 });
 const toolbarBinding = bindStudioToolbar(document, studio);
 if (import.meta.env.DEV) {
@@ -124,14 +123,13 @@ const evidenceButton = document.getElementById("capture-evidence") as HTMLButton
 const reconstructionButton = document.getElementById("capture-reconstruction") as HTMLButtonElement | null;
 const clearReconstructionButton = document.getElementById("clear-reconstruction") as HTMLButtonElement | null;
 const exportReconstructionButton = document.getElementById("export-reconstruction") as HTMLButtonElement | null;
-const freezeViewportsButton = document.getElementById("freeze-viewports") as HTMLButtonElement | null;
 const stopButton = document.getElementById("stop-runtime") as HTMLButtonElement | null;
 const setRuntimeControls = (mode: StudioMode) => {
   const ready = mode === "connected";
   const hasRuntime = mode !== "static";
   document.body.dataset.runtimeMode = mode;
   if (runtimeButton) runtimeButton.disabled = hasRuntime;
-  [cameraButton, tryOnButton, glbButton, evidenceButton, reconstructionButton, clearReconstructionButton, exportReconstructionButton, freezeViewportsButton].forEach((button) => {
+  [cameraButton, tryOnButton, glbButton, evidenceButton, reconstructionButton, clearReconstructionButton, exportReconstructionButton].forEach((button) => {
     if (!button) return;
     button.disabled = !ready;
     button.setAttribute("aria-disabled", String(!ready));
@@ -145,7 +143,6 @@ const setRuntimeControls = (mode: StudioMode) => {
     if (glbButton) glbButton.disabled = glbReady;
     if (clearReconstructionButton) clearReconstructionButton.disabled = !reconstructionSession.getSnapshot()?.completed;
     if (exportReconstructionButton) exportReconstructionButton.disabled = !reconstructionSession.getSnapshot()?.completed;
-    if (freezeViewportsButton) freezeViewportsButton.disabled = false;
   }
   if (stopButton) stopButton.disabled = !hasRuntime;
 };
@@ -246,21 +243,14 @@ reconstructionButton?.addEventListener("click", () => {
       return;
     }
     runtimeAdapter.setSnapshot?.({ reconstruction });
-    viewportFrozen = true;
     reconstructionButton.textContent = "Reconstrução congelada";
     reconstructionButton.title = `Cobertura ${Math.round(reconstruction.coverage * 100)}%`;
     if (clearReconstructionButton) clearReconstructionButton.disabled = false;
     if (exportReconstructionButton) exportReconstructionButton.disabled = false;
-    if (freezeViewportsButton) {
-      freezeViewportsButton.disabled = false;
-      freezeViewportsButton.textContent = "Descongelar viewports";
-      freezeViewportsButton.title = "Retomar atualizações dos viewports";
-    }
     setStatus(`Reconstrução concluída · ${Math.round(reconstruction.coverage * 100)}% de cobertura`);
     return;
   }
   reconstructionSession.start();
-  viewportFrozen = false;
   if (lastFace?.landmarks?.raw?.length) {
     reconstructionSession.ingest({
       id: `frame-${Date.now()}-initial`,
@@ -278,10 +268,6 @@ reconstructionButton?.addEventListener("click", () => {
   runtimeAdapter.setSnapshot?.({ reconstruction: null });
   if (clearReconstructionButton) clearReconstructionButton.disabled = true;
   if (exportReconstructionButton) exportReconstructionButton.disabled = true;
-  if (freezeViewportsButton) {
-    freezeViewportsButton.textContent = "Congelar viewports";
-    freezeViewportsButton.title = "Congelar somente os viewports";
-  }
   reconstructionButton.textContent = "Finalizar reconstrução";
   reconstructionButton.title = "Finalize após girar o rosto para os ângulos desejados";
   setStatus("Capturando ângulos: frente, topo, esquerda e direita");
@@ -289,15 +275,10 @@ reconstructionButton?.addEventListener("click", () => {
 clearReconstructionButton?.addEventListener("click", () => {
   if (!runtimeAdapter || studio.getMode() !== "connected") return;
   reconstructionSession.cancel();
-  viewportFrozen = false;
   runtimeAdapter.setSnapshot?.({ reconstruction: null });
     if (reconstructionButton) reconstructionButton.textContent = "Capturar reconstrução";
   clearReconstructionButton.disabled = true;
   if (exportReconstructionButton) exportReconstructionButton.disabled = true;
-  if (freezeViewportsButton) {
-    freezeViewportsButton.textContent = "Congelar viewports";
-    freezeViewportsButton.title = "Congelar somente os viewports";
-  }
   setStatus("Reconstrução limpa");
 });
 exportReconstructionButton?.addEventListener("click", () => {
@@ -311,37 +292,6 @@ exportReconstructionButton?.addEventListener("click", () => {
   anchor.click();
   URL.revokeObjectURL(url);
   setStatus("Snapshot de calibração exportado");
-});
-freezeViewportsButton?.addEventListener("click", () => {
-  if (!runtimeAdapter || studio.getMode() !== "connected") return;
-  const existing = reconstructionSession.getSnapshot();
-  if (!existing?.completed && lastFace?.landmarks?.raw?.length) {
-    reconstructionSession.start();
-    reconstructionSession.ingest({
-      id: `frame-${Date.now()}-freeze`, timestamp: Date.now(), landmarks: lastFace.landmarks.raw,
-      connections: lastFace.landmarks.connections?.map(([from, to]) => [from, to] as [number, number]),
-      yaw: lastAuditSnapshot?.pose?.yaw ?? 0, pitch: lastAuditSnapshot?.pose?.pitch ?? 0, roll: lastAuditSnapshot?.pose?.roll ?? 0,
-      confidence: lastAuditSnapshot?.tracking?.confidence ?? lastFace.quality?.confidence ?? 0,
-      stability: lastAuditSnapshot?.tracking?.stability ?? lastFace.quality?.stabilityScore ?? 0,
-    });
-    const reconstruction = reconstructionSession.finish();
-    if (reconstruction.capturedFrames > 0) {
-      runtimeAdapter.setSnapshot?.({ reconstruction });
-    } else {
-      reconstructionSession.cancel();
-      setStatus("Aguardando uma leitura real antes de congelar os viewports");
-      return;
-    }
-  }
-  if (!existing?.completed && !reconstructionSession.getSnapshot()?.completed) {
-    setStatus("Aguardando uma leitura real antes de congelar os viewports");
-    return;
-  }
-  viewportFrozen = !viewportFrozen;
-  if (!viewportFrozen) runtimeAdapter.setSnapshot?.({ reconstruction: null });
-  freezeViewportsButton.textContent = viewportFrozen ? "Descongelar viewports" : "Congelar viewports";
-  freezeViewportsButton.title = viewportFrozen ? "Retomar atualizações dos viewports" : "Congelar somente os viewports";
-  setStatus(viewportFrozen ? "Viewports congelados; Live 3D continua ativo" : "Viewports acompanhando o runtime");
 });
 stopButton?.addEventListener("click", () => {
   runtimeSdk?.stopTryOn();
@@ -358,11 +308,9 @@ stopButton?.addEventListener("click", () => {
   if (glbButton) glbButton.textContent = "Carregar GLB";
   if (evidenceButton) evidenceButton.textContent = "Capturar evidência";
   reconstructionSession.cancel();
-  viewportFrozen = false;
   if (reconstructionButton) reconstructionButton.textContent = "Capturar reconstrução";
   if (clearReconstructionButton) clearReconstructionButton.disabled = true;
   if (exportReconstructionButton) exportReconstructionButton.disabled = true;
-  if (freezeViewportsButton) { freezeViewportsButton.disabled = true; freezeViewportsButton.textContent = "Congelar viewports"; }
   setStatus("Runtime parado; dados limpos");
 });
 document.addEventListener("visibilitychange", () => {

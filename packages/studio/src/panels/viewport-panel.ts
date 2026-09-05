@@ -12,6 +12,8 @@ type ViewportSnapshot = {
   reconstruction?: { landmarks: Array<{ index: number; x: number; y: number; z: number; source: "observed" | "estimated" }>; connections?: Array<[number, number]>; completed: boolean; coverage: number; capturedFrames: number } | null;
 };
 
+const staticViewportSnapshots = new WeakMap<HTMLElement, Pick<ViewportSnapshot, "face" | "pose">>();
+
 const asPoint = (value: unknown): Point3 | null => {
   if (!value || typeof value !== "object") return null;
   const point = value as { x?: unknown; y?: unknown; z?: unknown };
@@ -134,13 +136,23 @@ function drawViewport(canvas: HTMLCanvasElement, snapshot: ViewportSnapshot): vo
 
 /** Updates all four lightweight face projections from the latest audit snapshot. */
 export function updateViewportGrid(element: HTMLElement, snapshot: ViewportSnapshot): void {
-  element.querySelectorAll<HTMLCanvasElement>("canvas.viewport-canvas").forEach((canvas) => drawViewport(canvas, snapshot));
+  const hasReconstruction = Boolean(snapshot.reconstruction?.completed);
+  const hasFace = Boolean((snapshot.face as { landmarks?: { raw?: unknown[] } } | undefined)?.landmarks?.raw?.length);
+  if (snapshot.mode !== "connected") staticViewportSnapshots.delete(element);
+  if (!hasReconstruction && hasFace && !staticViewportSnapshots.has(element)) {
+    staticViewportSnapshots.set(element, { face: snapshot.face, pose: snapshot.pose });
+  }
+  const staticReference = staticViewportSnapshots.get(element);
+  const viewportSnapshot = hasReconstruction || !staticReference
+    ? snapshot
+    : { ...snapshot, face: staticReference.face, pose: staticReference.pose };
+  element.querySelectorAll<HTMLCanvasElement>("canvas.viewport-canvas").forEach((canvas) => drawViewport(canvas, viewportSnapshot));
   const status = element.querySelector<HTMLElement>("[data-reconstruction-status]");
   if (status) {
     const reconstruction = snapshot.reconstruction;
     status.textContent = reconstruction?.completed
       ? `Reconstrução fixa · ${Math.round(reconstruction.coverage * 100)}% cobertura · ${reconstruction.capturedFrames} leituras`
-      : "Ao vivo · inicie uma reconstrução para congelar";
+      : staticReference ? "Modelo 3D fixo · leitura inicial" : "Aguardando leitura facial";
   }
   element.querySelectorAll<HTMLElement>("[data-viewport-caption]").forEach((caption) => {
     caption.textContent = snapshot.glb ? "rosto 3D · óculos GLB wireframe" : "rosto 3D · óculos GLB aguardando carregamento";
