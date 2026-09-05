@@ -89,6 +89,11 @@ const unsubscribeSnapshot = studio.subscribeSnapshot((snapshot) => {
       confidence: snapshot.tracking?.confidence ?? 0,
       stability: snapshot.tracking?.stability ?? 0,
     });
+    const progress = reconstructionSession.getProgress();
+    const labels: Record<string, string> = { front: "Frontal", left: "Lateral esq.", right: "Lateral dir.", top: "Topo", chin: "Queixo" };
+    const done = progress.observedRegions.map((region) => `${labels[region] ?? region} ✓`).join(" · ");
+    const missing = progress.missingRegions.map((region) => `${labels[region] ?? region} em captura`).join(" · ");
+    setStatus(`${done}${done && missing ? " · " : ""}${missing}`);
   }
   if (landmarkOverlay && snapshot.mode === "connected" && snapshot.tracking?.detected && lastFace?.landmarks?.raw?.length) {
     landmarkCanvas?.classList.remove("studio-runtime-hidden");

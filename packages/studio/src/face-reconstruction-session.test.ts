@@ -12,6 +12,7 @@ describe("FaceReconstructionSession", () => {
     const session = new FaceReconstructionSession({ minConfidence: 0.4 });
     session.start();
     expect(session.ingest(sample("front", 0))).toBe(true);
+    expect(session.getProgress().observedRegions).toContain("front");
     expect(session.ingest(sample("left", -30))).toBe(true);
     expect(session.ingest(sample("right", 30))).toBe(true);
     expect(session.ingest(sample("top", 0, 20))).toBe(true);
