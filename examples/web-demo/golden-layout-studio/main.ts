@@ -81,7 +81,8 @@ const unsubscribeSnapshot = studio.subscribeSnapshot((snapshot) => {
   if (snapshot.error) setStatus(formatRuntimeError(snapshot.error));
   const face = snapshot.face as NormalizedFaceResult | undefined;
   if (face?.landmarks?.raw?.length) lastFace = face;
-  if (reconstructionSession.getState() === "capturing" && face?.landmarks?.raw?.length) {
+  if (reconstructionCaptureActive && reconstructionSession.getState() !== "capturing") reconstructionSession.start();
+  if (reconstructionCaptureActive && face?.landmarks?.raw?.length) {
     reconstructionSession.ingest({
       id: `frame-${Date.now()}`,
       timestamp: Date.now(),
@@ -119,6 +120,7 @@ let resumeTryOnOnVisible = false;
 let cameraReady = false;
 let tryOnReady = false;
 let glbReady = false;
+let reconstructionCaptureActive = false;
 const runtimeButton = document.getElementById("connect-runtime") as HTMLButtonElement | null;
 const cameraButton = document.getElementById("start-camera") as HTMLButtonElement | null;
 const tryOnButton = document.getElementById("start-tryon") as HTMLButtonElement | null;
@@ -266,6 +268,7 @@ document.addEventListener("click", (event) => {
       return;
     }
     runtimeAdapter.setSnapshot?.({ reconstruction });
+    reconstructionCaptureActive = false;
     button.textContent = "Reconstrução congelada";
     button.title = `Cobertura ${Math.round(reconstruction.coverage * 100)}%`;
     if (clearReconstructionButton) clearReconstructionButton.disabled = false;
@@ -274,6 +277,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   reconstructionSession.start();
+  reconstructionCaptureActive = true;
   const progressBar = document.querySelector<HTMLProgressElement>("#reconstruction-progress");
   if (progressBar) progressBar.value = 0;
   const progressLabel = document.querySelector<HTMLElement>("#reconstruction-progress-label");
@@ -303,6 +307,7 @@ document.addEventListener("click", (event) => {
 clearReconstructionButton?.addEventListener("click", () => {
   if (!runtimeAdapter || studio.getMode() !== "connected") return;
   reconstructionSession.cancel();
+  reconstructionCaptureActive = false;
   runtimeAdapter.setSnapshot?.({ reconstruction: null });
     if (reconstructionButton) { reconstructionButton.textContent = "Capturar reconstrução"; reconstructionButton.setAttribute("aria-label", "Capturar reconstrução 3D"); }
   clearReconstructionButton.disabled = true;
@@ -336,6 +341,7 @@ stopButton?.addEventListener("click", () => {
   if (glbButton) glbButton.textContent = "Carregar GLB";
   if (evidenceButton) evidenceButton.textContent = "Capturar evidência";
   reconstructionSession.cancel();
+  reconstructionCaptureActive = false;
   if (reconstructionButton) { reconstructionButton.textContent = "Capturar reconstrução"; reconstructionButton.setAttribute("aria-label", "Capturar reconstrução 3D"); }
   if (clearReconstructionButton) clearReconstructionButton.disabled = true;
   if (exportReconstructionButton) exportReconstructionButton.disabled = true;
@@ -424,6 +430,7 @@ document.getElementById("connect-runtime")?.addEventListener("click", async (eve
     setStatus("Câmera, try-on e GLB ativos");
     // Start collecting angular coverage immediately after connection. This
     // does not create the 3D model; it only waits for front/left/right views.
+    reconstructionCaptureActive = true;
     if (reconstructionSession.getState() !== "capturing") reconstructionSession.start();
     const progressBar = document.querySelector<HTMLProgressElement>("#reconstruction-progress");
     if (progressBar) progressBar.value = 0;
