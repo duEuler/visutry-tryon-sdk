@@ -131,9 +131,19 @@ const stopButton = document.getElementById("stop-runtime") as HTMLButtonElement 
 const setRuntimeControls = (mode: StudioMode) => {
   const ready = mode === "connected";
   const hasRuntime = mode !== "static";
+  const current = (id: string) => document.getElementById(id) as HTMLButtonElement | null;
+  const runtime = current("connect-runtime");
+  const camera = current("start-camera");
+  const tryon = current("start-tryon");
+  const glb = current("load-glb");
+  const evidence = current("capture-evidence");
+  const reconstruction = current("capture-reconstruction");
+  const clear = current("clear-reconstruction");
+  const exportButton = current("export-reconstruction");
+  const stop = current("stop-runtime");
   document.body.dataset.runtimeMode = mode;
-  if (runtimeButton) runtimeButton.disabled = hasRuntime;
-  [cameraButton, tryOnButton, glbButton, evidenceButton, reconstructionButton, clearReconstructionButton, exportReconstructionButton].forEach((button) => {
+  if (runtime) runtime.disabled = hasRuntime;
+  [camera, tryon, glb, evidence, reconstruction, clear, exportButton].forEach((button) => {
     if (!button) return;
     button.disabled = !ready;
     button.setAttribute("aria-disabled", String(!ready));
@@ -142,13 +152,13 @@ const setRuntimeControls = (mode: StudioMode) => {
       : "Conecte o runtime para habilitar este recurso";
   });
   if (ready) {
-    if (cameraButton) cameraButton.disabled = cameraReady;
-    if (tryOnButton) tryOnButton.disabled = tryOnReady;
-    if (glbButton) glbButton.disabled = glbReady;
-    if (clearReconstructionButton) clearReconstructionButton.disabled = !reconstructionSession.getSnapshot()?.completed;
-    if (exportReconstructionButton) exportReconstructionButton.disabled = !reconstructionSession.getSnapshot()?.completed;
+    if (camera) camera.disabled = cameraReady;
+    if (tryon) tryon.disabled = tryOnReady;
+    if (glb) glb.disabled = glbReady;
+    if (clear) clear.disabled = !reconstructionSession.getSnapshot()?.completed;
+    if (exportButton) exportButton.disabled = !reconstructionSession.getSnapshot()?.completed;
   }
-  if (stopButton) stopButton.disabled = !hasRuntime;
+  if (stop) stop.disabled = !hasRuntime;
 };
 const applyDiagnosticVisibility = (target: string, visible: boolean) => {
   const selectors: Record<string, string> = {
