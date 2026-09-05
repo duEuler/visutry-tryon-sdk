@@ -79,15 +79,32 @@ function drawViewport(canvas: HTMLCanvasElement, snapshot: ViewportSnapshot): vo
   });
   context.strokeStyle = "rgba(52, 198, 240, .32)";
   context.lineWidth = 0.7;
-  for (let index = 1; index < fitted.length; index += 2) {
-    const previous = fitted[index - 1];
-    const point = fitted[index];
+  const meshLinks: Array<[number, number]> = [];
+  for (let index = 1; index < fitted.length; index += 1) meshLinks.push([index - 1, index]);
+  for (let index = 17; index < fitted.length; index += 1) meshLinks.push([index - 17, index]);
+  meshLinks.forEach(([from, to]) => {
+    const previous = fitted[from];
+    const point = fitted[to];
+    if (!previous || !point) return;
     context.beginPath();
     context.moveTo(previous.x * width, previous.y * height);
     context.lineTo(point.x * width, point.y * height);
-    context.strokeStyle = points[index]?.source === "estimated" || points[index - 1]?.source === "estimated"
+    context.strokeStyle = points[to]?.source === "estimated" || points[from]?.source === "estimated"
       ? "rgba(238, 116, 196, .36)"
       : "rgba(52, 198, 240, .32)";
+    context.stroke();
+  });
+  if (reconstruction) {
+    context.strokeStyle = "rgba(238, 116, 196, .72)";
+    context.lineWidth = 1;
+    const neckY = height * 0.77;
+    context.beginPath();
+    context.moveTo(width * 0.39, height * 0.64);
+    context.quadraticCurveTo(width * 0.42, neckY, width * 0.34, height * 0.9);
+    context.moveTo(width * 0.61, height * 0.64);
+    context.quadraticCurveTo(width * 0.58, neckY, width * 0.66, height * 0.9);
+    context.moveTo(width * 0.34, height * 0.9);
+    context.quadraticCurveTo(width * 0.5, height * 0.82, width * 0.66, height * 0.9);
     context.stroke();
   }
   const eyeLeft = fitted[Math.min(33, fitted.length - 1)];
